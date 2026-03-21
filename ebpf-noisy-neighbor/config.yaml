@@ -1,0 +1,63 @@
+experiments:
+  - name: baseline_low_noise
+    noise_level: low
+    ebpf: false
+    strategy: none
+    containers: 3
+    requests: 300
+
+  - name: baseline_high_noise
+    noise_level: high
+    ebpf: false
+    strategy: none
+    containers: 3
+    requests: 300
+
+  - name: ebpf_high_noise_dropper
+    noise_level: high
+    ebpf: true
+    strategy: dropper
+    containers: 3
+    requests: 300
+
+  - name: ebpf_medium_noise_rate_limit
+    noise_level: medium
+    ebpf: true
+    strategy: rate_limit
+    containers: 3
+    requests: 300
+
+  - name: ebpf_medium_noise_priority
+    noise_level: medium
+    ebpf: true
+    strategy: priority
+    containers: 3
+    requests: 300
+
+  - name: baseline_scale_5
+    noise_level: medium
+    ebpf: false
+    strategy: none
+    containers: 5
+    requests: 250
+
+  - name: ebpf_scale_5
+    noise_level: medium
+    ebpf: true
+    strategy: rate_limit
+    containers: 5
+    requests: 250
+
+  - name: baseline_scale_10
+    noise_level: medium
+    ebpf: false
+    strategy: none
+    containers: 10
+    requests: 150
+
+  - name: ebpf_scale_10
+    noise_level: medium
+    ebpf: true
+    strategy: priority
+    containers: 10
+    requests: 150

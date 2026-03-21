@@ -4,6 +4,10 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 RUNC_ROOT="/run/runc-ebpf-noisy-neighbor"
 RUNTIME_DIR="$ROOT_DIR/containers/runtime"
+INVENTORY_FILE="$RUNTIME_DIR/inventory.csv"
+
+CONTAINER_COUNT="${CONTAINER_COUNT:-3}"
+NOISE_LEVEL="${NOISE_LEVEL:-medium}"
 
 need_root() {
   if [[ ${EUID} -ne 0 ]]; then
@@ -31,12 +35,25 @@ start_one() {
   runc --root "$RUNC_ROOT" run -d --bundle "$bundle" "$name"
 }
 
+prepare_runtime() {
+  if [[ ! -d "$ROOT_DIR/containers/alpine-rootfs/rootfs-template" ]]; then
+    echo "[start-containers] Rootfs template missing. Running setup-rootfs first..."
+    "$ROOT_DIR/containers/setup-rootfs.sh"
+  fi
+
+  echo "[start-containers] Generating runtime bundles for ${CONTAINER_COUNT} containers (noise=${NOISE_LEVEL})"
+  "$ROOT_DIR/scripts/generate-runtime.sh" "$CONTAINER_COUNT" "$NOISE_LEVEL"
+}
+
 need_root
 mkdir -p "$RUNC_ROOT"
 
-start_one tenant1
-start_one tenant2
-start_one noisy
+prepare_runtime
+
+while IFS=, read -r name role ip; do
+  [[ "$name" == "name" ]] && continue
+  start_one "$name"
+done < "$INVENTORY_FILE"
 
 echo "[start-containers] Configuring networking"
 "$ROOT_DIR/networking/setup-network.sh"

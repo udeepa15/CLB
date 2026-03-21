@@ -48,17 +48,8 @@ prepare_template() {
 }
 
 prepare_bundles() {
-  mkdir -p "$RUNTIME_DIR"
-
-  for name in tenant1 tenant2 noisy; do
-    local bundle="$RUNTIME_DIR/$name"
-    echo "[setup-rootfs] Preparing bundle: $bundle"
-    rm -rf "$bundle"
-    mkdir -p "$bundle"
-
-    cp -a "$TEMPLATE_ROOTFS" "$bundle/rootfs"
-    cp "$CONFIGS_DIR/$name.json" "$bundle/config.json"
-  done
+  echo "[setup-rootfs] Generating default runtime bundles (3 containers, medium noise)"
+  "$ROOT_DIR/scripts/generate-runtime.sh" 3 medium
 }
 
 need_root

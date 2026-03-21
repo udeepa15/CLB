@@ -5,13 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 RUNC_ROOT="/run/runc-ebpf-noisy-neighbor"
 BRIDGE="clb-br0"
 BRIDGE_IP="10.0.0.1/24"
-
-# container -> ip
-declare -A IPS=(
-  [tenant1]="10.0.0.2/24"
-  [tenant2]="10.0.0.3/24"
-  [noisy]="10.0.0.4/24"
-)
+INVENTORY_FILE="$ROOT_DIR/containers/runtime/inventory.csv"
 
 need_root() {
   if [[ ${EUID} -ne 0 ]]; then
@@ -71,9 +65,15 @@ setup_veth_for_container() {
 need_root
 setup_bridge
 
-setup_veth_for_container tenant1 "${IPS[tenant1]}"
-setup_veth_for_container tenant2 "${IPS[tenant2]}"
-setup_veth_for_container noisy "${IPS[noisy]}"
+if [[ ! -f "$INVENTORY_FILE" ]]; then
+  echo "[setup-network] ERROR: Missing runtime inventory: $INVENTORY_FILE"
+  exit 1
+fi
+
+while IFS=, read -r name role ip; do
+  [[ "$name" == "name" ]] && continue
+  setup_veth_for_container "$name" "${ip}/24"
+done < "$INVENTORY_FILE"
 
 sysctl -w net.ipv4.ip_forward=1 >/dev/null
 

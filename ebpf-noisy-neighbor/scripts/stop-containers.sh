@@ -9,12 +9,10 @@ if [[ ${EUID} -ne 0 ]]; then
   exit 1
 fi
 
-for name in tenant1 tenant2 noisy; do
-  if runc --root "$RUNC_ROOT" state "$name" >/dev/null 2>&1; then
-    echo "[stop-containers] Stopping $name"
-    runc --root "$RUNC_ROOT" kill "$name" KILL || true
-    runc --root "$RUNC_ROOT" delete "$name" || true
-  fi
+for name in $(runc --root "$RUNC_ROOT" list -f json 2>/dev/null | jq -r '.[].id' || true); do
+  echo "[stop-containers] Stopping $name"
+  runc --root "$RUNC_ROOT" kill "$name" KILL || true
+  runc --root "$RUNC_ROOT" delete "$name" || true
 done
 
 "$ROOT_DIR/ebpf/tc/attach.sh" detach || true

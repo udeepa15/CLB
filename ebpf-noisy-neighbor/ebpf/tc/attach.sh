@@ -2,9 +2,10 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-OBJ="$SCRIPT_DIR/limiter.o"
 IFACE="${IFACE:-clb-br0}"
 ACTION="${1:-attach}"
+STRATEGY="${2:-dropper}"
+OBJ="$SCRIPT_DIR/${STRATEGY}.o"
 
 if [[ ${EUID} -ne 0 ]]; then
   echo "[ebpf-attach] Please run as root (sudo)."
@@ -13,8 +14,8 @@ fi
 
 case "$ACTION" in
   attach)
-    [[ -f "$OBJ" ]] || "$SCRIPT_DIR/build.sh"
-    echo "[ebpf-attach] Attaching tc/eBPF to ingress on $IFACE"
+    [[ -f "$OBJ" ]] || "$SCRIPT_DIR/build.sh" "$STRATEGY"
+    echo "[ebpf-attach] Attaching tc/eBPF strategy=$STRATEGY to ingress on $IFACE"
     tc qdisc replace dev "$IFACE" clsact
     tc filter replace dev "$IFACE" ingress prio 1 handle 1 bpf da obj "$OBJ" sec classifier
     tc filter show dev "$IFACE" ingress
@@ -26,10 +27,13 @@ case "$ACTION" in
     ;;
   status)
     tc qdisc show dev "$IFACE"
-    tc filter show dev "$IFACE" ingress
+    tc -s filter show dev "$IFACE" ingress
+    ;;
+  drops)
+    tc -s filter show dev "$IFACE" ingress 2>/dev/null | awk '/dropped/ {for (i=1;i<=NF;i++) if ($i=="dropped") {print $(i+1); exit}} END {if (NR==0) print 0}'
     ;;
   *)
-    echo "Usage: $0 [attach|detach|status]"
+    echo "Usage: $0 [attach|detach|status|drops] [dropper|rate_limit|priority]"
     exit 1
     ;;
 esac

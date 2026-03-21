@@ -7,6 +7,7 @@
     "env": [
       "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
       "TERM=xterm",
+      "NOISE_LEVEL=medium",
       "NOISY_TARGETS=10.0.0.2:8080,10.0.0.3:8080"
     ],
     "cwd": "/",

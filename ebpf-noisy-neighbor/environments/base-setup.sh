@@ -19,6 +19,9 @@ apt-get install -y \
   make \
   python3 \
   python3-pip \
+  python3-yaml \
+  python3-matplotlib \
+  stress-ng \
   iperf3
 
 echo "[base-setup] Applying sysctl config from $SYSCTL_FILE"

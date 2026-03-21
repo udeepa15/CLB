@@ -1,21 +1,24 @@
-# eBPF Noisy Neighbor Benchmark (runC)
+# eBPF Noisy Neighbor Research Framework (runC)
 
-A reproducible research project to evaluate the noisy-neighbor effect on p99 latency and the impact of tc/eBPF mitigation in a pure runC environment.
+A reproducible, parameterized experiment framework to evaluate noisy-neighbor interference and tc/eBPF isolation effectiveness using **runC only**.
 
-## What this repository does
+## Capabilities
 
-- Starts 3 containers with runC:
-  - `tenant1` (latency-sensitive HTTP server)
-  - `tenant2` (latency-sensitive HTTP server)
-  - `noisy` (CPU + network pressure)
-- Creates a dedicated Linux bridge and veth pairs with static IPs:
-  - `tenant1`: `10.0.0.2`
-  - `tenant2`: `10.0.0.3`
-  - `noisy`: `10.0.0.4`
-- Runs two scenarios:
-  - **baseline** (no eBPF traffic control)
-  - **ebpf-enabled** (tc classifier drops noisy source traffic)
-- Collects p99 latency and generates comparison plots.
+- Pure `runC` orchestration (no Docker/Kubernetes)
+- Dynamic container scaling (`3`, `5`, `10`, configurable)
+- Manual Linux networking with bridge + veth + static IP allocation (`10.0.0.x`)
+- Adjustable noisy workload intensity (`low`, `medium`, `high`)
+- Multiple tc/eBPF strategies:
+  - `dropper`
+  - `rate_limit`
+  - `priority`
+- Config-driven experiment matrix via [config.yaml](config.yaml)
+- Automated metrics collection:
+  - `p50`, `p95`, `p99`
+  - jitter
+  - throughput
+  - packet drops
+  - isolation score
 
 ---
 
@@ -36,13 +39,12 @@ sudo ./environments/base-setup.sh
 
 ---
 
-## Quick start
+## Quick start (full suite)
 
 ```bash
 cd ebpf-noisy-neighbor
 make setup
-make baseline
-make ebpf
+sudo ./scripts/run-all-experiments.sh ./config.yaml
 python3 analysis/plot.py
 ```
 
@@ -52,12 +54,16 @@ Detailed guides:
 - `docs/EXPERIMENTS.md`
 - `docs/TROUBLESHOOTING.md`
 
-Generated outputs:
+Outputs:
 
-- Raw latency samples: `results/raw/*.latency`
-- Per-run logs: `results/raw/*.log`
-- Extracted summary: `results/processed/summary.csv`
-- Plot image: `results/processed/p99_comparison.png`
+- Raw per-experiment logs and latency traces: `results/raw/`
+- Legacy summary: `results/processed/summary.csv`
+- Main dataset: `results/processed/results.csv`
+- Figures:
+  - `results/processed/p99_vs_noise.png`
+  - `results/processed/latency_histogram.png`
+  - `results/processed/baseline_vs_ebpf.png`
+  - `results/processed/scalability.png`
 
 ---
 
@@ -77,16 +83,16 @@ This downloads Alpine minirootfs, installs `python3/curl/iperf3`, and prepares r
 sudo ./scripts/start-containers.sh
 ```
 
-### 3) Baseline experiment (no eBPF)
+### 3) Manual single baseline run
 
 ```bash
-sudo ./experiments/baseline/run.sh
+sudo NOISE_LEVEL=medium CONTAINERS=3 REQUESTS=300 ./experiments/baseline/run.sh
 ```
 
-### 4) eBPF-enabled experiment
+### 4) Manual single eBPF run
 
 ```bash
-sudo ./experiments/ebpf-enabled/run.sh
+sudo NOISE_LEVEL=high CONTAINERS=3 STRATEGY=dropper REQUESTS=300 ./experiments/ebpf-enabled/run.sh
 ```
 
 ### 5) Plot results
@@ -97,20 +103,28 @@ python3 analysis/plot.py
 
 ---
 
+## Isolation score
+
+The framework computes:
+
+`Isolation Score = p99_with_noise / p99_baseline_low_noise`
+
+Values are recorded in `results.csv` per tenant.
+
 ## Expected output
 
-Typical console summary from `workloads/client.sh`:
+Typical client summary:
 
 ```text
-SUMMARY target=http://10.0.0.2:8080 requests=300 failures=0 p50_ms=1.1 p90_ms=2.0 p99_ms=5.8 avg_ms=1.4
+SUMMARY target=http://10.0.0.2:8080 requests=300 failures=0 p50_ms=1.1 p95_ms=2.7 p99_ms=5.8 jitter_ms=0.9 throughput_rps=420.2 avg_ms=1.4
 ```
 
-`results/processed/summary.csv` example:
+`results/processed/results.csv` example:
 
 ```csv
-timestamp,scenario,tenant,requests,failures,p99_ms
-2026-03-21T12:00:00+00:00,baseline,tenant1,300,0,18.42
-2026-03-21T12:05:00+00:00,ebpf,tenant1,300,0,6.11
+timestamp,experiment,noise_level,ebpf_enabled,strategy,containers,tenant,requests,failures,p50_ms,p95_ms,p99_ms,jitter_ms,throughput_rps,packet_drops,isolation_score
+2026-03-21T12:00:00+00:00,baseline_low_noise,low,false,none,3,tenant1,300,0,0.82,1.10,1.90,0.21,500.2,0,1.0000
+2026-03-21T12:05:00+00:00,ebpf_high_noise_dropper,high,true,dropper,3,tenant1,300,0,1.60,2.80,4.10,0.76,320.4,834,2.1579
 ```
 
 ---
@@ -130,4 +144,5 @@ This stops runC containers, removes network artifacts, and detaches tc/eBPF hook
 - Run each scenario multiple times for statistical confidence.
 - Pin CPU cores if needed for stricter control.
 - Keep host load stable between runs.
-- For stricter shaping (not just drop), extend `ebpf/tc/limiter.c` with maps and probabilistic/drop policies.
+- Experiment definitions are controlled from [config.yaml](config.yaml).
+- The suite is idempotent and cleans environment between runs.

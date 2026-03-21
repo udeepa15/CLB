@@ -2,8 +2,20 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SRC="$SCRIPT_DIR/limiter.c"
-OUT="$SCRIPT_DIR/limiter.o"
+STRATEGY="${1:-dropper}"
+
+case "$STRATEGY" in
+  dropper|rate_limit|priority)
+    ;;
+  *)
+    echo "[ebpf-build] Unsupported strategy: $STRATEGY"
+    echo "[ebpf-build] Use one of: dropper, rate_limit, priority"
+    exit 1
+    ;;
+esac
+
+SRC="$SCRIPT_DIR/${STRATEGY}.c"
+OUT="$SCRIPT_DIR/${STRATEGY}.o"
 
 ARCH="x86"
 INCLUDE_DIR="/usr/include/$(uname -m)-linux-gnu"

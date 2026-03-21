@@ -1,6 +1,6 @@
 SHELL := /usr/bin/env bash
 
-.PHONY: setup baseline ebpf clean
+.PHONY: setup baseline ebpf suite plot clean
 
 setup:
 	sudo ./environments/base-setup.sh
@@ -11,6 +11,12 @@ baseline:
 
 ebpf:
 	sudo ./experiments/ebpf-enabled/run.sh
+
+suite:
+	sudo ./scripts/run-all-experiments.sh ./config.yaml
+
+plot:
+	python3 analysis/plot.py
 
 clean:
 	sudo ./scripts/stop-containers.sh

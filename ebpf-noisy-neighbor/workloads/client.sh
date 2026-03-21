@@ -19,9 +19,10 @@ echo "# requests=$REQUESTS" >> "$OUT_FILE"
 
 echo "[client] Sending $REQUESTS requests to $URL"
 failures=0
+start_epoch="$(date +%s.%N)"
 for ((i=1; i<=REQUESTS; i++)); do
-  ts="$(date --iso-8601=ns)"
-  t="$(curl -sS -o /dev/null -w '%{time_total}' "$URL" || true)"
+  ts="$(date +%Y-%m-%dT%H:%M:%S.%N%:z)"
+  t="$(curl -s -o /dev/null -w '%{time_total}' "$URL" 2>/dev/null || true)"
 
   if [[ -z "$t" ]]; then
     failures=$((failures + 1))
@@ -35,24 +36,25 @@ PY
 )"
   echo "$ts,$ms" >> "$OUT_FILE"
 done
+end_epoch="$(date +%s.%N)"
 
-python3 - "$OUT_FILE" "$URL" "$REQUESTS" "$failures" <<'PY' | tee "$LOG_FILE"
+python3 - "$OUT_FILE" "$URL" "$REQUESTS" "$failures" "$start_epoch" "$end_epoch" <<'PY' | tee "$LOG_FILE"
 import sys
-from statistics import mean
+from statistics import mean, pstdev
 
-path, url, requests, failures = sys.argv[1:5]
+path, url, requests, failures, start_epoch, end_epoch = sys.argv[1:7]
 vals = []
 with open(path, "r", encoding="utf-8") as f:
     for line in f:
         if line.startswith("#"):
             continue
-        parts = line.strip().split(",")
+    parts = line.strip().rsplit(",", 1)
         if len(parts) != 2:
             continue
         vals.append(float(parts[1]))
 
 if not vals:
-    print(f"SUMMARY target={url} requests={requests} failures={failures} p50_ms=nan p90_ms=nan p99_ms=nan avg_ms=nan")
+  print(f"SUMMARY target={url} requests={requests} failures={failures} p50_ms=nan p95_ms=nan p99_ms=nan jitter_ms=nan throughput_rps=nan avg_ms=nan")
     raise SystemExit(0)
 
 vals.sort()
@@ -62,8 +64,14 @@ def pct(p):
     return vals[max(0, min(idx, len(vals)-1))]
 
 p50 = pct(50)
-p90 = pct(90)
+p95 = pct(95)
 p99 = pct(99)
 avg = mean(vals)
-print(f"SUMMARY target={url} requests={requests} failures={failures} p50_ms={p50:.3f} p90_ms={p90:.3f} p99_ms={p99:.3f} avg_ms={avg:.3f}")
+jitter = pstdev(vals) if len(vals) > 1 else 0.0
+
+ok = len(vals)
+elapsed = max(float(end_epoch) - float(start_epoch), 1e-9)
+throughput = ok / elapsed
+
+print(f"SUMMARY target={url} requests={requests} failures={failures} p50_ms={p50:.3f} p95_ms={p95:.3f} p99_ms={p99:.3f} jitter_ms={jitter:.3f} throughput_rps={throughput:.3f} avg_ms={avg:.3f}")
 PY
