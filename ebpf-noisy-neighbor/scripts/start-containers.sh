@@ -8,6 +8,8 @@ INVENTORY_FILE="$RUNTIME_DIR/inventory.csv"
 
 CONTAINER_COUNT="${CONTAINER_COUNT:-3}"
 NOISE_LEVEL="${NOISE_LEVEL:-medium}"
+TRAFFIC_PATTERN="${TRAFFIC_PATTERN:-constant}"
+FAILURE_MODE="${FAILURE_MODE:-none}"
 
 need_root() {
   if [[ ${EUID} -ne 0 ]]; then
@@ -41,8 +43,8 @@ prepare_runtime() {
     "$ROOT_DIR/containers/setup-rootfs.sh"
   fi
 
-  echo "[start-containers] Generating runtime bundles for ${CONTAINER_COUNT} containers (noise=${NOISE_LEVEL})"
-  "$ROOT_DIR/scripts/generate-runtime.sh" "$CONTAINER_COUNT" "$NOISE_LEVEL"
+  echo "[start-containers] Generating runtime bundles for ${CONTAINER_COUNT} containers (noise=${NOISE_LEVEL}, pattern=${TRAFFIC_PATTERN}, failure=${FAILURE_MODE})"
+  TRAFFIC_PATTERN="$TRAFFIC_PATTERN" FAILURE_MODE="$FAILURE_MODE" "$ROOT_DIR/scripts/generate-runtime.sh" "$CONTAINER_COUNT" "$NOISE_LEVEL"
 }
 
 need_root

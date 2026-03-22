@@ -1,93 +1,74 @@
-# Experiment Guide
+# Experiment Guide (Publication Workflow)
 
-This document explains the parameterized experiment matrix and what to compare.
+## Research matrix dimensions
 
-## Topology
+Configured in [config.yaml](../config.yaml) or [configs/research_matrix.yaml](../configs/research_matrix.yaml):
 
-- `tenant1` -> HTTP server at `10.0.0.2:8080`
-- `tenant2` -> HTTP server at `10.0.0.3:8080`
-- `noisy`   -> CPU + network pressure at `10.0.0.4`
-- Bridge: `clb-br0` (`10.0.0.1/24`)
+- `noise_level`: `low`, `medium`, `high`
+- `traffic_pattern`: `constant`, `bursty`, `delayed_start`, `intermittent`
+- `isolation_method`: `none`, `tc`, `ebpf`, `adaptive`
+- `identity_mode`: `ip`, `cgroup`
+- `container_count`: `3`, `5`, `10`
+- `failure_mode`: `none`, `spike`, `churn`
+- iterations: default `5` runs per scenario
 
-## Config-driven matrix
-
-The suite is defined in `config.yaml` and executed by:
+## Execution
 
 ```bash
 sudo ./scripts/run-all-experiments.sh ./config.yaml
-```
-
-Each row defines:
-- experiment name
-- noise level (`low`, `medium`, `high`)
-- eBPF enabled/disabled
-- eBPF strategy (`dropper`, `rate_limit`, `priority`)
-- container count (`3`, `5`, `10`)
-- request count
-
-## Baseline scenario
-
-Script: `experiments/baseline/run.sh` (single-run wrapper)
-
-Steps:
-1. Stops any old containers/network state
-2. Starts all three runC containers
-3. Creates bridge + veth networking
-4. Runs client latency tests against both tenants
-5. Extracts p99 to `results/processed/summary.csv`
-6. Cleans up
-
-Run:
-
-```bash
-sudo ./experiments/baseline/run.sh
-```
-
-## eBPF-enabled scenario
-
-Script: `experiments/ebpf-enabled/run.sh` (single-run wrapper)
-
-Same flow as baseline, with one extra step:
-- Compiles and attaches selected strategy (`dropper`, `rate_limit`, `priority`) on bridge ingress via tc `clsact`
-
-Run:
-
-```bash
-sudo ./experiments/ebpf-enabled/run.sh
-```
-
-## Comparing results
-
-Main CSV (`results/processed/results.csv`) columns include:
-- latency stats (`p50_ms`, `p95_ms`, `p99_ms`)
-- jitter (`jitter_ms`)
-- throughput (`throughput_rps`)
-- packet drops (`packet_drops`)
-- isolation score (`isolation_score`)
-
-Plot averages:
-
-```bash
 python3 analysis/plot.py
 ```
 
-Generated graphs:
-- `results/processed/p99_vs_noise.png`
-- `results/processed/latency_histogram.png`
-- `results/processed/baseline_vs_ebpf.png`
-- `results/processed/scalability.png`
+## Adaptive contribution
 
-## Repetition for statistical confidence
+`isolation_method=adaptive` enables:
 
-Recommended:
-- Run each scenario at least 5 times
-- Keep `REQUESTS` fixed (example: 500 or 1000)
-- Use median or mean of per-run p99 values
+1. tc attach of `ebpf/tc/adaptive.c`
+2. userspace feedback loop in `core/adaptive_controller.py`
+3. dynamic updates through map writes (`core/bpf_map_ctl.py`)
 
-Example:
+Control law:
 
-```bash
-for i in {1..5}; do REQUESTS=500 sudo ./experiments/baseline/run.sh; done
-for i in {1..5}; do REQUESTS=500 sudo ./experiments/ebpf-enabled/run.sh; done
-python3 analysis/plot.py
-```
+- if measured p99 exceeds threshold, increase drop-rate
+- otherwise, gradually relax throttling
+
+## Cgroup-aware policy
+
+`identity_mode=cgroup` maps policy using cgroup IDs from `containers/runtime/cgroup_ids.csv`.
+
+`identity_mode=ip` uses noisy source IP matching.
+
+## Baselines for comparison
+
+- `none`: no isolation
+- `tc`: Linux HTB + fq_codel shaping baseline
+- `ebpf`: static tc/eBPF strategies (`dropper`, `rate_limit`, `priority`)
+- `adaptive`: map-driven closed-loop eBPF
+
+## Metrics captured
+
+- percentile latency: `p50/p95/p99`
+- full latency distribution buckets: `results/processed/latency_distribution.csv`
+- jitter and variance: `jitter_ms`, `variance_ms2`
+- tail amplification: `p99/p50`
+- throughput and packet drops
+- degradation/recovery windows under stress
+- isolation score vs low-noise no-isolation baseline
+
+## Statistical outputs
+
+Final summary in `results/final/summary.csv` reports:
+
+- runs
+- average p99
+- standard deviation
+- 95% confidence interval
+
+## Publication-ready outputs
+
+- `results/final/summary.csv`
+- `results/final/results.csv`
+- `results/final/latency_distribution.csv`
+- `results/final/graphs/*.png`
+- `results/final/logs/*.log`
+- `results/final/metadata.json`

@@ -39,6 +39,8 @@ This prepares runC bundles in:
 sudo ./scripts/run-all-experiments.sh ./config.yaml
 ```
 
+This runs the full matrix across noise levels, traffic patterns, isolation methods (`none/tc/ebpf/adaptive`), container counts, failure modes, and iterations.
+
 ## 4) Optional single baseline experiment (no eBPF)
 
 ```bash
@@ -49,6 +51,13 @@ sudo ./experiments/baseline/run.sh
 
 ```bash
 sudo ./experiments/ebpf-enabled/run.sh
+```
+
+For adaptive + cgroup-aware control, run through the generic single runner:
+
+```bash
+sudo ./scripts/run-single-experiment.sh \
+	adaptive_demo high true 3 adaptive 400 adaptive bursty cgroup 1 none 8.0
 ```
 
 ## 6) Generate plots
@@ -64,9 +73,14 @@ Output files:
 - `results/processed/summary.csv`
 - `results/processed/results.csv`
 - `results/processed/p99_vs_noise.png`
-- `results/processed/latency_histogram.png`
-- `results/processed/baseline_vs_ebpf.png`
-- `results/processed/scalability.png`
+- `results/processed/latency_cdf.png`
+- `results/processed/isolation_effectiveness.png`
+- `results/processed/overhead_vs_performance.png`
+- `results/processed/latency_time_series.png`
+- `results/final/summary.csv`
+- `results/final/graphs/*.png`
+- `results/final/logs/*.log`
+- `results/final/metadata.json`
 
 ## 7) Cleanup
 
@@ -86,3 +100,14 @@ make ebpf
 python3 analysis/plot.py
 make clean
 ```
+
+---
+
+## Suggested research flow
+
+```bash
+sudo ./scripts/run-all-experiments.sh ./configs/research_matrix.yaml
+python3 analysis/plot.py
+```
+
+This produces publication-ready outputs under `results/final/`.

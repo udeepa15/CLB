@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
+from __future__ import annotations
+
 import csv
+import math
 import os
 from collections import defaultdict
 
@@ -11,6 +14,13 @@ RAW_DIR = os.path.join(ROOT_DIR, "results", "raw")
 OUT_DIR = os.path.join(ROOT_DIR, "results", "processed")
 
 
+def _f(v, default=float("nan")):
+    try:
+        return float(v)
+    except Exception:
+        return default
+
+
 def read_results(path):
     rows = []
     if not os.path.exists(path):
@@ -19,11 +29,15 @@ def read_results(path):
     with open(path, "r", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for r in reader:
+            r["p99_ms"] = _f(r.get("p99_ms"))
+            r["tail_amplification"] = _f(r.get("tail_amplification"))
+            r["jitter_ms"] = _f(r.get("jitter_ms"))
+            r["throughput_rps"] = _f(r.get("throughput_rps"))
+            r["packet_drops"] = _f(r.get("packet_drops"), 0.0)
             try:
-                r["p99_ms"] = float(r["p99_ms"])
-                r["containers"] = int(r["containers"])
+                r["containers"] = int(r.get("containers", 0))
             except Exception:
-                continue
+                r["containers"] = 0
             rows.append(r)
     return rows
 
@@ -31,44 +45,17 @@ def read_results(path):
 def avg_by(rows, key_fn, value_key="p99_ms"):
     acc = defaultdict(list)
     for r in rows:
-        acc[key_fn(r)].append(float(r[value_key]))
+        v = _f(r.get(value_key, "nan"))
+        if math.isfinite(v):
+            acc[key_fn(r)].append(v)
     return {k: (sum(v) / len(v)) for k, v in acc.items() if v}
 
 
-def plot_p99_vs_noise(rows):
-    order = ["low", "medium", "high"]
-    baseline = [r for r in rows if r["ebpf_enabled"] == "false"]
-    ebpf = [r for r in rows if r["ebpf_enabled"] == "true"]
-
-    b = avg_by(baseline, lambda r: r["noise_level"])
-    e = avg_by(ebpf, lambda r: r["noise_level"])
-
-    x = list(range(len(order)))
-    bvals = [b.get(o, 0.0) for o in order]
-    evals = [e.get(o, 0.0) for o in order]
-
-    fig, ax = plt.subplots(figsize=(8, 5))
-    ax.plot(x, bvals, marker="o", label="Baseline")
-    ax.plot(x, evals, marker="o", label="eBPF")
-    ax.set_xticks(x)
-    ax.set_xticklabels(order)
-    ax.set_xlabel("Noise level")
-    ax.set_ylabel("Average p99 latency (ms)")
-    ax.set_title("p99 vs Noise Level")
-    ax.grid(True, alpha=0.3)
-    ax.legend()
-    fig.tight_layout()
-    out = os.path.join(OUT_DIR, "p99_vs_noise.png")
-    fig.savefig(out, dpi=150)
-    print(f"Saved: {out}")
-
-
-def load_latency_samples(prefix):
+def load_latency_samples(path):
     vals = []
-    p = os.path.join(RAW_DIR, prefix)
-    if not os.path.exists(p):
+    if not os.path.exists(path):
         return vals
-    with open(p, "r", encoding="utf-8") as f:
+    with open(path, "r", encoding="utf-8") as f:
         for line in f:
             if line.startswith("#"):
                 continue
@@ -82,67 +69,154 @@ def load_latency_samples(prefix):
     return vals
 
 
-def plot_latency_histogram(rows):
-    baseline_vals = []
-    ebpf_vals = []
+def load_timeseries(path):
+    xs, ys = [], []
+    if not os.path.exists(path):
+        return xs, ys
+    with open(path, "r", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            try:
+                xs.append(float(row["index"]))
+                ys.append(float(row["latency_ms"]))
+            except Exception:
+                pass
+    return xs, ys
+
+
+def plot_latency_cdf(rows):
+    groups = {
+        "no_isolation": [],
+        "tc": [],
+        "ebpf": [],
+        "adaptive": [],
+    }
+
     for r in rows:
-        lat_file = f"{r['experiment']}_{r['tenant']}.latency"
+        lat_file = os.path.join(RAW_DIR, f"{r['experiment']}_{r['tenant']}.latency")
         vals = load_latency_samples(lat_file)
-        if r["ebpf_enabled"] == "true":
-            ebpf_vals.extend(vals)
+        method = r.get("isolation_method", "none")
+        if method == "none":
+            groups["no_isolation"].extend(vals)
+        elif method == "tc":
+            groups["tc"].extend(vals)
+        elif method == "adaptive":
+            groups["adaptive"].extend(vals)
         else:
-            baseline_vals.extend(vals)
+            groups["ebpf"].extend(vals)
 
     fig, ax = plt.subplots(figsize=(8, 5))
-    if baseline_vals:
-        ax.hist(baseline_vals, bins=40, alpha=0.5, label="Baseline")
-    if ebpf_vals:
-        ax.hist(ebpf_vals, bins=40, alpha=0.5, label="eBPF")
+    for label, vals in groups.items():
+        if not vals:
+            continue
+        vals = sorted(vals)
+        y = [i / len(vals) for i in range(1, len(vals) + 1)]
+        ax.plot(vals, y, label=label)
+
     ax.set_xlabel("Latency (ms)")
-    ax.set_ylabel("Frequency")
-    ax.set_title("Latency Distribution Histogram")
-    ax.legend()
+    ax.set_ylabel("CDF")
+    ax.set_title("Latency CDF by Isolation Method")
     ax.grid(True, alpha=0.3)
+    ax.legend()
     fig.tight_layout()
-    out = os.path.join(OUT_DIR, "latency_histogram.png")
+    out = os.path.join(OUT_DIR, "latency_cdf.png")
     fig.savefig(out, dpi=150)
     print(f"Saved: {out}")
 
 
-def plot_baseline_vs_ebpf(rows):
-    by_scenario = avg_by(rows, lambda r: "eBPF" if r["ebpf_enabled"] == "true" else "Baseline")
-    labels = ["Baseline", "eBPF"]
-    vals = [by_scenario.get(x, 0.0) for x in labels]
+def plot_p99_vs_noise(rows):
+    order = ["low", "medium", "high"]
+    methods = ["none", "tc", "ebpf", "adaptive"]
+    x = list(range(len(order)))
 
-    fig, ax = plt.subplots(figsize=(7, 5))
-    ax.bar(labels, vals, color=["#c44e52", "#55a868"])
+    fig, ax = plt.subplots(figsize=(9, 5))
+    for method in methods:
+        d = avg_by([r for r in rows if r.get("isolation_method") == method], lambda r: r.get("noise_level", "medium"))
+        vals = [d.get(o, float("nan")) for o in order]
+        ax.plot(x, vals, marker="o", label=method)
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(order)
+    ax.set_xlabel("Noise level")
     ax.set_ylabel("Average p99 latency (ms)")
-    ax.set_title("Baseline vs eBPF")
+    ax.set_title("p99 vs Noise Level")
+    ax.grid(True, alpha=0.3)
+    ax.legend()
+    fig.tight_layout()
+    out = os.path.join(OUT_DIR, "p99_vs_noise.png")
+    fig.savefig(out, dpi=150)
+    print(f"Saved: {out}")
+
+
+def plot_isolation_effectiveness(rows):
+    vals = avg_by(rows, lambda r: r.get("isolation_method", "none"), value_key="tail_amplification")
+    labels = ["none", "tc", "ebpf", "adaptive"]
+    ys = [vals.get(k, float("nan")) for k in labels]
+
+    fig, ax = plt.subplots(figsize=(8, 5))
+    ax.bar(labels, ys, color=["#c44e52", "#8172b3", "#4c72b0", "#55a868"])
+    ax.set_ylabel("Avg tail amplification (p99/p50)")
+    ax.set_title("Isolation Effectiveness (Lower is Better)")
     ax.grid(axis="y", alpha=0.3)
     fig.tight_layout()
-    out = os.path.join(OUT_DIR, "baseline_vs_ebpf.png")
+    out = os.path.join(OUT_DIR, "isolation_effectiveness.png")
     fig.savefig(out, dpi=150)
     print(f"Saved: {out}")
 
 
-def plot_scalability(rows):
-    b = avg_by([r for r in rows if r["ebpf_enabled"] == "false"], lambda r: r["containers"])
-    e = avg_by([r for r in rows if r["ebpf_enabled"] == "true"], lambda r: r["containers"])
-
-    xs = sorted(set(list(b.keys()) + list(e.keys())))
-    bvals = [b.get(x, 0.0) for x in xs]
-    evals = [e.get(x, 0.0) for x in xs]
+def plot_overhead_tradeoff(rows):
+    groups = defaultdict(lambda: {"drops": [], "p99": []})
+    for r in rows:
+        m = r.get("isolation_method", "none")
+        if math.isfinite(r["packet_drops"]):
+            groups[m]["drops"].append(r["packet_drops"])
+        if math.isfinite(r["p99_ms"]):
+            groups[m]["p99"].append(r["p99_ms"])
 
     fig, ax = plt.subplots(figsize=(8, 5))
-    ax.plot(xs, bvals, marker="o", label="Baseline")
-    ax.plot(xs, evals, marker="o", label="eBPF")
-    ax.set_xlabel("Container count")
+    for method, v in groups.items():
+        if not v["drops"] or not v["p99"]:
+            continue
+        x = sum(v["drops"]) / len(v["drops"])
+        y = sum(v["p99"]) / len(v["p99"])
+        ax.scatter([x], [y], s=70, label=method)
+        ax.annotate(method, (x, y), textcoords="offset points", xytext=(5, 5))
+
+    ax.set_xlabel("Average packet drops")
     ax.set_ylabel("Average p99 latency (ms)")
-    ax.set_title("Scalability: Containers vs p99")
+    ax.set_title("Overhead vs Performance Trade-off")
     ax.grid(True, alpha=0.3)
     ax.legend()
     fig.tight_layout()
-    out = os.path.join(OUT_DIR, "scalability.png")
+    out = os.path.join(OUT_DIR, "overhead_vs_performance.png")
+    fig.savefig(out, dpi=150)
+    print(f"Saved: {out}")
+
+
+def plot_time_series(rows):
+    candidate = None
+    for r in rows:
+        if r.get("isolation_method") == "adaptive":
+            candidate = r
+            break
+    if candidate is None and rows:
+        candidate = rows[0]
+    if candidate is None:
+        return
+
+    ts = os.path.join(RAW_DIR, f"{candidate['experiment']}_{candidate['tenant']}.timeseries.csv")
+    xs, ys = load_timeseries(ts)
+    if not xs:
+        return
+
+    fig, ax = plt.subplots(figsize=(9, 5))
+    ax.plot(xs, ys, linewidth=1.2)
+    ax.set_xlabel("Request index")
+    ax.set_ylabel("Latency (ms)")
+    ax.set_title(f"Time-series Latency: {candidate['experiment']} / {candidate['tenant']}")
+    ax.grid(True, alpha=0.3)
+    fig.tight_layout()
+    out = os.path.join(OUT_DIR, "latency_time_series.png")
     fig.savefig(out, dpi=150)
     print(f"Saved: {out}")
 
@@ -150,10 +224,12 @@ def plot_scalability(rows):
 def main():
     os.makedirs(OUT_DIR, exist_ok=True)
     rows = read_results(RESULTS_CSV)
+
+    plot_latency_cdf(rows)
     plot_p99_vs_noise(rows)
-    plot_latency_histogram(rows)
-    plot_baseline_vs_ebpf(rows)
-    plot_scalability(rows)
+    plot_isolation_effectiveness(rows)
+    plot_overhead_tradeoff(rows)
+    plot_time_series(rows)
 
 
 if __name__ == "__main__":

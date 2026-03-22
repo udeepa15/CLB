@@ -5,11 +5,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 STRATEGY="${1:-dropper}"
 
 case "$STRATEGY" in
-  dropper|rate_limit|priority)
+  dropper|rate_limit|priority|adaptive)
     ;;
   *)
     echo "[ebpf-build] Unsupported strategy: $STRATEGY"
-    echo "[ebpf-build] Use one of: dropper, rate_limit, priority"
+    echo "[ebpf-build] Use one of: dropper, rate_limit, priority, adaptive"
     exit 1
     ;;
 esac

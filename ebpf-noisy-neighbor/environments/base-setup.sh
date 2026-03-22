@@ -12,6 +12,7 @@ apt-get install -y \
   curl \
   jq \
   iproute2 \
+  bpftool \
   iputils-ping \
   runc \
   clang \

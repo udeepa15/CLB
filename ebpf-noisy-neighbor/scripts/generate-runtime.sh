@@ -9,6 +9,8 @@ TEMPLATE_NOISY="$ROOT_DIR/containers/configs/noisy.json"
 
 TOTAL_CONTAINERS="${1:-3}"
 NOISE_LEVEL="${2:-medium}"
+TRAFFIC_PATTERN="${TRAFFIC_PATTERN:-constant}"
+FAILURE_MODE="${FAILURE_MODE:-none}"
 
 if [[ ${EUID} -ne 0 ]]; then
   echo "[generate-runtime] Please run as root (sudo)."
@@ -88,11 +90,15 @@ build_bundle() {
       --arg host "$name" \
       --arg targets "$noisy_targets" \
       --arg level "$NOISE_LEVEL" \
+      --arg pattern "$TRAFFIC_PATTERN" \
+      --arg failure "$FAILURE_MODE" \
       ' .hostname = $host
       | .process.env = (.process.env
           | map(
               if startswith("NOISY_TARGETS=") then "NOISY_TARGETS=" + $targets
               elif startswith("NOISE_LEVEL=") then "NOISE_LEVEL=" + $level
+              elif startswith("TRAFFIC_PATTERN=") then "TRAFFIC_PATTERN=" + $pattern
+              elif startswith("FAILURE_MODE=") then "FAILURE_MODE=" + $failure
               else . end
             )
         )
@@ -114,3 +120,4 @@ echo "noisy,noisy,${ip_map[noisy]}" >> "$inventory"
 
 echo "[generate-runtime] Created runtime inventory: $inventory"
 cat "$inventory"
+echo "[generate-runtime] noisy traffic pattern: $TRAFFIC_PATTERN"

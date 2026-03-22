@@ -30,10 +30,14 @@ case "$ACTION" in
     tc -s filter show dev "$IFACE" ingress
     ;;
   drops)
-    tc -s filter show dev "$IFACE" ingress 2>/dev/null | awk '/dropped/ {for (i=1;i<=NF;i++) if ($i=="dropped") {print $(i+1); exit}} END {if (NR==0) print 0}'
+    if [[ "$STRATEGY" == "adaptive" ]]; then
+      python3 "$SCRIPT_DIR/../../core/bpf_map_ctl.py" stats 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin).get("dropped",0))' 2>/dev/null || echo 0
+    else
+      tc -s filter show dev "$IFACE" ingress 2>/dev/null | awk '/dropped/ {for (i=1;i<=NF;i++) if ($i=="dropped") {print $(i+1); exit}} END {if (NR==0) print 0}'
+    fi
     ;;
   *)
-    echo "Usage: $0 [attach|detach|status|drops] [dropper|rate_limit|priority]"
+    echo "Usage: $0 [attach|detach|status|drops] [dropper|rate_limit|priority|adaptive]"
     exit 1
     ;;
 esac

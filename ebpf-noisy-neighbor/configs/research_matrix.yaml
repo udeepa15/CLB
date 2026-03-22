@@ -13,5 +13,5 @@ matrix:
   ebpf_strategies: [dropper, rate_limit, priority]
   failure_mode: [none, spike, churn]
 
-# Optional explicit scenario entries. If non-empty, these are used directly.
+# Optional fixed scenarios can be appended if you want deterministic paper subsets.
 scenarios: []
