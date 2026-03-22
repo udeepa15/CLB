@@ -13,11 +13,40 @@ fi
 mkdir -p "$LOG_DIR"
 
 echo "[run-all] Using config: $CONFIG_FILE"
-python3 "$ROOT_DIR/scripts/run_experiment_matrix.py" "$CONFIG_FILE" | while IFS='|' read -r name noise ebpf containers strategy requests method pattern identity iteration failure p99_threshold; do
+mapfile -t EXPERIMENT_ROWS < <(python3 "$ROOT_DIR/scripts/run_experiment_matrix.py" "$CONFIG_FILE")
+
+TOTAL_EXPERIMENTS="${#EXPERIMENT_ROWS[@]}"
+if [[ "$TOTAL_EXPERIMENTS" -eq 0 ]]; then
+  echo "[run-all] No experiments generated from config: $CONFIG_FILE"
+  exit 1
+fi
+
+progress_bar() {
+  local current="$1"
+  local total="$2"
+  local width=30
+  local percent=$(( current * 100 / total ))
+  local filled=$(( percent * width / 100 ))
+  local empty=$(( width - filled ))
+  local done_part
+  local todo_part
+
+  done_part="$(printf '%*s' "$filled" '' | tr ' ' '=')"
+  todo_part="$(printf '%*s' "$empty" '' | tr ' ' '.')"
+
+  printf '[%s%s] %3d%% (%d/%d)' "$done_part" "$todo_part" "$percent" "$current" "$total"
+}
+
+COMPLETED=0
+for row in "${EXPERIMENT_ROWS[@]}"; do
+  IFS='|' read -r name noise ebpf containers strategy requests method pattern identity iteration failure p99_threshold <<< "$row"
   [[ -z "$name" ]] && continue
   log_file="$LOG_DIR/${name}.txt"
 
+  COMPLETED=$((COMPLETED + 1))
+
   echo "[run-all]===================================================="
+  echo "[run-all] Progress $(progress_bar "$COMPLETED" "$TOTAL_EXPERIMENTS")"
   echo "[run-all] experiment=$name noise=$noise pattern=$pattern method=$method ebpf=$ebpf identity=$identity iteration=$iteration failure=$failure containers=$containers strategy=$strategy requests=$requests threshold_ms=$p99_threshold"
   echo "[run-all] log=$log_file"
 

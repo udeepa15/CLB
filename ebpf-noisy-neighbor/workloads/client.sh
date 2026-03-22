@@ -42,26 +42,26 @@ PY
 done
 end_epoch="$(date +%s.%N)"
 
-  python3 - "$OUT_FILE" "$TS_FILE" "$URL" "$REQUESTS" "$failures" "$start_epoch" "$end_epoch" <<'PY' | tee "$LOG_FILE"
+python3 - "$OUT_FILE" "$TS_FILE" "$URL" "$REQUESTS" "$failures" "$start_epoch" "$end_epoch" <<'PY' | tee "$LOG_FILE"
 import sys
-  from statistics import mean, pstdev
+from statistics import mean, pstdev
 
-  path, ts_file, url, requests, failures, start_epoch, end_epoch = sys.argv[1:8]
+path, ts_file, url, requests, failures, start_epoch, end_epoch = sys.argv[1:8]
 vals = []
 with open(path, "r", encoding="utf-8") as f:
-    for line in f:
-        if line.startswith("#"):
-            continue
-      parts = line.strip().rsplit(",", 1)
-        if len(parts) != 2:
-            continue
-      try:
-        vals.append(float(parts[1]))
-      except ValueError:
-        continue
+  for line in f:
+    if line.startswith("#"):
+      continue
+    parts = line.strip().rsplit(",", 1)
+    if len(parts) != 2:
+      continue
+    try:
+      vals.append(float(parts[1]))
+    except ValueError:
+      continue
 
-  ts_vals = []
-  with open(ts_file, "r", encoding="utf-8") as f:
+ts_vals = []
+with open(ts_file, "r", encoding="utf-8") as f:
     next(f, None)
     for line in f:
       parts = line.strip().split(",")
@@ -73,18 +73,18 @@ with open(path, "r", encoding="utf-8") as f:
         continue
 
 if not vals:
-    print(
-      f"SUMMARY target={url} requests={requests} failures={failures} "
-      "p50_ms=nan p95_ms=nan p99_ms=nan jitter_ms=nan variance_ms2=nan "
-      "throughput_rps=nan avg_ms=nan"
-    )
-    raise SystemExit(0)
+  print(
+    f"SUMMARY target={url} requests={requests} failures={failures} "
+    "p50_ms=nan p95_ms=nan p99_ms=nan jitter_ms=nan variance_ms2=nan "
+    "throughput_rps=nan avg_ms=nan"
+  )
+  raise SystemExit(0)
 
 vals.sort()
 
 def pct(p):
-    idx = int(round((p / 100.0) * (len(vals) - 1)))
-    return vals[max(0, min(idx, len(vals)-1))]
+  idx = int(round((p / 100.0) * (len(vals) - 1)))
+  return vals[max(0, min(idx, len(vals)-1))]
 
 p50 = pct(50)
 p95 = pct(95)
