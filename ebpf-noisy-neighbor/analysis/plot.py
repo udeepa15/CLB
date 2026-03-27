@@ -92,18 +92,33 @@ def plot_latency_cdf(rows):
         "adaptive": [],
     }
 
+    used_raw_samples = False
+
+    def _bucket_for_method(method):
+        if method == "none":
+            return "no_isolation"
+        if method == "tc":
+            return "tc"
+        if method == "adaptive":
+            return "adaptive"
+        return "ebpf"
+
     for r in rows:
         lat_file = os.path.join(RAW_DIR, f"{r['experiment']}_{r['tenant']}.latency")
         vals = load_latency_samples(lat_file)
-        method = r.get("isolation_method", "none")
-        if method == "none":
-            groups["no_isolation"].extend(vals)
-        elif method == "tc":
-            groups["tc"].extend(vals)
-        elif method == "adaptive":
-            groups["adaptive"].extend(vals)
-        else:
-            groups["ebpf"].extend(vals)
+        bucket = _bucket_for_method(r.get("isolation_method", "none"))
+        groups[bucket].extend(vals)
+        if vals:
+            used_raw_samples = True
+
+    # Fallback path: if raw per-request latency files are unavailable,
+    # build an empirical CDF from per-run p99 values in results.csv.
+    if not used_raw_samples:
+        for r in rows:
+            bucket = _bucket_for_method(r.get("isolation_method", "none"))
+            v = _f(r.get("p99_ms"))
+            if math.isfinite(v):
+                groups[bucket].append(v)
 
     fig, ax = plt.subplots(figsize=(8, 5))
     for label, vals in groups.items():
@@ -115,9 +130,14 @@ def plot_latency_cdf(rows):
 
     ax.set_xlabel("Latency (ms)")
     ax.set_ylabel("CDF")
-    ax.set_title("Latency CDF by Isolation Method")
+    if used_raw_samples:
+        ax.set_title("Latency CDF by Isolation Method")
+    else:
+        ax.set_title("Latency CDF by Isolation Method (from p99 snapshots)")
     ax.grid(True, alpha=0.3)
-    ax.legend()
+    handles, labels = ax.get_legend_handles_labels()
+    if handles:
+        ax.legend()
     fig.tight_layout()
     out = os.path.join(OUT_DIR, "latency_cdf.png")
     fig.savefig(out, dpi=150)
