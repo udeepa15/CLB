@@ -46,7 +46,7 @@ def load_rows(path: Path) -> list[dict[str, str]]:
 
 
 def write_summary(rows: list[dict[str, str]], out_csv: Path) -> None:
-    group_vals: dict[tuple[str, str, str, str, str], list[float]] = defaultdict(list)
+    group_vals: dict[tuple[str, ...], list[float]] = defaultdict(list)
 
     for r in rows:
         key = (
@@ -55,6 +55,16 @@ def write_summary(rows: list[dict[str, str]], out_csv: Path) -> None:
             r.get("isolation_method", ""),
             r.get("identity_mode", ""),
             r.get("containers", ""),
+            r.get("tenant_cpu_quota_pct", ""),
+            r.get("tenant_memory_mb", ""),
+            r.get("tenant_cpuset", ""),
+            r.get("noisy_cpu_quota_pct", ""),
+            r.get("noisy_memory_mb", ""),
+            r.get("noisy_cpuset", ""),
+            r.get("host_reserved_cpus", ""),
+            r.get("host_mem_pressure_mb", ""),
+            r.get("io_read_bps", ""),
+            r.get("io_write_bps", ""),
         )
         p99 = to_float(r.get("p99_ms", "nan"))
         if math.isfinite(p99):
@@ -68,6 +78,16 @@ def write_summary(rows: list[dict[str, str]], out_csv: Path) -> None:
             "isolation_method",
             "identity_mode",
             "containers",
+            "tenant_cpu_quota_pct",
+            "tenant_memory_mb",
+            "tenant_cpuset",
+            "noisy_cpu_quota_pct",
+            "noisy_memory_mb",
+            "noisy_cpuset",
+            "host_reserved_cpus",
+            "host_mem_pressure_mb",
+            "io_read_bps",
+            "io_write_bps",
             "runs",
             "avg_p99_ms",
             "stddev_p99_ms",
@@ -85,6 +105,16 @@ def write_summary(rows: list[dict[str, str]], out_csv: Path) -> None:
                     "isolation_method": key[2],
                     "identity_mode": key[3],
                     "containers": key[4],
+                    "tenant_cpu_quota_pct": key[5],
+                    "tenant_memory_mb": key[6],
+                    "tenant_cpuset": key[7],
+                    "noisy_cpu_quota_pct": key[8],
+                    "noisy_memory_mb": key[9],
+                    "noisy_cpuset": key[10],
+                    "host_reserved_cpus": key[11],
+                    "host_mem_pressure_mb": key[12],
+                    "io_read_bps": key[13],
+                    "io_write_bps": key[14],
                     "runs": len(vals),
                     "avg_p99_ms": f"{mean(vals):.4f}",
                     "stddev_p99_ms": f"{stddev(vals):.4f}",

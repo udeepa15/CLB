@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ $# -lt 11 ]]; then
-  echo "Usage: $0 <experiment_name> <noise_level> <ebpf_enabled> <strategy> <containers> <isolation_method> <traffic_pattern> <identity_mode> <iteration> <failure_mode> <p99_threshold_ms>"
+if [[ $# -lt 21 ]]; then
+    echo "Usage: $0 <experiment_name> <noise_level> <ebpf_enabled> <strategy> <containers> <isolation_method> <traffic_pattern> <identity_mode> <iteration> <failure_mode> <p99_threshold_ms> <tenant_cpu_quota_pct> <tenant_memory_mb> <tenant_cpuset> <noisy_cpu_quota_pct> <noisy_memory_mb> <noisy_cpuset> <host_reserved_cpus> <host_mem_pressure_mb> <io_read_bps> <io_write_bps>"
   exit 1
 fi
 
@@ -17,6 +17,16 @@ IDENTITY_MODE="$8"
 ITERATION="$9"
 FAILURE_MODE="${10}"
 P99_THRESHOLD_MS="${11}"
+TENANT_CPU_QUOTA_PCT="${12}"
+TENANT_MEMORY_MB="${13}"
+TENANT_CPUSET="${14}"
+NOISY_CPU_QUOTA_PCT="${15}"
+NOISY_MEMORY_MB="${16}"
+NOISY_CPUSET="${17}"
+HOST_RESERVED_CPUS="${18}"
+HOST_MEM_PRESSURE_MB="${19}"
+IO_READ_BPS="${20}"
+IO_WRITE_BPS="${21}"
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 RAW_DIR="$ROOT_DIR/results/raw"
@@ -33,7 +43,7 @@ if [[ ! -f "$SUMMARY_CSV" ]]; then
 fi
 
 if [[ ! -f "$RESULTS_CSV" ]]; then
-  echo "timestamp,experiment,noise_level,traffic_pattern,isolation_method,identity_mode,ebpf_enabled,strategy,containers,iteration,failure_mode,tenant,requests,failures,p50_ms,p95_ms,p99_ms,jitter_ms,variance_ms2,throughput_rps,packet_drops,tail_amplification,recovery_window_samples,degradation_window_samples,isolation_score" > "$RESULTS_CSV"
+    echo "timestamp,experiment,noise_level,traffic_pattern,isolation_method,identity_mode,ebpf_enabled,strategy,containers,iteration,failure_mode,tenant,tenant_cpu_quota_pct,tenant_memory_mb,tenant_cpuset,noisy_cpu_quota_pct,noisy_memory_mb,noisy_cpuset,host_reserved_cpus,host_mem_pressure_mb,io_read_bps,io_write_bps,requests,failures,p50_ms,p95_ms,p99_ms,jitter_ms,variance_ms2,throughput_rps,packet_drops,tail_amplification,recovery_window_samples,degradation_window_samples,cg_cpu_usage_usec,cg_cpu_throttled_usec,cg_memory_current_bytes,cg_memory_events_oom,cg_io_read_bytes,cg_io_write_bytes,isolation_score" > "$RESULTS_CSV"
 fi
 
 if [[ ! -f "$DIST_CSV" ]]; then
@@ -50,6 +60,44 @@ parse_field() {
   local line="$1"
   local key="$2"
   echo "$line" | sed -n "s/.*${key}=\([^ ]*\).*/\1/p"
+}
+
+get_cgroup_path() {
+    local container_name="$1"
+    awk -F, -v n="$container_name" '$1==n {print $2}' "$ROOT_DIR/containers/runtime/cgroup_ids.csv" | tail -n1
+}
+
+read_cg_metric() {
+    local cgroup_path="$1"
+    local rel_file="$2"
+    local key="$3"
+    local full_path="/sys/fs/cgroup${cgroup_path}/${rel_file}"
+
+    [[ -f "$full_path" ]] || {
+        echo "na"
+        return
+    }
+
+    if [[ -z "$key" ]]; then
+        head -n1 "$full_path" 2>/dev/null || echo "na"
+        return
+    fi
+
+    awk -v k="$key" '
+        {
+            for (i = 1; i <= NF; i++) {
+                split($i, p, "=")
+                if (p[1] == k && p[2] != "") {
+                    print p[2]
+                    exit
+                }
+            }
+            if ($1 == k && $2 != "") {
+                print $2
+                exit
+            }
+        }
+    ' "$full_path" 2>/dev/null | tail -n1 | sed '/^$/d' || true
 }
 
 while IFS=, read -r name role ip; do
@@ -86,6 +134,12 @@ PY
 
   recovery_window="na"
   degradation_window="na"
+    cg_cpu_usage_usec="na"
+    cg_cpu_throttled_usec="na"
+    cg_memory_current_bytes="na"
+    cg_memory_events_oom="na"
+    cg_io_read_bytes="na"
+    cg_io_write_bytes="na"
   ts_file="$RAW_DIR/${EXPERIMENT_NAME}_${name}.timeseries.csv"
   if [[ -f "$ts_file" ]]; then
     windows="$(python3 - "$ts_file" "$P99_THRESHOLD_MS" <<'PY'
@@ -131,6 +185,22 @@ PY
     degradation_window="${windows##*,}"
   fi
 
+    cg_path="$(get_cgroup_path "$name")"
+    if [[ -n "$cg_path" ]]; then
+        cg_cpu_usage_usec="$(read_cg_metric "$cg_path" cpu.stat usage_usec)"
+        cg_cpu_throttled_usec="$(read_cg_metric "$cg_path" cpu.stat throttled_usec)"
+        cg_memory_current_bytes="$(read_cg_metric "$cg_path" memory.current "")"
+        cg_memory_events_oom="$(read_cg_metric "$cg_path" memory.events oom)"
+        cg_io_read_bytes="$(read_cg_metric "$cg_path" io.stat rbytes)"
+        cg_io_write_bytes="$(read_cg_metric "$cg_path" io.stat wbytes)"
+        [[ -z "$cg_cpu_usage_usec" ]] && cg_cpu_usage_usec="na"
+        [[ -z "$cg_cpu_throttled_usec" ]] && cg_cpu_throttled_usec="na"
+        [[ -z "$cg_memory_current_bytes" ]] && cg_memory_current_bytes="na"
+        [[ -z "$cg_memory_events_oom" ]] && cg_memory_events_oom="na"
+        [[ -z "$cg_io_read_bytes" ]] && cg_io_read_bytes="na"
+        [[ -z "$cg_io_write_bytes" ]] && cg_io_write_bytes="na"
+    fi
+
   ts="$(date --iso-8601=seconds)"
   scenario="baseline"
   if [[ "$EBPF_ENABLED" == "true" ]]; then
@@ -138,7 +208,7 @@ PY
   fi
 
   echo "$ts,$scenario,$name,$requests,$failures,$p99" >> "$SUMMARY_CSV"
-  echo "$ts,$EXPERIMENT_NAME,$NOISE_LEVEL,$TRAFFIC_PATTERN,$ISOLATION_METHOD,$IDENTITY_MODE,$EBPF_ENABLED,$STRATEGY,$CONTAINERS,$ITERATION,$FAILURE_MODE,$name,$requests,$failures,$p50,$p95,$p99,$jitter,$variance,$throughput,$packet_drops,$tail_amp,$recovery_window,$degradation_window,na" >> "$RESULTS_CSV"
+    echo "$ts,$EXPERIMENT_NAME,$NOISE_LEVEL,$TRAFFIC_PATTERN,$ISOLATION_METHOD,$IDENTITY_MODE,$EBPF_ENABLED,$STRATEGY,$CONTAINERS,$ITERATION,$FAILURE_MODE,$name,$TENANT_CPU_QUOTA_PCT,$TENANT_MEMORY_MB,$TENANT_CPUSET,$NOISY_CPU_QUOTA_PCT,$NOISY_MEMORY_MB,$NOISY_CPUSET,${HOST_RESERVED_CPUS:-none},$HOST_MEM_PRESSURE_MB,$IO_READ_BPS,$IO_WRITE_BPS,$requests,$failures,$p50,$p95,$p99,$jitter,$variance,$throughput,$packet_drops,$tail_amp,$recovery_window,$degradation_window,$cg_cpu_usage_usec,$cg_cpu_throttled_usec,$cg_memory_current_bytes,$cg_memory_events_oom,$cg_io_read_bytes,$cg_io_write_bytes,na" >> "$RESULTS_CSV"
   echo "[collect-metrics] $EXPERIMENT_NAME/$name p99=$p99 jitter=$jitter throughput=$throughput"
 
   lat_file="$RAW_DIR/${EXPERIMENT_NAME}_${name}.latency"
