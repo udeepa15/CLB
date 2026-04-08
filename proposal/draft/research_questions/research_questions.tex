@@ -1,0 +1,4 @@
+\section{Research Questions}
+This thesis is guided by the primary question: to what extent do sidecarless service mesh architectures preserve p99 tail-latency isolation among tenants under shared-node contention when compared with sidecar-based baselines?
+
+The investigation is further structured by three sub-questions. First, how does noisy-neighbor intensity alter p99 latency distribution for otherwise isolated namespaces under sidecarless data planes? Second, which kernel-level signals (for example queueing, drops, scheduling delay, and map update dynamics) most strongly correlate with observed latency leakage? Third, how does control-plane discovery freshness, including propagation lag in reconciliation loops, influence transient and steady-state tail-latency behavior during policy and endpoint churn events?
