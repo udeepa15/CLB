@@ -21,7 +21,7 @@ for name in $(runc --root "$RUNC_ROOT" list -f json 2>/dev/null | jq -r '.[]?.id
   runc --root "$RUNC_ROOT" delete "$name" 2>/dev/null || true
 done
 
-"$ROOT_DIR/ebpf/tc/attach.sh" detach || true
+"$ROOT_DIR/ebpf/tc/attach.sh" detach dropper auto || true
 "$ROOT_DIR/networking/teardown-network.sh" || true
 
 echo "[stop-containers] Done."

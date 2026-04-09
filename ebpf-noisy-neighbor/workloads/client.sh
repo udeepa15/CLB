@@ -89,6 +89,8 @@ def pct(p):
 p50 = pct(50)
 p95 = pct(95)
 p99 = pct(99)
+p999 = pct(99.9)
+p9999 = pct(99.99)
 avg = mean(vals)
 jitter = pstdev(vals) if len(vals) > 1 else 0.0
 variance = jitter ** 2
@@ -99,7 +101,7 @@ throughput = ok / elapsed
 
 print(
   f"SUMMARY target={url} requests={requests} failures={failures} "
-  f"p50_ms={p50:.3f} p95_ms={p95:.3f} p99_ms={p99:.3f} jitter_ms={jitter:.3f} "
+  f"p50_ms={p50:.3f} p95_ms={p95:.3f} p99_ms={p99:.3f} p999_ms={p999:.3f} p9999_ms={p9999:.3f} jitter_ms={jitter:.3f} "
   f"variance_ms2={variance:.3f} throughput_rps={throughput:.3f} avg_ms={avg:.3f}"
 )
 PY

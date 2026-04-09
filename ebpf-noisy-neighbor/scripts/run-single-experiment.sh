@@ -27,6 +27,7 @@ HOST_RESERVED_CPUS="${19:-}"
 HOST_MEM_PRESSURE_MB="${20:-0}"
 IO_READ_BPS="${21:-0}"
 IO_WRITE_BPS="${22:-0}"
+HOOK_POINT="${23:-${HOOK_POINT:-tc}}"
 
 ADAPTIVE_PID=""
 ADAPTIVE_STOP="$RAW_DIR/.adaptive_stop"
@@ -421,33 +422,33 @@ trap cleanup EXIT
 
 echo "[run-single] Starting experiment: $EXP_NAME"
 echo "[run-single] noise=$NOISE_LEVEL ebpf=$EBPF_ENABLED containers=$CONTAINERS strategy=$STRATEGY requests=$REQUESTS"
-echo "[run-single] isolation=$ISOLATION_METHOD pattern=$TRAFFIC_PATTERN identity=$IDENTITY_MODE iteration=$ITERATION failure=$FAILURE_MODE p99_threshold_ms=$P99_THRESHOLD_MS"
+echo "[run-single] isolation=$ISOLATION_METHOD pattern=$TRAFFIC_PATTERN identity=$IDENTITY_MODE iteration=$ITERATION failure=$FAILURE_MODE hook_point=$HOOK_POINT p99_threshold_ms=$P99_THRESHOLD_MS"
 echo "[run-single] resources tenant_cpu=${TENANT_CPU_QUOTA_PCT}% tenant_mem=${TENANT_MEMORY_MB}MB tenant_cpuset=${TENANT_CPUSET} noisy_cpu=${NOISY_CPU_QUOTA_PCT}% noisy_mem=${NOISY_MEMORY_MB}MB noisy_cpuset=${NOISY_CPUSET} host_reserved_cpus=${HOST_RESERVED_CPUS:-none} host_mem_pressure_mb=${HOST_MEM_PRESSURE_MB} io_read_bps=${IO_READ_BPS} io_write_bps=${IO_WRITE_BPS}"
 
 cleanup
 
-CONTAINER_COUNT="$CONTAINERS" NOISE_LEVEL="$NOISE_LEVEL" TRAFFIC_PATTERN="$TRAFFIC_PATTERN" FAILURE_MODE="$FAILURE_MODE" "$ROOT_DIR/scripts/start-containers.sh"
+      "$ROOT_DIR/ebpf/tc/attach.sh" detach "$STRATEGY" "$HOOK_POINT" || true
 
 write_cgroup_inventory
 
-apply_resource_allocations
+      "$ROOT_DIR/ebpf/tc/attach.sh" detach "$STRATEGY" "$HOOK_POINT" || true
 
 apply_isolation
 
 run_failure_mode_background
 
-run_clients
+      "$ROOT_DIR/ebpf/tc/attach.sh" attach "$STRATEGY" "$HOOK_POINT"
 
 touch "$ADAPTIVE_STOP" 2>/dev/null || true
 if [[ -n "$ADAPTIVE_PID" ]]; then
   wait "$ADAPTIVE_PID" 2>/dev/null || true
-fi
+      "$ROOT_DIR/ebpf/tc/attach.sh" attach adaptive "$HOOK_POINT"
 
 "$ROOT_DIR/scripts/collect-metrics.sh" \
   "$EXP_NAME" "$NOISE_LEVEL" "$EBPF_ENABLED" "$STRATEGY" "$CONTAINERS" \
   "$ISOLATION_METHOD" "$TRAFFIC_PATTERN" "$IDENTITY_MODE" "$ITERATION" "$FAILURE_MODE" "$P99_THRESHOLD_MS" \
   "$TENANT_CPU_QUOTA_PCT" "$TENANT_MEMORY_MB" "$TENANT_CPUSET" \
   "$NOISY_CPU_QUOTA_PCT" "$NOISY_MEMORY_MB" "$NOISY_CPUSET" \
-  "$HOST_RESERVED_CPUS" "$HOST_MEM_PRESSURE_MB" "$IO_READ_BPS" "$IO_WRITE_BPS"
+  "$HOST_RESERVED_CPUS" "$HOST_MEM_PRESSURE_MB" "$IO_READ_BPS" "$IO_WRITE_BPS" "$HOOK_POINT"
 
 echo "[run-single] Experiment complete: $EXP_NAME"
