@@ -1,0 +1,4 @@
+experiment,tenant,cgroup_id,ksoftirqd_latency_us,ebpf_prog_id,ebpf_prog_name,ebpf_prog_type,ebpf_prog_time_ns_per_run,hook_point,timestamp
+ohs_ebpf_priority_low_delayed_churn_20260409_210547,tenant1,27732,na,na,na,na,na,tc,2026-04-09T21:08:49+05:30
+ohs_ebpf_priority_low_delayed_churn_20260409_210547,tenant2,27800,na,na,na,na,na,tc,2026-04-09T21:08:49+05:30
+ohs_ebpf_priority_low_delayed_churn_20260409_210547,noisy,27868,na,na,na,na,na,tc,2026-04-09T21:08:49+05:30

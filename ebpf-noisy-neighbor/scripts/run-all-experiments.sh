@@ -198,7 +198,7 @@ for row in "${FILTERED_ROWS[@]}"; do
 
   {
     echo "=== $(date --iso-8601=seconds) START $name ==="
-    "$ROOT_DIR/scripts/run-single-experiment.sh" \
+    bash "$ROOT_DIR/scripts/run-single-experiment.sh" \
       "$name" "$noise" "$ebpf" "$containers" "$strategy" "$requests" \
       "$method" "$pattern" "$identity" "$iteration" "$failure" "$p99_threshold" \
       "$tenant_cpu_quota" "$tenant_memory_mb" "$tenant_cpuset" \

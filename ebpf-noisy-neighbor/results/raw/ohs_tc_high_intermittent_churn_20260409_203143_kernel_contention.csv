@@ -1,0 +1,4 @@
+experiment,tenant,cgroup_id,ksoftirqd_latency_us,ebpf_prog_id,ebpf_prog_name,ebpf_prog_type,ebpf_prog_time_ns_per_run,hook_point,timestamp
+ohs_tc_high_intermittent_churn_20260409_203143,tenant1,19740,na,na,na,na,na,tc,2026-04-09T20:32:18+05:30
+ohs_tc_high_intermittent_churn_20260409_203143,tenant2,19808,na,na,na,na,na,tc,2026-04-09T20:32:18+05:30
+ohs_tc_high_intermittent_churn_20260409_203143,noisy,19876,na,na,na,na,na,tc,2026-04-09T20:32:18+05:30

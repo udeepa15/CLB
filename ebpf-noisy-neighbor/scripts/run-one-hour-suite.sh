@@ -164,11 +164,11 @@ echo "[one-hour-suite] Running core coverage scenarios..."
 
 if [[ "$INCLUDE_ADVANCED" == "true" ]]; then
   echo "[one-hour-suite] Running XDP vs TC benchmark (rate_limit)..."
-  REQUESTS="$REQUESTS" NOISE_LEVEL="$NOISE_FOR_ADVANCED" "$ROOT_DIR/experiments/hook-benchmark/run.sh" rate_limit
+  REQUESTS="$REQUESTS" NOISE_LEVEL="$NOISE_FOR_ADVANCED" bash "$ROOT_DIR/experiments/hook-benchmark/run.sh" rate_limit
 
   echo "[one-hour-suite] Running map-pressure churn test..."
   REQUESTS="$REQUESTS" MAP_CHURN_DURATION_S="$MAP_CHURN_DURATION_S" TARGET_UPDATES_PER_SEC="$TARGET_UPDATES_PER_SEC" \
-    "$ROOT_DIR/experiments/map-pressure/run.sh" "ohs_map_pressure_${TS}"
+    bash "$ROOT_DIR/experiments/map-pressure/run.sh" "ohs_map_pressure_${TS}"
 fi
 
 echo "[one-hour-suite] Finalizing outputs..."

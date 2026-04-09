@@ -1,0 +1,6 @@
+experiment,tenant,cgroup_id,ksoftirqd_latency_us,ebpf_prog_id,ebpf_prog_name,ebpf_prog_type,ebpf_prog_time_ns_per_run,hook_point,timestamp
+ohs_resource_reserved_cpu_adaptive_20260409_210547,tenant1,28684,na,na,na,na,na,tc,2026-04-09T21:10:49+05:30
+ohs_resource_reserved_cpu_adaptive_20260409_210547,tenant2,28752,na,na,na,na,na,tc,2026-04-09T21:10:49+05:30
+ohs_resource_reserved_cpu_adaptive_20260409_210547,tenant3,28820,na,na,na,na,na,tc,2026-04-09T21:10:49+05:30
+ohs_resource_reserved_cpu_adaptive_20260409_210547,tenant4,28888,na,na,na,na,na,tc,2026-04-09T21:10:49+05:30
+ohs_resource_reserved_cpu_adaptive_20260409_210547,noisy,28956,na,na,na,na,na,tc,2026-04-09T21:10:49+05:30

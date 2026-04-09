@@ -27,7 +27,6 @@ HOST_RESERVED_CPUS="${19:-}"
 HOST_MEM_PRESSURE_MB="${20:-0}"
 IO_READ_BPS="${21:-0}"
 IO_WRITE_BPS="${22:-0}"
-HOOK_POINT="${23:-${HOOK_POINT:-tc}}"
 
 ADAPTIVE_PID=""
 ADAPTIVE_STOP="$RAW_DIR/.adaptive_stop"
@@ -68,7 +67,7 @@ run_clients() {
     wait_http_ready "$url"
 
     echo "[run-single] Collecting latency from $name"
-    "$ROOT_DIR/workloads/client.sh" "$url" "$REQUESTS" "$prefix"
+    bash "$ROOT_DIR/workloads/client.sh" "$url" "$REQUESTS" "$prefix"
   done < "$inventory"
 }
 
@@ -82,7 +81,7 @@ cleanup() {
     kill "$HOST_PRESSURE_PID" 2>/dev/null || true
     wait "$HOST_PRESSURE_PID" 2>/dev/null || true
   fi
-  "$ROOT_DIR/scripts/stop-containers.sh" || true
+  bash "$ROOT_DIR/scripts/stop-containers.sh" || true
 }
 
 normalize_int() {
@@ -336,22 +335,22 @@ apply_isolation() {
   case "$ISOLATION_METHOD" in
     none)
       clear_tc_baseline
-      "$ROOT_DIR/ebpf/tc/attach.sh" detach || true
+      bash "$ROOT_DIR/ebpf/tc/attach.sh" detach || true
       ;;
     tc)
       clear_tc_baseline
-      "$ROOT_DIR/ebpf/tc/attach.sh" detach || true
+      bash "$ROOT_DIR/ebpf/tc/attach.sh" detach || true
       apply_tc_baseline
       ;;
     ebpf)
       clear_tc_baseline
-      "$ROOT_DIR/ebpf/tc/build.sh" "$STRATEGY"
-      "$ROOT_DIR/ebpf/tc/attach.sh" attach "$STRATEGY"
+      bash "$ROOT_DIR/ebpf/tc/build.sh" "$STRATEGY"
+      bash "$ROOT_DIR/ebpf/tc/attach.sh" attach "$STRATEGY"
       ;;
     adaptive)
       clear_tc_baseline
-      "$ROOT_DIR/ebpf/tc/build.sh" adaptive
-      "$ROOT_DIR/ebpf/tc/attach.sh" attach adaptive
+      bash "$ROOT_DIR/ebpf/tc/build.sh" adaptive
+      bash "$ROOT_DIR/ebpf/tc/attach.sh" attach adaptive
 
       python3 "$ROOT_DIR/core/bpf_map_ctl.py" set-global \
         --drop-rate 300 \
@@ -397,7 +396,7 @@ run_failure_mode_background() {
         runc --root "$RUNC_ROOT" kill noisy KILL || true
         runc --root "$RUNC_ROOT" delete noisy || true
         runc --root "$RUNC_ROOT" run -d --bundle "$ROOT_DIR/containers/runtime/noisy" noisy
-        "$ROOT_DIR/networking/setup-network.sh" || true
+        bash "$ROOT_DIR/networking/setup-network.sh" || true
       ) &
       ;;
     extreme)
@@ -422,33 +421,33 @@ trap cleanup EXIT
 
 echo "[run-single] Starting experiment: $EXP_NAME"
 echo "[run-single] noise=$NOISE_LEVEL ebpf=$EBPF_ENABLED containers=$CONTAINERS strategy=$STRATEGY requests=$REQUESTS"
-echo "[run-single] isolation=$ISOLATION_METHOD pattern=$TRAFFIC_PATTERN identity=$IDENTITY_MODE iteration=$ITERATION failure=$FAILURE_MODE hook_point=$HOOK_POINT p99_threshold_ms=$P99_THRESHOLD_MS"
+echo "[run-single] isolation=$ISOLATION_METHOD pattern=$TRAFFIC_PATTERN identity=$IDENTITY_MODE iteration=$ITERATION failure=$FAILURE_MODE p99_threshold_ms=$P99_THRESHOLD_MS"
 echo "[run-single] resources tenant_cpu=${TENANT_CPU_QUOTA_PCT}% tenant_mem=${TENANT_MEMORY_MB}MB tenant_cpuset=${TENANT_CPUSET} noisy_cpu=${NOISY_CPU_QUOTA_PCT}% noisy_mem=${NOISY_MEMORY_MB}MB noisy_cpuset=${NOISY_CPUSET} host_reserved_cpus=${HOST_RESERVED_CPUS:-none} host_mem_pressure_mb=${HOST_MEM_PRESSURE_MB} io_read_bps=${IO_READ_BPS} io_write_bps=${IO_WRITE_BPS}"
 
 cleanup
 
-      "$ROOT_DIR/ebpf/tc/attach.sh" detach "$STRATEGY" "$HOOK_POINT" || true
+CONTAINER_COUNT="$CONTAINERS" NOISE_LEVEL="$NOISE_LEVEL" TRAFFIC_PATTERN="$TRAFFIC_PATTERN" FAILURE_MODE="$FAILURE_MODE" bash "$ROOT_DIR/scripts/start-containers.sh"
 
 write_cgroup_inventory
 
-      "$ROOT_DIR/ebpf/tc/attach.sh" detach "$STRATEGY" "$HOOK_POINT" || true
+apply_resource_allocations
 
 apply_isolation
 
 run_failure_mode_background
 
-      "$ROOT_DIR/ebpf/tc/attach.sh" attach "$STRATEGY" "$HOOK_POINT"
+run_clients
 
 touch "$ADAPTIVE_STOP" 2>/dev/null || true
 if [[ -n "$ADAPTIVE_PID" ]]; then
   wait "$ADAPTIVE_PID" 2>/dev/null || true
-      "$ROOT_DIR/ebpf/tc/attach.sh" attach adaptive "$HOOK_POINT"
+fi
 
-"$ROOT_DIR/scripts/collect-metrics.sh" \
+bash "$ROOT_DIR/scripts/collect-metrics.sh" \
   "$EXP_NAME" "$NOISE_LEVEL" "$EBPF_ENABLED" "$STRATEGY" "$CONTAINERS" \
   "$ISOLATION_METHOD" "$TRAFFIC_PATTERN" "$IDENTITY_MODE" "$ITERATION" "$FAILURE_MODE" "$P99_THRESHOLD_MS" \
   "$TENANT_CPU_QUOTA_PCT" "$TENANT_MEMORY_MB" "$TENANT_CPUSET" \
   "$NOISY_CPU_QUOTA_PCT" "$NOISY_MEMORY_MB" "$NOISY_CPUSET" \
-  "$HOST_RESERVED_CPUS" "$HOST_MEM_PRESSURE_MB" "$IO_READ_BPS" "$IO_WRITE_BPS" "$HOOK_POINT"
+  "$HOST_RESERVED_CPUS" "$HOST_MEM_PRESSURE_MB" "$IO_READ_BPS" "$IO_WRITE_BPS"
 
 echo "[run-single] Experiment complete: $EXP_NAME"

@@ -12,6 +12,18 @@ import sys
 from typing import Iterable
 
 
+_MAP_ID_CACHE: dict[str, int] = {}
+
+
+# Linux BPF object names are limited (BPF_OBJ_NAME_LEN = 16 including NUL),
+# so long map names can appear truncated in `bpftool map show` output.
+_MAP_ALIASES: dict[str, list[str]] = {
+    "control_map": ["control_map"],
+    "stats_map": ["stats_map"],
+    "cgroup_policy_map": ["cgroup_policy_map", "cgroup_policy_m"],
+}
+
+
 def _hex_bytes(data: bytes) -> list[str]:
     return [f"{b:02x}" for b in data]
 
@@ -20,13 +32,52 @@ def _run(cmd: list[str]) -> subprocess.CompletedProcess[str]:
     return subprocess.run(cmd, check=True, text=True, capture_output=True)
 
 
+def _candidate_map_names(map_name: str) -> list[str]:
+    candidates: list[str] = []
+    for name in _MAP_ALIASES.get(map_name, [map_name]):
+        if name not in candidates:
+            candidates.append(name)
+
+    truncated = map_name[:15]
+    if truncated not in candidates:
+        candidates.append(truncated)
+
+    return candidates
+
+
+def _resolve_map_id(map_name: str) -> int:
+    cached = _MAP_ID_CACHE.get(map_name)
+    if cached is not None:
+        return cached
+
+    cp = _run(["bpftool", "-j", "map", "show"])
+    maps = json.loads(cp.stdout or "[]")
+    candidates = set(_candidate_map_names(map_name))
+    for rec in maps:
+        rec_name = str(rec.get("name", ""))
+        if rec_name in candidates:
+            map_id = int(rec["id"])
+            _MAP_ID_CACHE[map_name] = map_id
+            return map_id
+
+    available = sorted(str(rec.get("name", "")) for rec in maps)
+    raise RuntimeError(
+        f"BPF map not found for '{map_name}'. Tried names={sorted(candidates)}; "
+        f"available={available}"
+    )
+
+
+def _map_selector(map_name: str) -> list[str]:
+    """Use map id for compatibility with older/newer bpftool parser variants."""
+    return ["id", str(_resolve_map_id(map_name))]
+
+
 def _bpftool_update(map_name: str, key: bytes, value: bytes) -> None:
     cmd = [
         "bpftool",
         "map",
         "update",
-        "name",
-        map_name,
+        *_map_selector(map_name),
         "key",
         "hex",
         *(_hex_bytes(key)),
@@ -43,8 +94,7 @@ def _bpftool_lookup(map_name: str, key: bytes) -> dict | None:
         "-j",
         "map",
         "lookup",
-        "name",
-        map_name,
+        *_map_selector(map_name),
         "key",
         "hex",
         *(_hex_bytes(key)),
@@ -66,8 +116,7 @@ def _bpftool_delete(map_name: str, key: bytes) -> None:
         "bpftool",
         "map",
         "delete",
-        "name",
-        map_name,
+        *_map_selector(map_name),
         "key",
         "hex",
         *(_hex_bytes(key)),
@@ -161,6 +210,9 @@ def main() -> int:
 
     try:
         return int(args.func(args))
+    except RuntimeError as exc:
+        print(f"bpftool map resolution failed: {exc}", file=sys.stderr)
+        return 1
     except subprocess.CalledProcessError as exc:
         msg = exc.stderr.strip() if exc.stderr else str(exc)
         print(f"bpftool operation failed: {msg}", file=sys.stderr)

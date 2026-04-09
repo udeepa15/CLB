@@ -1,0 +1,10 @@
+\section{Aims and Objectives}
+The overarching aim is to produce a defensible, measurement-driven assessment of performance isolation in multi-tenant sidecarless meshes and to derive practical optimization guidance for cloud-native operators.
+
+Objective 1 is to establish a baseline benchmarking suite that compares sidecar-based Envoy paths against sidecarless eBPF-based paths using identical traffic models, deployment topologies, and p99-centric evaluation criteria.
+
+Objective 2 is to design and implement a configurable noisy-neighbor experimentation framework that can inject controlled CPU, memory, and traffic disturbances at tenant and node scopes while preserving repeatable test conditions.
+
+Objective 3 is to perform kernel-level profiling using eBPF instrumentation, bpftrace probes, and mesh telemetry to map p99 degradations to specific low-level mechanisms in packet handling, scheduling, and policy enforcement.
+
+Objective 4 is to formulate and evaluate an optimization proposal, potentially combining scheduling constraints, queueing controls, and policy tuning, with the goal of improving tail-latency isolation without reintroducing prohibitive architectural overhead.

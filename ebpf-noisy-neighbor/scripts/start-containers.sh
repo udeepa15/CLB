@@ -24,7 +24,7 @@ start_one() {
 
   if [[ ! -d "$bundle/rootfs" || ! -f "$bundle/config.json" ]]; then
     echo "[start-containers] Bundle missing for $name. Running setup-rootfs first..."
-    "$ROOT_DIR/containers/setup-rootfs.sh"
+    bash "$ROOT_DIR/containers/setup-rootfs.sh"
   fi
 
   if runc --root "$RUNC_ROOT" state "$name" >/dev/null 2>&1; then
@@ -40,11 +40,11 @@ start_one() {
 prepare_runtime() {
   if [[ ! -d "$ROOT_DIR/containers/alpine-rootfs/rootfs-template" ]]; then
     echo "[start-containers] Rootfs template missing. Running setup-rootfs first..."
-    "$ROOT_DIR/containers/setup-rootfs.sh"
+    bash "$ROOT_DIR/containers/setup-rootfs.sh"
   fi
 
   echo "[start-containers] Generating runtime bundles for ${CONTAINER_COUNT} containers (noise=${NOISE_LEVEL}, pattern=${TRAFFIC_PATTERN}, failure=${FAILURE_MODE})"
-  TRAFFIC_PATTERN="$TRAFFIC_PATTERN" FAILURE_MODE="$FAILURE_MODE" "$ROOT_DIR/scripts/generate-runtime.sh" "$CONTAINER_COUNT" "$NOISE_LEVEL"
+  TRAFFIC_PATTERN="$TRAFFIC_PATTERN" FAILURE_MODE="$FAILURE_MODE" bash "$ROOT_DIR/scripts/generate-runtime.sh" "$CONTAINER_COUNT" "$NOISE_LEVEL"
 }
 
 need_root
@@ -58,7 +58,7 @@ while IFS=, read -r name role ip; do
 done < "$INVENTORY_FILE"
 
 echo "[start-containers] Configuring networking"
-"$ROOT_DIR/networking/setup-network.sh"
+bash "$ROOT_DIR/networking/setup-network.sh"
 
 echo "[start-containers] Container states:"
 runc --root "$RUNC_ROOT" list

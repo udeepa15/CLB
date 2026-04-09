@@ -1,0 +1,4 @@
+experiment,tenant,cgroup_id,ksoftirqd_latency_us,ebpf_prog_id,ebpf_prog_name,ebpf_prog_type,ebpf_prog_time_ns_per_run,hook_point,timestamp
+hookcmp_xdp_rate_limit_20260409_210407,tenant1,26100,na,na,na,na,na,xdp,2026-04-09T21:05:23+05:30
+hookcmp_xdp_rate_limit_20260409_210407,tenant2,26168,na,na,na,na,na,xdp,2026-04-09T21:05:23+05:30
+hookcmp_xdp_rate_limit_20260409_210407,noisy,26236,na,na,na,na,na,xdp,2026-04-09T21:05:23+05:30
