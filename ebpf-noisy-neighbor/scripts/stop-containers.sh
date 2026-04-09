@@ -9,7 +9,7 @@ if [[ ${EUID} -ne 0 ]]; then
   exit 1
 fi
 
-for name in $(runc --root "$RUNC_ROOT" list -f json 2>/dev/null | jq -r '.[].id' || true); do
+for name in $(runc --root "$RUNC_ROOT" list -f json 2>/dev/null | jq -r '.[]?.id' || true); do
   echo "[stop-containers] Stopping $name"
   runc --root "$RUNC_ROOT" kill "$name" KILL || true
   for _ in {1..10}; do

@@ -28,8 +28,10 @@ def _bpftool_update(map_name: str, key: bytes, value: bytes) -> None:
         "name",
         map_name,
         "key",
+        "hex",
         *(_hex_bytes(key)),
         "value",
+        "hex",
         *(_hex_bytes(value)),
     ]
     _run(cmd)
@@ -44,6 +46,7 @@ def _bpftool_lookup(map_name: str, key: bytes) -> dict | None:
         "name",
         map_name,
         "key",
+        "hex",
         *(_hex_bytes(key)),
     ]
     cp = subprocess.run(cmd, text=True, capture_output=True)
@@ -66,6 +69,7 @@ def _bpftool_delete(map_name: str, key: bytes) -> None:
         "name",
         map_name,
         "key",
+        "hex",
         *(_hex_bytes(key)),
     ]
     subprocess.run(cmd, check=False, text=True, capture_output=True)

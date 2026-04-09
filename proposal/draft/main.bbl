@@ -1,0 +1,347 @@
+% $ biblatex auxiliary file $
+% $ biblatex bbl format version 3.2 $
+% Do not modify the above lines!
+%
+% This is an auxiliary file used by the 'biblatex' package.
+% This file may safely be deleted. It will be recreated by
+% biber as required.
+%
+\begingroup
+\makeatletter
+\@ifundefined{ver@biblatex.sty}
+  {\@latex@error
+     {Missing 'biblatex' package}
+     {The bibliography requires the 'biblatex' package.}
+      \aftergroup\endinput}
+  {}
+\endgroup
+
+
+\refsection{0}
+  \datalist[entry]{none/global//global/global}
+    \entry{envoyDataPlaneOverhead}{misc}{}
+      \name{author}{1}{}{%
+        {{hash=4789175a4127ec192b83d8b7b094f378}{%
+           family={Author},
+           familyi={A\bibinitperiod},
+           given={Placeholder},
+           giveni={P\bibinitperiod}}}%
+      }
+      \strng{namehash}{4789175a4127ec192b83d8b7b094f378}
+      \strng{fullhash}{4789175a4127ec192b83d8b7b094f378}
+      \strng{bibnamehash}{4789175a4127ec192b83d8b7b094f378}
+      \strng{authorbibnamehash}{4789175a4127ec192b83d8b7b094f378}
+      \strng{authornamehash}{4789175a4127ec192b83d8b7b094f378}
+      \strng{authorfullhash}{4789175a4127ec192b83d8b7b094f378}
+      \field{extraname}{1}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{note}{Replace with a validated source}
+      \field{title}{Empirical Analysis of Envoy Sidecar Data-Plane Overhead}
+      \field{year}{2021}
+    \endentry
+    \entry{serviceMeshPerfStudies}{misc}{}
+      \name{author}{1}{}{%
+        {{hash=4789175a4127ec192b83d8b7b094f378}{%
+           family={Author},
+           familyi={A\bibinitperiod},
+           given={Placeholder},
+           giveni={P\bibinitperiod}}}%
+      }
+      \strng{namehash}{4789175a4127ec192b83d8b7b094f378}
+      \strng{fullhash}{4789175a4127ec192b83d8b7b094f378}
+      \strng{bibnamehash}{4789175a4127ec192b83d8b7b094f378}
+      \strng{authorbibnamehash}{4789175a4127ec192b83d8b7b094f378}
+      \strng{authornamehash}{4789175a4127ec192b83d8b7b094f378}
+      \strng{authorfullhash}{4789175a4127ec192b83d8b7b094f378}
+      \field{extraname}{2}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{note}{Replace with a validated source}
+      \field{title}{Performance Characterization of Service Mesh Deployments}
+      \field{year}{2022}
+    \endentry
+    \entry{xdp2018}{article}{}
+      \name{author}{7}{}{%
+        {{hash=f918b95823cd7dd0c793dde4457a786e}{%
+           family={Høiland-Jørgensen},
+           familyi={H\bibinithyphendelim J\bibinitperiod},
+           given={Toke},
+           giveni={T\bibinitperiod}}}%
+        {{hash=1be07b368033388bf45605b867f0ce29}{%
+           family={Brouer},
+           familyi={B\bibinitperiod},
+           given={Jesper\bibnamedelima Dangaard},
+           giveni={J\bibinitperiod\bibinitdelim D\bibinitperiod}}}%
+        {{hash=0ce2d728845862eee5eb0b059a81d9a2}{%
+           family={Borkmann},
+           familyi={B\bibinitperiod},
+           given={Daniel},
+           giveni={D\bibinitperiod}}}%
+        {{hash=729924cda56deb7790cbbc49f8d6464e}{%
+           family={Fastabend},
+           familyi={F\bibinitperiod},
+           given={John},
+           giveni={J\bibinitperiod}}}%
+        {{hash=2011f7f241523157cebd123627ee1a77}{%
+           family={Herbert},
+           familyi={H\bibinitperiod},
+           given={Tom},
+           giveni={T\bibinitperiod}}}%
+        {{hash=68f104384f06cee0552b9dc3cf1dabef}{%
+           family={Ahern},
+           familyi={A\bibinitperiod},
+           given={David},
+           giveni={D\bibinitperiod}}}%
+        {{hash=25aadcb98b0327eadd65a89762382d94}{%
+           family={Miller},
+           familyi={M\bibinitperiod},
+           given={David\bibnamedelima S.},
+           giveni={D\bibinitperiod\bibinitdelim S\bibinitperiod}}}%
+      }
+      \strng{namehash}{557da85b376eea0ebf76f4a8f4ac7f53}
+      \strng{fullhash}{8f63a9232bdf9c096d215db6bd2fbc2d}
+      \strng{bibnamehash}{557da85b376eea0ebf76f4a8f4ac7f53}
+      \strng{authorbibnamehash}{557da85b376eea0ebf76f4a8f4ac7f53}
+      \strng{authornamehash}{557da85b376eea0ebf76f4a8f4ac7f53}
+      \strng{authorfullhash}{8f63a9232bdf9c096d215db6bd2fbc2d}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Proceedings of CoNEXT Workshop}
+      \field{title}{The eXpress Data Path: Fast Programmable Packet Processing in the Operating System Kernel}
+      \field{year}{2018}
+    \endentry
+    \entry{ciliumArchitecture}{misc}{}
+      \name{author}{1}{}{%
+        {{hash=685b4e8af992192d0de8e829fd491cdc}{%
+           family={Project},
+           familyi={P\bibinitperiod},
+           given={Cilium},
+           giveni={C\bibinitperiod}}}%
+      }
+      \strng{namehash}{685b4e8af992192d0de8e829fd491cdc}
+      \strng{fullhash}{685b4e8af992192d0de8e829fd491cdc}
+      \strng{bibnamehash}{685b4e8af992192d0de8e829fd491cdc}
+      \strng{authorbibnamehash}{685b4e8af992192d0de8e829fd491cdc}
+      \strng{authornamehash}{685b4e8af992192d0de8e829fd491cdc}
+      \strng{authorfullhash}{685b4e8af992192d0de8e829fd491cdc}
+      \field{extraname}{1}
+      \field{sortinit}{3}
+      \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{Cilium Architecture Overview}
+      \field{year}{2024}
+      \verb{urlraw}
+      \verb https://docs.cilium.io/
+      \endverb
+      \verb{url}
+      \verb https://docs.cilium.io/
+      \endverb
+    \endentry
+    \entry{ciliumHubble}{misc}{}
+      \name{author}{1}{}{%
+        {{hash=685b4e8af992192d0de8e829fd491cdc}{%
+           family={Project},
+           familyi={P\bibinitperiod},
+           given={Cilium},
+           giveni={C\bibinitperiod}}}%
+      }
+      \strng{namehash}{685b4e8af992192d0de8e829fd491cdc}
+      \strng{fullhash}{685b4e8af992192d0de8e829fd491cdc}
+      \strng{bibnamehash}{685b4e8af992192d0de8e829fd491cdc}
+      \strng{authorbibnamehash}{685b4e8af992192d0de8e829fd491cdc}
+      \strng{authornamehash}{685b4e8af992192d0de8e829fd491cdc}
+      \strng{authorfullhash}{685b4e8af992192d0de8e829fd491cdc}
+      \field{extraname}{2}
+      \field{sortinit}{3}
+      \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{Hubble Observability}
+      \field{year}{2024}
+      \verb{urlraw}
+      \verb https://docs.cilium.io/en/stable/observability/hubble/
+      \endverb
+      \verb{url}
+      \verb https://docs.cilium.io/en/stable/observability/hubble/
+      \endverb
+    \endentry
+    \entry{istioAmbient}{misc}{}
+      \name{author}{1}{}{%
+        {{hash=6c9995261f6cbaf24a5c315bd1fabcb4}{%
+           family={Project},
+           familyi={P\bibinitperiod},
+           given={Istio},
+           giveni={I\bibinitperiod}}}%
+      }
+      \strng{namehash}{6c9995261f6cbaf24a5c315bd1fabcb4}
+      \strng{fullhash}{6c9995261f6cbaf24a5c315bd1fabcb4}
+      \strng{bibnamehash}{6c9995261f6cbaf24a5c315bd1fabcb4}
+      \strng{authorbibnamehash}{6c9995261f6cbaf24a5c315bd1fabcb4}
+      \strng{authornamehash}{6c9995261f6cbaf24a5c315bd1fabcb4}
+      \strng{authorfullhash}{6c9995261f6cbaf24a5c315bd1fabcb4}
+      \field{extraname}{3}
+      \field{sortinit}{4}
+      \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{Istio Ambient Mesh}
+      \field{year}{2024}
+      \verb{urlraw}
+      \verb https://istio.io/latest/docs/ambient/
+      \endverb
+      \verb{url}
+      \verb https://istio.io/latest/docs/ambient/
+      \endverb
+    \endentry
+    \entry{ambientDesign}{misc}{}
+      \name{author}{1}{}{%
+        {{hash=6c9995261f6cbaf24a5c315bd1fabcb4}{%
+           family={Project},
+           familyi={P\bibinitperiod},
+           given={Istio},
+           giveni={I\bibinitperiod}}}%
+      }
+      \strng{namehash}{6c9995261f6cbaf24a5c315bd1fabcb4}
+      \strng{fullhash}{6c9995261f6cbaf24a5c315bd1fabcb4}
+      \strng{bibnamehash}{6c9995261f6cbaf24a5c315bd1fabcb4}
+      \strng{authorbibnamehash}{6c9995261f6cbaf24a5c315bd1fabcb4}
+      \strng{authornamehash}{6c9995261f6cbaf24a5c315bd1fabcb4}
+      \strng{authorfullhash}{6c9995261f6cbaf24a5c315bd1fabcb4}
+      \field{extraname}{4}
+      \field{sortinit}{4}
+      \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{Ambient Architecture and ztunnel Design}
+      \field{year}{2024}
+      \verb{urlraw}
+      \verb https://istio.io/latest/blog/
+      \endverb
+      \verb{url}
+      \verb https://istio.io/latest/blog/
+      \endverb
+    \endentry
+    \entry{kindProject}{misc}{}
+      \name{author}{1}{}{%
+        {{hash=251167f3e80a711dc12a3de68963eee7}{%
+           family={Testing},
+           familyi={T\bibinitperiod},
+           given={Kubernetes\bibnamedelima SIG},
+           giveni={K\bibinitperiod\bibinitdelim S\bibinitperiod}}}%
+      }
+      \strng{namehash}{251167f3e80a711dc12a3de68963eee7}
+      \strng{fullhash}{251167f3e80a711dc12a3de68963eee7}
+      \strng{bibnamehash}{251167f3e80a711dc12a3de68963eee7}
+      \strng{authorbibnamehash}{251167f3e80a711dc12a3de68963eee7}
+      \strng{authornamehash}{251167f3e80a711dc12a3de68963eee7}
+      \strng{authorfullhash}{251167f3e80a711dc12a3de68963eee7}
+      \field{sortinit}{5}
+      \field{sortinithash}{20e9b4b0b173788c5dace24730f47d8c}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{kind: Kubernetes in Docker}
+      \field{year}{2024}
+      \verb{urlraw}
+      \verb https://kind.sigs.k8s.io/
+      \endverb
+      \verb{url}
+      \verb https://kind.sigs.k8s.io/
+      \endverb
+    \endentry
+    \entry{fortio}{misc}{}
+      \name{author}{1}{}{%
+        {{hash=f4958bdc355b8b964877eade36c4f66e}{%
+           family={Project},
+           familyi={P\bibinitperiod},
+           given={Fortio},
+           giveni={F\bibinitperiod}}}%
+      }
+      \strng{namehash}{f4958bdc355b8b964877eade36c4f66e}
+      \strng{fullhash}{f4958bdc355b8b964877eade36c4f66e}
+      \strng{bibnamehash}{f4958bdc355b8b964877eade36c4f66e}
+      \strng{authorbibnamehash}{f4958bdc355b8b964877eade36c4f66e}
+      \strng{authornamehash}{f4958bdc355b8b964877eade36c4f66e}
+      \strng{authorfullhash}{f4958bdc355b8b964877eade36c4f66e}
+      \field{extraname}{5}
+      \field{sortinit}{6}
+      \field{sortinithash}{b33bc299efb3c36abec520a4c896a66d}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{Fortio Load Testing Tool}
+      \field{year}{2024}
+      \verb{urlraw}
+      \verb https://github.com/fortio/fortio
+      \endverb
+      \verb{url}
+      \verb https://github.com/fortio/fortio
+      \endverb
+    \endentry
+    \entry{wrk2}{misc}{}
+      \name{author}{2}{}{%
+        {{hash=354a0dd90688defc6ddd38a49e79915f}{%
+           family={Tene},
+           familyi={T\bibinitperiod},
+           given={Gil},
+           giveni={G\bibinitperiod}}}%
+        {{hash=96858cb143562346b7f065e32c403f30}{%
+           family={Contributors},
+           familyi={C\bibinitperiod}}}%
+      }
+      \strng{namehash}{2295dcfbcc7e000f760de93fd584cacc}
+      \strng{fullhash}{2295dcfbcc7e000f760de93fd584cacc}
+      \strng{bibnamehash}{2295dcfbcc7e000f760de93fd584cacc}
+      \strng{authorbibnamehash}{2295dcfbcc7e000f760de93fd584cacc}
+      \strng{authornamehash}{2295dcfbcc7e000f760de93fd584cacc}
+      \strng{authorfullhash}{2295dcfbcc7e000f760de93fd584cacc}
+      \field{sortinit}{6}
+      \field{sortinithash}{b33bc299efb3c36abec520a4c896a66d}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{wrk2: A Constant Throughput, Correct Latency Recording Variant of wrk}
+      \field{year}{2024}
+      \verb{urlraw}
+      \verb https://github.com/giltene/wrk2
+      \endverb
+      \verb{url}
+      \verb https://github.com/giltene/wrk2
+      \endverb
+    \endentry
+    \entry{bpftrace}{misc}{}
+      \name{author}{1}{}{%
+        {{hash=4db84e7ccefaccb71b0be60a0d9650f0}{%
+           family={Project},
+           familyi={P\bibinitperiod},
+           prefix={bpftrace},
+           prefixi={b\bibinitperiod}}}%
+      }
+      \strng{namehash}{4db84e7ccefaccb71b0be60a0d9650f0}
+      \strng{fullhash}{4db84e7ccefaccb71b0be60a0d9650f0}
+      \strng{bibnamehash}{4db84e7ccefaccb71b0be60a0d9650f0}
+      \strng{authorbibnamehash}{4db84e7ccefaccb71b0be60a0d9650f0}
+      \strng{authornamehash}{4db84e7ccefaccb71b0be60a0d9650f0}
+      \strng{authorfullhash}{4db84e7ccefaccb71b0be60a0d9650f0}
+      \field{sortinit}{7}
+      \field{sortinithash}{108d0be1b1bee9773a1173443802c0a3}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{High-Level Tracing Language for Linux eBPF}
+      \field{year}{2024}
+      \verb{urlraw}
+      \verb https://github.com/bpftrace/bpftrace
+      \endverb
+      \verb{url}
+      \verb https://github.com/bpftrace/bpftrace
+      \endverb
+    \endentry
+  \enddatalist
+\endrefsection
+\endinput
+

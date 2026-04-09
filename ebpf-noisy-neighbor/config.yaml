@@ -12,6 +12,16 @@ matrix:
   container_count: [3, 5, 10]
   ebpf_strategies: [dropper, rate_limit, priority]
   failure_mode: [none, spike, churn]
+  tenant_cpu_quota_pct: [80]
+  tenant_memory_mb: [512]
+  tenant_cpuset: [auto]
+  noisy_cpu_quota_pct: [60]
+  noisy_memory_mb: [384]
+  noisy_cpuset: [auto]
+  host_reserved_cpus: [""]
+  host_mem_pressure_mb: [0]
+  io_read_bps: [0]
+  io_write_bps: [0]
 
 # Optional explicit scenario entries. If non-empty, these are used directly.
 scenarios: []

@@ -8,6 +8,21 @@ from pathlib import Path
 import yaml
 
 
+def _coerce_int(value: object, default: int, minimum: int | None = None) -> int:
+    try:
+        out = int(str(value))
+    except Exception:
+        out = default
+    if minimum is not None and out < minimum:
+        out = minimum
+    return out
+
+
+def _coerce_str(value: object, default: str) -> str:
+    raw = str(value).strip()
+    return raw if raw else default
+
+
 def _normalize_method(method: str, strategy: str, identity_mode: str) -> tuple[str, str, str, str]:
     method = method.strip().lower()
     strategy = strategy.strip().lower()
@@ -46,6 +61,16 @@ def emit_entry(
     failure_mode: str,
     p99_threshold_ms: float,
     strategy: str,
+    tenant_cpu_quota_pct: int,
+    tenant_memory_mb: int,
+    tenant_cpuset: str,
+    noisy_cpu_quota_pct: int,
+    noisy_memory_mb: int,
+    noisy_cpuset: str,
+    host_reserved_cpus: str,
+    host_mem_pressure_mb: int,
+    io_read_bps: int,
+    io_write_bps: int,
 ) -> None:
     method, ebpf_enabled, resolved_strategy, resolved_identity = _normalize_method(
         isolation_method, strategy, identity_mode
@@ -66,6 +91,16 @@ def emit_entry(
                 str(iteration),
                 str(failure_mode),
                 f"{p99_threshold_ms}",
+                str(tenant_cpu_quota_pct),
+                str(tenant_memory_mb),
+                str(tenant_cpuset),
+                str(noisy_cpu_quota_pct),
+                str(noisy_memory_mb),
+                str(noisy_cpuset),
+                str(host_reserved_cpus),
+                str(host_mem_pressure_mb),
+                str(io_read_bps),
+                str(io_write_bps),
             ]
         )
     )
@@ -86,10 +121,52 @@ def emit_from_matrix(data: dict) -> int:
     containers = matrix.get("container_count", [3])
     failure_modes = matrix.get("failure_mode", ["none"])
     strategies = matrix.get("ebpf_strategies", ["rate_limit"])
+    tenant_cpu_quota_pcts = matrix.get("tenant_cpu_quota_pct", [80])
+    tenant_memory_mbs = matrix.get("tenant_memory_mb", [512])
+    tenant_cpusets = matrix.get("tenant_cpuset", ["auto"])
+    noisy_cpu_quota_pcts = matrix.get("noisy_cpu_quota_pct", [60])
+    noisy_memory_mbs = matrix.get("noisy_memory_mb", [384])
+    noisy_cpusets = matrix.get("noisy_cpuset", ["auto"])
+    host_reserved_cpu_sets = matrix.get("host_reserved_cpus", [""])
+    host_mem_pressure_mbs = matrix.get("host_mem_pressure_mb", [0])
+    io_read_bps_values = matrix.get("io_read_bps", [0])
+    io_write_bps_values = matrix.get("io_write_bps", [0])
 
     idx = 0
-    for noise, pattern, method, ident, count, failure in itertools.product(
-        noise_levels, traffic_patterns, methods, identities, containers, failure_modes
+    for (
+        noise,
+        pattern,
+        method,
+        ident,
+        count,
+        failure,
+        tenant_cpu_quota_pct,
+        tenant_memory_mb,
+        tenant_cpuset,
+        noisy_cpu_quota_pct,
+        noisy_memory_mb,
+        noisy_cpuset,
+        host_reserved_cpus,
+        host_mem_pressure_mb,
+        io_read_bps,
+        io_write_bps,
+    ) in itertools.product(
+        noise_levels,
+        traffic_patterns,
+        methods,
+        identities,
+        containers,
+        failure_modes,
+        tenant_cpu_quota_pcts,
+        tenant_memory_mbs,
+        tenant_cpusets,
+        noisy_cpu_quota_pcts,
+        noisy_memory_mbs,
+        noisy_cpusets,
+        host_reserved_cpu_sets,
+        host_mem_pressure_mbs,
+        io_read_bps_values,
+        io_write_bps_values,
     ):
         strategy_set = ["none"]
         if str(method) == "ebpf":
@@ -102,7 +179,13 @@ def emit_from_matrix(data: dict) -> int:
                 idx += 1
                 name = (
                     f"exp_{idx:05d}_n{noise}_p{pattern}_m{method}_"
-                    f"id{ident}_c{count}_f{failure}_it{iteration}"
+                    f"id{ident}_c{count}_f{failure}_"
+                    f"tcq{_coerce_int(tenant_cpu_quota_pct, 80, 1)}_"
+                    f"tm{_coerce_int(tenant_memory_mb, 512, 64)}_"
+                    f"ncq{_coerce_int(noisy_cpu_quota_pct, 60, 1)}_"
+                    f"nm{_coerce_int(noisy_memory_mb, 384, 64)}_"
+                    f"hm{_coerce_int(host_mem_pressure_mb, 0, 0)}_"
+                    f"it{iteration}"
                 )
                 emit_entry(
                     name=name,
@@ -116,6 +199,16 @@ def emit_from_matrix(data: dict) -> int:
                     failure_mode=str(failure),
                     p99_threshold_ms=p99_threshold_ms,
                     strategy=str(strategy),
+                    tenant_cpu_quota_pct=_coerce_int(tenant_cpu_quota_pct, 80, 1),
+                    tenant_memory_mb=_coerce_int(tenant_memory_mb, 512, 64),
+                    tenant_cpuset=_coerce_str(tenant_cpuset, "auto"),
+                    noisy_cpu_quota_pct=_coerce_int(noisy_cpu_quota_pct, 60, 1),
+                    noisy_memory_mb=_coerce_int(noisy_memory_mb, 384, 64),
+                    noisy_cpuset=_coerce_str(noisy_cpuset, "auto"),
+                    host_reserved_cpus=_coerce_str(host_reserved_cpus, ""),
+                    host_mem_pressure_mb=_coerce_int(host_mem_pressure_mb, 0, 0),
+                    io_read_bps=_coerce_int(io_read_bps, 0, 0),
+                    io_write_bps=_coerce_int(io_write_bps, 0, 0),
                 )
     return 0
 
@@ -138,6 +231,16 @@ def emit_from_scenarios(data: dict) -> int:
             failure_mode=str(s.get("failure_mode", "none")),
             p99_threshold_ms=float(s.get("p99_threshold_ms", 10.0)),
             strategy=str(s.get("ebpf_strategy", "rate_limit")),
+            tenant_cpu_quota_pct=_coerce_int(s.get("tenant_cpu_quota_pct", 80), 80, 1),
+            tenant_memory_mb=_coerce_int(s.get("tenant_memory_mb", 512), 512, 64),
+            tenant_cpuset=_coerce_str(s.get("tenant_cpuset", "auto"), "auto"),
+            noisy_cpu_quota_pct=_coerce_int(s.get("noisy_cpu_quota_pct", 60), 60, 1),
+            noisy_memory_mb=_coerce_int(s.get("noisy_memory_mb", 384), 384, 64),
+            noisy_cpuset=_coerce_str(s.get("noisy_cpuset", "auto"), "auto"),
+            host_reserved_cpus=_coerce_str(s.get("host_reserved_cpus", ""), ""),
+            host_mem_pressure_mb=_coerce_int(s.get("host_mem_pressure_mb", 0), 0, 0),
+            io_read_bps=_coerce_int(s.get("io_read_bps", 0), 0, 0),
+            io_write_bps=_coerce_int(s.get("io_write_bps", 0), 0, 0),
         )
     return 0
 
@@ -169,6 +272,16 @@ def main() -> int:
                 failure_mode=str(exp.get("failure_mode", "none")),
                 p99_threshold_ms=float(exp.get("p99_threshold_ms", 10.0)),
                 strategy=str(exp.get("strategy", "rate_limit")),
+                tenant_cpu_quota_pct=_coerce_int(exp.get("tenant_cpu_quota_pct", 80), 80, 1),
+                tenant_memory_mb=_coerce_int(exp.get("tenant_memory_mb", 512), 512, 64),
+                tenant_cpuset=_coerce_str(exp.get("tenant_cpuset", "auto"), "auto"),
+                noisy_cpu_quota_pct=_coerce_int(exp.get("noisy_cpu_quota_pct", 60), 60, 1),
+                noisy_memory_mb=_coerce_int(exp.get("noisy_memory_mb", 384), 384, 64),
+                noisy_cpuset=_coerce_str(exp.get("noisy_cpuset", "auto"), "auto"),
+                host_reserved_cpus=_coerce_str(exp.get("host_reserved_cpus", ""), ""),
+                host_mem_pressure_mb=_coerce_int(exp.get("host_mem_pressure_mb", 0), 0, 0),
+                io_read_bps=_coerce_int(exp.get("io_read_bps", 0), 0, 0),
+                io_write_bps=_coerce_int(exp.get("io_write_bps", 0), 0, 0),
             )
         return 0
 

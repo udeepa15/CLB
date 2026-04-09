@@ -17,9 +17,20 @@ IDENTITY_MODE="${9:-ip}"
 ITERATION="${10:-1}"
 FAILURE_MODE="${11:-none}"
 P99_THRESHOLD_MS="${12:-10.0}"
+TENANT_CPU_QUOTA_PCT="${13:-80}"
+TENANT_MEMORY_MB="${14:-512}"
+TENANT_CPUSET="${15:-auto}"
+NOISY_CPU_QUOTA_PCT="${16:-60}"
+NOISY_MEMORY_MB="${17:-384}"
+NOISY_CPUSET="${18:-auto}"
+HOST_RESERVED_CPUS="${19:-}"
+HOST_MEM_PRESSURE_MB="${20:-0}"
+IO_READ_BPS="${21:-0}"
+IO_WRITE_BPS="${22:-0}"
 
 ADAPTIVE_PID=""
 ADAPTIVE_STOP="$RAW_DIR/.adaptive_stop"
+HOST_PRESSURE_PID=""
 
 if [[ ${EUID} -ne 0 ]]; then
   echo "[run-single] Please run as root (sudo)."
@@ -66,7 +77,190 @@ cleanup() {
     kill "$ADAPTIVE_PID" 2>/dev/null || true
     wait "$ADAPTIVE_PID" 2>/dev/null || true
   fi
+  if [[ -n "${HOST_PRESSURE_PID}" ]]; then
+    kill "$HOST_PRESSURE_PID" 2>/dev/null || true
+    wait "$HOST_PRESSURE_PID" 2>/dev/null || true
+  fi
   "$ROOT_DIR/scripts/stop-containers.sh" || true
+}
+
+normalize_int() {
+  local raw="$1"
+  local fallback="$2"
+  local min_val="$3"
+
+  if [[ "$raw" =~ ^[0-9]+$ ]]; then
+    if (( raw < min_val )); then
+      echo "$min_val"
+      return
+    fi
+    echo "$raw"
+    return
+  fi
+
+  echo "$fallback"
+}
+
+derive_cpuset() {
+  local requested="$1"
+  local reserved="$2"
+  local total_cpus
+  total_cpus="$(nproc --all 2>/dev/null || echo 1)"
+
+  if [[ "$requested" != "auto" && -n "$requested" ]]; then
+    echo "$requested"
+    return
+  fi
+
+  # If host-reserved CPUs are set, assign remaining CPUs to containers.
+  if [[ -n "$reserved" ]]; then
+    local max_cpu=$(( total_cpus - 1 ))
+    local all_set="0-${max_cpu}"
+    local available
+    available="$(python3 - "$all_set" "$reserved" <<'PY'
+import sys
+
+def parse_set(s: str) -> set[int]:
+    out: set[int] = set()
+    for part in s.split(','):
+        part = part.strip()
+        if not part:
+            continue
+        if '-' in part:
+            a, b = part.split('-', 1)
+            out.update(range(int(a), int(b) + 1))
+        else:
+            out.add(int(part))
+    return out
+
+def render(vals: list[int]) -> str:
+    if not vals:
+        return ""
+    vals = sorted(vals)
+    ranges = []
+    start = vals[0]
+    prev = vals[0]
+    for v in vals[1:]:
+        if v == prev + 1:
+            prev = v
+            continue
+        ranges.append(f"{start}-{prev}" if start != prev else f"{start}")
+        start = prev = v
+    ranges.append(f"{start}-{prev}" if start != prev else f"{start}")
+    return ",".join(ranges)
+
+all_set = parse_set(sys.argv[1])
+reserved_set = parse_set(sys.argv[2]) if sys.argv[2].strip() else set()
+allowed = sorted(v for v in all_set if v not in reserved_set)
+print(render(allowed))
+PY
+)"
+    if [[ -n "$available" ]]; then
+      echo "$available"
+      return
+    fi
+  fi
+
+  echo "0-$((total_cpus - 1))"
+}
+
+apply_limit_to_cgroup() {
+  local cgroup_path="$1"
+  local cpu_quota_pct="$2"
+  local memory_mb="$3"
+  local cpuset="$4"
+  local read_bps="$5"
+  local write_bps="$6"
+
+  local full_path="/sys/fs/cgroup${cgroup_path}"
+  [[ -d "$full_path" ]] || return 0
+
+  local cpu_quota_us=$(( cpu_quota_pct * 1000 ))
+  local memory_bytes=$(( memory_mb * 1024 * 1024 ))
+
+  if [[ -w "$full_path/cpu.max" ]]; then
+    echo "${cpu_quota_us} 100000" > "$full_path/cpu.max" || true
+  fi
+
+  if [[ -w "$full_path/memory.max" ]]; then
+    echo "$memory_bytes" > "$full_path/memory.max" || true
+  fi
+
+  if [[ -n "$cpuset" && -w "$full_path/cpuset.cpus" ]]; then
+    echo "$cpuset" > "$full_path/cpuset.cpus" || true
+  fi
+
+  if [[ ( "$read_bps" -gt 0 || "$write_bps" -gt 0 ) && -w "$full_path/io.max" ]]; then
+    local dev
+    dev="$(stat -c '%t:%T' / 2>/dev/null || true)"
+    if [[ -n "$dev" ]]; then
+      local major minor
+      major="$((16#${dev%:*}))"
+      minor="$((16#${dev#*:}))"
+      {
+        if [[ "$read_bps" -gt 0 ]]; then
+          echo "$major:$minor rbps=$read_bps"
+        fi
+        if [[ "$write_bps" -gt 0 ]]; then
+          echo "$major:$minor wbps=$write_bps"
+        fi
+      } > "$full_path/io.max" || true
+    fi
+  fi
+}
+
+apply_resource_allocations() {
+  local tenant_cpu
+  local tenant_mem
+  local noisy_cpu
+  local noisy_mem
+  local host_pressure_mb
+  local io_read
+  local io_write
+  local tenant_cpuset
+  local noisy_cpuset
+
+  tenant_cpu="$(normalize_int "$TENANT_CPU_QUOTA_PCT" 80 1)"
+  tenant_mem="$(normalize_int "$TENANT_MEMORY_MB" 512 64)"
+  noisy_cpu="$(normalize_int "$NOISY_CPU_QUOTA_PCT" 60 1)"
+  noisy_mem="$(normalize_int "$NOISY_MEMORY_MB" 384 64)"
+  host_pressure_mb="$(normalize_int "$HOST_MEM_PRESSURE_MB" 0 0)"
+  io_read="$(normalize_int "$IO_READ_BPS" 0 0)"
+  io_write="$(normalize_int "$IO_WRITE_BPS" 0 0)"
+  tenant_cpuset="$(derive_cpuset "$TENANT_CPUSET" "$HOST_RESERVED_CPUS")"
+  noisy_cpuset="$(derive_cpuset "$NOISY_CPUSET" "$HOST_RESERVED_CPUS")"
+
+  while IFS=, read -r name role _ip; do
+    [[ "$name" == "name" ]] && continue
+    local cg_path
+    cg_path="$(awk -F, -v n="$name" '$1==n {print $2}' "$ROOT_DIR/containers/runtime/cgroup_ids.csv" | tail -n1)"
+    [[ -z "$cg_path" ]] && continue
+
+    if [[ "$role" == "tenant" ]]; then
+      apply_limit_to_cgroup "$cg_path" "$tenant_cpu" "$tenant_mem" "$tenant_cpuset" "$io_read" "$io_write"
+    else
+      apply_limit_to_cgroup "$cg_path" "$noisy_cpu" "$noisy_mem" "$noisy_cpuset" "$io_read" "$io_write"
+    fi
+  done < "$ROOT_DIR/containers/runtime/inventory.csv"
+
+  if [[ "$host_pressure_mb" -gt 0 ]]; then
+    python3 - "$host_pressure_mb" <<'PY' &
+import sys
+import time
+
+mb = int(sys.argv[1])
+buf = bytearray(mb * 1024 * 1024)
+stride = 4096
+while True:
+    for i in range(0, len(buf), stride):
+        buf[i] = (buf[i] + 1) % 256
+    time.sleep(0.25)
+PY
+    HOST_PRESSURE_PID="$!"
+    echo "[run-single] Host memory pressure enabled at ${host_pressure_mb}MB pid=$HOST_PRESSURE_PID"
+  fi
+
+  echo "[run-single] Applied resource limits tenant_cpu=${tenant_cpu}% tenant_mem=${tenant_mem}MB tenant_cpuset=${tenant_cpuset} noisy_cpu=${noisy_cpu}% noisy_mem=${noisy_mem}MB noisy_cpuset=${noisy_cpuset} host_reserved_cpus=${HOST_RESERVED_CPUS:-none} host_mem_pressure_mb=${host_pressure_mb} io_read_bps=${io_read} io_write_bps=${io_write}"
 }
 
 write_cgroup_inventory() {
@@ -228,12 +422,15 @@ trap cleanup EXIT
 echo "[run-single] Starting experiment: $EXP_NAME"
 echo "[run-single] noise=$NOISE_LEVEL ebpf=$EBPF_ENABLED containers=$CONTAINERS strategy=$STRATEGY requests=$REQUESTS"
 echo "[run-single] isolation=$ISOLATION_METHOD pattern=$TRAFFIC_PATTERN identity=$IDENTITY_MODE iteration=$ITERATION failure=$FAILURE_MODE p99_threshold_ms=$P99_THRESHOLD_MS"
+echo "[run-single] resources tenant_cpu=${TENANT_CPU_QUOTA_PCT}% tenant_mem=${TENANT_MEMORY_MB}MB tenant_cpuset=${TENANT_CPUSET} noisy_cpu=${NOISY_CPU_QUOTA_PCT}% noisy_mem=${NOISY_MEMORY_MB}MB noisy_cpuset=${NOISY_CPUSET} host_reserved_cpus=${HOST_RESERVED_CPUS:-none} host_mem_pressure_mb=${HOST_MEM_PRESSURE_MB} io_read_bps=${IO_READ_BPS} io_write_bps=${IO_WRITE_BPS}"
 
 cleanup
 
 CONTAINER_COUNT="$CONTAINERS" NOISE_LEVEL="$NOISE_LEVEL" TRAFFIC_PATTERN="$TRAFFIC_PATTERN" FAILURE_MODE="$FAILURE_MODE" "$ROOT_DIR/scripts/start-containers.sh"
 
 write_cgroup_inventory
+
+apply_resource_allocations
 
 apply_isolation
 
@@ -248,6 +445,9 @@ fi
 
 "$ROOT_DIR/scripts/collect-metrics.sh" \
   "$EXP_NAME" "$NOISE_LEVEL" "$EBPF_ENABLED" "$STRATEGY" "$CONTAINERS" \
-  "$ISOLATION_METHOD" "$TRAFFIC_PATTERN" "$IDENTITY_MODE" "$ITERATION" "$FAILURE_MODE" "$P99_THRESHOLD_MS"
+  "$ISOLATION_METHOD" "$TRAFFIC_PATTERN" "$IDENTITY_MODE" "$ITERATION" "$FAILURE_MODE" "$P99_THRESHOLD_MS" \
+  "$TENANT_CPU_QUOTA_PCT" "$TENANT_MEMORY_MB" "$TENANT_CPUSET" \
+  "$NOISY_CPU_QUOTA_PCT" "$NOISY_MEMORY_MB" "$NOISY_CPUSET" \
+  "$HOST_RESERVED_CPUS" "$HOST_MEM_PRESSURE_MB" "$IO_READ_BPS" "$IO_WRITE_BPS"
 
 echo "[run-single] Experiment complete: $EXP_NAME"

@@ -1,0 +1,30 @@
+global:
+  iterations: 1
+  requests_per_client: 400
+  p99_threshold_ms: 8.0
+  sample_interval_s: 1.0
+
+# ~200-run matrix for fast but broad coverage.
+# Count = noise(3) * pattern(4) * method-factor(4) * identity(2) * containers(1) * failure(2) * iterations(1)
+# method-factor = none(1) + tc(1) + adaptive(1) + ebpf(1 strategy)
+# Total = 3 * 4 * 4 * 2 * 1 * 2 * 1 = 192 experiments
+matrix:
+  noise_level: [low, medium, high]
+  traffic_pattern: [constant, bursty, delayed_start, intermittent]
+  isolation_method: [none, tc, ebpf, adaptive]
+  identity_mode: [ip, cgroup]
+  container_count: [3]
+  ebpf_strategies: [rate_limit]
+  failure_mode: [none, spike]
+  tenant_cpu_quota_pct: [80]
+  tenant_memory_mb: [512]
+  tenant_cpuset: [auto]
+  noisy_cpu_quota_pct: [50]
+  noisy_memory_mb: [320]
+  noisy_cpuset: [auto]
+  host_reserved_cpus: [""]
+  host_mem_pressure_mb: [0, 256]
+  io_read_bps: [0]
+  io_write_bps: [0]
+
+scenarios: []
