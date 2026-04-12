@@ -1,0 +1,11 @@
+Running 1m test @ http://10.200.0.2:8080/
+  2 threads and 64 connections
+  Thread calibration: mean lat.: 1237.038ms, rate sampling interval: 6701ms
+  Thread calibration: mean lat.: 1494.257ms, rate sampling interval: 8790ms
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency     4.61s     5.65s   31.31s    85.80%
+    Req/Sec   455.75    137.52   623.00     75.00%
+  59217 requests in 1.00m, 4.89MB read
+  Socket errors: connect 0, read 685, write 76, timeout 1100
+Requests/sec:    986.48
+Transfer/sec:     83.50KB

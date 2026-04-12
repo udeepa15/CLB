@@ -1,0 +1,7 @@
+Configuration,P50 Mean (ms),P99 Mean (ms),Throughput Mean (QPS),Attacker RPS Mean,P50 Std (ms),P99 Std (ms),Sample Count
+"Baseline
+(No Noise)",0.918,17.932,1601.9,0.0,nan,nan,1
+"Sidecar Isolation
+(Separate eBPF)",0.995,1665.807,519.3,986.5,nan,nan,1
+"Sidecarless
+(Shared eBPF)",1.206,1585.902,594.7,957.9,nan,nan,1

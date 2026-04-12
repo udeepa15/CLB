@@ -1,0 +1,9 @@
+alpine-baselayout
+alpine-keys
+apk-tools
+busybox
+curl
+iperf3
+libc-utils
+py3-pip
+python3

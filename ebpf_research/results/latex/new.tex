@@ -1,0 +1,48 @@
+\section{Preliminary Study}
+This section reports the most recent run outputs generated from the current eBPF noisy-neighbor benchmark pipeline. The results are based on the files in \texttt{results/graphs/} and the aggregated table in \texttt{summary\_statistics.csv}.
+
+\subsection{Tested Configurations and Sample Coverage}
+The latest run includes three configurations:
+\begin{enumerate}
+  \item \textbf{Baseline (No Noise)}: victim-only traffic, no attacker load.
+  \item \textbf{Sidecar Isolation (Separate eBPF)}: attacker present with separate eBPF handling.
+  \item \textbf{Sidecarless (Shared eBPF)}: shared eBPF path with high attacker pressure.
+\end{enumerate}
+
+Sample counts from the summary table are:
+\begin{itemize}
+  \item Baseline: $n=1$
+  \item Sidecar Isolation: $n=1$
+  \item Sidecarless: $n=1$
+\end{itemize}
+
+\subsection{Latency and Throughput Summary}
+From the current aggregated statistics:
+\begin{itemize}
+  \item \textbf{Baseline}: mean $p50=0.907$ ms, mean $p99=28.393$ ms, mean throughput $=1503.1$ QPS.
+  \item \textbf{Sidecar Isolation}: mean $p50=0.934$ ms, mean $p99=64.543$ ms, mean throughput $=1316.9$ QPS.
+  \item \textbf{Sidecarless}: mean $p50=0.890$ ms, mean $p99=1413.338$ ms, mean throughput $=780.1$ QPS, mean attacker load $=1284.9$ RPS.
+\end{itemize}
+
+Compared to baseline, the current sidecar-isolation run shows:
+\begin{itemize}
+  \item about $\frac{64.543}{28.393} \approx 2.27\times$ increase in tail latency ($p99$),
+  \item about $\left(1-\frac{1316.9}{1503.1}\right)\times100 \approx 12.4\%$ reduction in throughput.
+\end{itemize}
+
+\subsection{Visual Evidence from Current Graph}
+Figure~\ref{fig:current-latency-comparison} is sufficient to show the core effect: baseline remains compact, sidecar isolation shows a pronounced tail increase, and sidecarless shared eBPF shows the strongest tail amplification. Even without the throughput plot, the latency graph alone demonstrates the noisy-neighbor impact clearly because the P95 and P99 curves separate sharply from the baseline while P50 stays comparatively stable.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.95\linewidth]{images/latency_comparison.png}
+  \caption{Latency percentile comparison (P50/P95/P99) across current configurations.}
+  \label{fig:current-latency-comparison}
+\end{figure}
+
+
+\subsection{Current Interpretation}
+The latest data confirms tail-latency sensitivity under noisy-neighbor conditions. Median latency remains relatively stable, but the P95 and P99 values diverge sharply once attacker load is introduced. That separation is enough to support the main claim: shared-path contention produces a large tail-latency penalty even when the median remains close to baseline.
+
+The sidecarless shared-eBPF mode shows the strongest tail amplification in this run, with $p99$ rising to $1585.902$ ms and throughput dropping to $594.7$ QPS. This makes the latency comparison graph the most direct evidence for the noisy-neighbor effect in the current dataset.
+

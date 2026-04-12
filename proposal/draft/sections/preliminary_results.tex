@@ -1,0 +1,76 @@
+\section{Preliminary Results}
+This section summarizes early outcomes from the current experiment matrix and one-hour benchmark suite. The results are preliminary and are included to validate feasibility, instrumentation coverage, and the expected analysis pipeline for the full thesis study.
+
+\subsection{High-Level Observations}
+Across the current runs, p99 latency increases with noise intensity for all isolation methods. Low-noise conditions show comparatively tight tails, while medium and high-noise settings produce clear tail amplification. The early comparisons also show that method rankings are scenario-dependent: some methods perform better under specific traffic/failure combinations, but no single method dominates all cases in this preliminary dataset.
+
+\subsection{Method-Level Performance and Isolation Indicators}
+Figure~\ref{fig:method-overview} summarizes average p99, throughput, and isolation score by method. Figure~\ref{fig:isolation-effectiveness} shows tail amplification ($p99/p50$), where lower values indicate better tail stability.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.85\linewidth]{images/method_overview_latency_throughput_score.png}
+  \caption{Method overview: p99 latency, throughput, and isolation score.}
+  \label{fig:method-overview}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.75\linewidth]{images/isolation_effectiveness.png}
+  \caption{Isolation effectiveness measured by average tail amplification ($p99/p50$).}
+  \label{fig:isolation-effectiveness}
+\end{figure}
+
+\subsection{Sensitivity to Noise, Traffic Pattern, and Failure Mode}
+Figure~\ref{fig:p99-vs-noise} shows the expected monotonic p99 growth as noise increases. Figures~\ref{fig:p99-traffic} and~\ref{fig:p99-failure} indicate that traffic shape and failure mode materially shift tail behavior and therefore must be treated as first-class factors in the final evaluation.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.78\linewidth]{images/p99_vs_noise.png}
+  \caption{Average p99 latency versus noise level by isolation method.}
+  \label{fig:p99-vs-noise}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.92\linewidth]{images/p99_by_traffic_pattern.png}
+  \caption{Average p99 by traffic pattern and isolation method.}
+  \label{fig:p99-traffic}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.92\linewidth]{images/p99_by_failure_mode.png}
+  \caption{Average p99 by failure mode and isolation method.}
+  \label{fig:p99-failure}
+\end{figure}
+
+\subsection{Distributional Behavior}
+Figure~\ref{fig:p99-boxplot} highlights broad p99 dispersion under several methods, suggesting that distribution-aware analysis (not just mean comparison) is required. Figure~\ref{fig:latency-cdf} further shows overall latency distribution differences among methods.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.88\linewidth]{images/p99_distribution_boxplot_by_method.png}
+  \caption{Distribution of p99 latency by isolation method.}
+  \label{fig:p99-boxplot}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.88\linewidth]{images/latency_cdf.png}
+  \caption{Latency CDF by isolation method.}
+  \label{fig:latency-cdf}
+\end{figure}
+
+\subsection{Structured Interaction Effects}
+Figure~\ref{fig:p99-heatmap} visualizes interaction effects between noise level, traffic pattern, and isolation method. This supports the need for factorial analysis in the full thesis evaluation rather than one-factor-at-a-time comparisons.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.95\linewidth]{images/p99_heatmap_by_noise_and_traffic.png}
+  \caption{p99 heatmap across noise level, traffic pattern, and isolation method.}
+  \label{fig:p99-heatmap}
+\end{figure}
+
+\subsection{Threats to Validity (Preliminary Stage)}
+These findings are preliminary and may still be influenced by run-to-run variance, incomplete repetition counts for some scenarios, and pending stabilization of adaptive cgroup-map update behavior in selected runs. The final thesis analysis will use controlled reruns, confidence-aware reporting, and explicit exclusion/annotation criteria for incomplete trials.
