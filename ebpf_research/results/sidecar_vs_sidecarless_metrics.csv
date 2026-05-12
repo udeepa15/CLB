@@ -1,0 +1,6 @@
+timestamp,config,noise_target_rps,run_id,p50_ms,p95_ms,p99_ms,throughput_qps,attacker_rps
+2026-04-15T17:47:33Z,sidecar_isolation,0,1,0.843,1.969,5.246,965.3504732518563,0
+2026-04-15T17:48:38Z,sidecarless_contention,0,1,0.734,1.650,1.993,974.3656871459641,0
+2026-04-15T17:49:43Z,sidecar_isolation,10000,1,0.747,1.695,2.068,942.721725829094,NA
+2026-04-15T17:50:50Z,sidecarless_contention,10000,1,0.793,1.853,2.622,974.6469248145969,NA
+2026-04-15T17:51:55Z,sidecar_isolation,20000,1,0.777,1.897,4.705,983.0082759826953,NA

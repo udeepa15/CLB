@@ -1,0 +1,195 @@
+{"ts":1776280102.025946,"level":"info","r":1,"file":"scli.go","line":124,"msg":"Starting","command":"Φορτίο","version":"1.75.1 h1:KJa0as+u9Ht9fcTyBlpQsdqJi9ysXpSpcOjDn4UxmCI= go1.25.9 amd64 linux","go-max-procs":4}
+Fortio 1.75.1 running at 20000 queries per second, 4->4 procs, for 1m0s: http://10.200.0.3:8081/echo
+{"ts":1776280102.027111,"level":"info","r":1,"file":"httprunner.go","line":121,"msg":"Starting http test","run":0,"url":"http://10.200.0.3:8081/echo","threads":64,"qps":"20000.0","warmup":"parallel","conn-reuse":""}
+Starting at 20000 qps with 64 thread(s) [gomax 4] for 1m0s : 18750 calls each (total 1200000)
+{"ts":1776280163.365001,"level":"info","r":179,"file":"periodic.go","line":882,"msg":"T002 ended after 1m0.00056276s : 18750 calls. qps=312.4970689858243"}
+{"ts":1776280163.365076,"level":"info","r":232,"file":"periodic.go","line":882,"msg":"T055 ended after 1m0.00064978s : 18750 calls. qps=312.4966157658168"}
+{"ts":1776280163.365097,"level":"info","r":217,"file":"periodic.go","line":882,"msg":"T040 ended after 1m0.000672676s : 18750 calls. qps=312.49649651844516"}
+{"ts":1776280163.365115,"level":"info","r":183,"file":"periodic.go","line":882,"msg":"T006 ended after 1m0.000691276s : 18750 calls. qps=312.49639964564733"}
+{"ts":1776280163.365134,"level":"info","r":238,"file":"periodic.go","line":882,"msg":"T061 ended after 1m0.00070975s : 18750 calls. qps=312.496303429144"}
+{"ts":1776280163.365182,"level":"info","r":193,"file":"periodic.go","line":882,"msg":"T016 ended after 1m0.000757675s : 18750 calls. qps=312.4960538258736"}
+{"ts":1776280163.365202,"level":"info","r":195,"file":"periodic.go","line":882,"msg":"T018 ended after 1m0.000777589s : 18750 calls. qps=312.4959501097775"}
+{"ts":1776280163.365228,"level":"info","r":213,"file":"periodic.go","line":882,"msg":"T036 ended after 1m0.000803498s : 18750 calls. qps=312.495815170625"}
+{"ts":1776280163.368220,"level":"info","r":222,"file":"periodic.go","line":882,"msg":"T045 ended after 1m0.003785185s : 18750 calls. qps=312.4802867384307"}
+{"ts":1776280163.368259,"level":"info","r":186,"file":"periodic.go","line":882,"msg":"T009 ended after 1m0.003828699s : 18750 calls. qps=312.48006013177087"}
+{"ts":1776280163.368342,"level":"info","r":240,"file":"periodic.go","line":882,"msg":"T063 ended after 1m0.003916746s : 18750 calls. qps=312.47960161283834"}
+{"ts":1776280163.368361,"level":"info","r":200,"file":"periodic.go","line":882,"msg":"T023 ended after 1m0.00393673s : 18750 calls. qps=312.4794975431273"}
+{"ts":1776280163.368379,"level":"info","r":199,"file":"periodic.go","line":882,"msg":"T022 ended after 1m0.003954843s : 18750 calls. qps=312.47940321699235"}
+{"ts":1776280163.368395,"level":"info","r":178,"file":"periodic.go","line":882,"msg":"T001 ended after 1m0.003971284s : 18750 calls. qps=312.47931759809484"}
+{"ts":1776280163.368443,"level":"info","r":229,"file":"periodic.go","line":882,"msg":"T052 ended after 1m0.004018518s : 18750 calls. qps=312.47907162043447"}
+{"ts":1776280163.368487,"level":"info","r":191,"file":"periodic.go","line":882,"msg":"T014 ended after 1m0.004063106s : 18750 calls. qps=312.4788394225445"}
+{"ts":1776280163.368505,"level":"info","r":201,"file":"periodic.go","line":882,"msg":"T024 ended after 1m0.004081623s : 18750 calls. qps=312.47874299292647"}
+{"ts":1776280163.368509,"level":"info","r":188,"file":"periodic.go","line":882,"msg":"T011 ended after 1m0.004080938s : 18750 calls. qps=312.4787465601495"}
+{"ts":1776280163.368827,"level":"info","r":206,"file":"periodic.go","line":882,"msg":"T029 ended after 1m0.004397024s : 18750 calls. qps=312.47710051149335"}
+{"ts":1776280163.368957,"level":"info","r":227,"file":"periodic.go","line":882,"msg":"T050 ended after 1m0.004531222s : 18750 calls. qps=312.4764016675714"}
+{"ts":1776280163.369046,"level":"info","r":207,"file":"periodic.go","line":882,"msg":"T030 ended after 1m0.004620502s : 18750 calls. qps=312.4759367384891"}
+{"ts":1776280163.369172,"level":"info","r":189,"file":"periodic.go","line":882,"msg":"T012 ended after 1m0.004747001s : 18750 calls. qps=312.47527799238156"}
+{"ts":1776280163.369190,"level":"info","r":204,"file":"periodic.go","line":882,"msg":"T027 ended after 1m0.004758651s : 18750 calls. qps=312.47521732491003"}
+{"ts":1776280163.369199,"level":"info","r":205,"file":"periodic.go","line":882,"msg":"T028 ended after 1m0.004775556s : 18750 calls. qps=312.4751292920243"}
+{"ts":1776280163.369360,"level":"info","r":237,"file":"periodic.go","line":882,"msg":"T060 ended after 1m0.004928616s : 18750 calls. qps=312.47433223344274"}
+{"ts":1776280163.369400,"level":"info","r":221,"file":"periodic.go","line":882,"msg":"T044 ended after 1m0.004975591s : 18750 calls. qps=312.47408761236574"}
+{"ts":1776280163.369417,"level":"info","r":233,"file":"periodic.go","line":882,"msg":"T056 ended after 1m0.004993324s : 18750 calls. qps=312.4739952683342"}
+{"ts":1776280163.369456,"level":"info","r":198,"file":"periodic.go","line":882,"msg":"T021 ended after 1m0.005031731s : 18750 calls. qps=312.4737952652946"}
+{"ts":1776280163.369484,"level":"info","r":235,"file":"periodic.go","line":882,"msg":"T058 ended after 1m0.005060135s : 18750 calls. qps=312.4736473526742"}
+{"ts":1776280163.369522,"level":"info","r":231,"file":"periodic.go","line":882,"msg":"T054 ended after 1m0.005098101s : 18750 calls. qps=312.4734496465647"}
+{"ts":1776280163.369876,"level":"info","r":219,"file":"periodic.go","line":882,"msg":"T042 ended after 1m0.005449411s : 18750 calls. qps=312.4716202285923"}
+{"ts":1776280163.369903,"level":"info","r":33,"file":"periodic.go","line":882,"msg":"T000 ended after 1m0.005478769s : 18750 calls. qps=312.4714673501883"}
+{"ts":1776280163.369920,"level":"info","r":223,"file":"periodic.go","line":882,"msg":"T046 ended after 1m0.005496773s : 18750 calls. qps=312.4713735965057"}
+{"ts":1776280163.369937,"level":"info","r":202,"file":"periodic.go","line":882,"msg":"T025 ended after 1m0.005513484s : 18750 calls. qps=312.4712865760167"}
+{"ts":1776280163.369952,"level":"info","r":211,"file":"periodic.go","line":882,"msg":"T034 ended after 1m0.005528463s : 18750 calls. qps=312.47120857474715"}
+{"ts":1776280163.369969,"level":"info","r":203,"file":"periodic.go","line":882,"msg":"T026 ended after 1m0.005545345s : 18750 calls. qps=312.4711206638897"}
+{"ts":1776280163.369984,"level":"info","r":197,"file":"periodic.go","line":882,"msg":"T020 ended after 1m0.005560422s : 18750 calls. qps=312.47104215238085"}
+{"ts":1776280163.369999,"level":"info","r":220,"file":"periodic.go","line":882,"msg":"T043 ended after 1m0.005575724s : 18750 calls. qps=312.4709624692543"}
+{"ts":1776280163.370015,"level":"info","r":181,"file":"periodic.go","line":882,"msg":"T004 ended after 1m0.005591351s : 18750 calls. qps=312.4708810937754"}
+{"ts":1776280163.370030,"level":"info","r":224,"file":"periodic.go","line":882,"msg":"T047 ended after 1m0.005606369s : 18750 calls. qps=312.47080288962127"}
+{"ts":1776280163.370046,"level":"info","r":196,"file":"periodic.go","line":882,"msg":"T019 ended after 1m0.005622584s : 18750 calls. qps=312.47071845229937"}
+{"ts":1776280163.370061,"level":"info","r":180,"file":"periodic.go","line":882,"msg":"T003 ended after 1m0.00563752s : 18750 calls. qps=312.4706406752297"}
+{"ts":1776280163.370076,"level":"info","r":215,"file":"periodic.go","line":882,"msg":"T038 ended after 1m0.005652412s : 18750 calls. qps=312.4705631273222"}
+{"ts":1776280163.370091,"level":"info","r":192,"file":"periodic.go","line":882,"msg":"T015 ended after 1m0.005667611s : 18750 calls. qps=312.4704839807969"}
+{"ts":1776280163.370106,"level":"info","r":230,"file":"periodic.go","line":882,"msg":"T053 ended after 1m0.005682784s : 18750 calls. qps=312.4704049697027"}
+{"ts":1776280163.370133,"level":"info","r":214,"file":"periodic.go","line":882,"msg":"T037 ended after 1m0.005706793s : 18750 calls. qps=312.47027994656156"}
+{"ts":1776280163.370156,"level":"info","r":228,"file":"periodic.go","line":882,"msg":"T051 ended after 1m0.005731745s : 18750 calls. qps=312.47015001300025"}
+{"ts":1776280163.370213,"level":"info","r":184,"file":"periodic.go","line":882,"msg":"T007 ended after 1m0.005782195s : 18750 calls. qps=312.4698873029998"}
+{"ts":1776280163.370221,"level":"info","r":190,"file":"periodic.go","line":882,"msg":"T013 ended after 1m0.005795846s : 18750 calls. qps=312.4698162177592"}
+{"ts":1776280163.370241,"level":"info","r":236,"file":"periodic.go","line":882,"msg":"T059 ended after 1m0.005815565s : 18750 calls. qps=312.4697135345068"}
+{"ts":1776280163.370259,"level":"info","r":210,"file":"periodic.go","line":882,"msg":"T033 ended after 1m0.00583484s : 18750 calls. qps=312.4696131633722"}
+{"ts":1776280163.370275,"level":"info","r":194,"file":"periodic.go","line":882,"msg":"T017 ended after 1m0.005851392s : 18750 calls. qps=312.46952697182724"}
+{"ts":1776280163.370255,"level":"info","r":234,"file":"periodic.go","line":882,"msg":"T057 ended after 1m0.005830861s : 18750 calls. qps=312.46963388330175"}
+{"ts":1776280163.370293,"level":"info","r":226,"file":"periodic.go","line":882,"msg":"T049 ended after 1m0.005868468s : 18750 calls. qps=312.4694380516969"}
+{"ts":1776280163.370300,"level":"info","r":209,"file":"periodic.go","line":882,"msg":"T032 ended after 1m0.005875805s : 18750 calls. qps=312.469399845634"}
+{"ts":1776280163.370309,"level":"info","r":185,"file":"periodic.go","line":882,"msg":"T008 ended after 1m0.005884343s : 18750 calls. qps=312.4693553855987"}
+{"ts":1776280163.370315,"level":"info","r":225,"file":"periodic.go","line":882,"msg":"T048 ended after 1m0.005891084s : 18750 calls. qps=312.4693202831132"}
+{"ts":1776280163.370325,"level":"info","r":218,"file":"periodic.go","line":882,"msg":"T041 ended after 1m0.005901601s : 18750 calls. qps=312.4692655178359"}
+{"ts":1776280163.370332,"level":"info","r":187,"file":"periodic.go","line":882,"msg":"T010 ended after 1m0.005908571s : 18750 calls. qps=312.469229222897"}
+{"ts":1776280163.370341,"level":"info","r":212,"file":"periodic.go","line":882,"msg":"T035 ended after 1m0.005916865s : 18750 calls. qps=312.469186033493"}
+{"ts":1776280163.370347,"level":"info","r":216,"file":"periodic.go","line":882,"msg":"T039 ended after 1m0.005922948s : 18750 calls. qps=312.4691543574523"}
+{"ts":1776280163.370453,"level":"info","r":182,"file":"periodic.go","line":882,"msg":"T005 ended after 1m0.006027484s : 18750 calls. qps=312.4686100075446"}
+{"ts":1776280163.370476,"level":"info","r":239,"file":"periodic.go","line":882,"msg":"T062 ended after 1m0.006051882s : 18750 calls. qps=312.46848296020676"}
+{"ts":1776280163.370577,"level":"info","r":208,"file":"periodic.go","line":882,"msg":"T031 ended after 1m0.006150977s : 18750 calls. qps=312.46796694536806"}
+Ended after 1m0.006201486s : 1200000 calls. qps=19998
+{"ts":1776280163.370669,"level":"info","r":1,"file":"periodic.go","line":598,"msg":"Run ended","run":0,"elapsed":60006201486,"calls":1200000,"qps":19997.933051635857}
+Aggregated Sleep Time : count 1199936 avg -0.0090088166 +/- 0.02035 min -0.238570204 max 0.003155658 sum -10810.0033
+# range, mid point, percentile, count
+>= -0.23857 <= -0.001 , -0.119785 , 54.55, 654586
+> -0.001 <= 0 , -0.0005 , 63.84, 111470
+> 0 <= 0.001 , 0.0005 , 80.60, 201071
+> 0.001 <= 0.002 , 0.0015 , 94.51, 166966
+> 0.002 <= 0.003 , 0.0025 , 99.97, 65458
+> 0.003 <= 0.00315566 , 0.00307783 , 100.00, 385
+# target 50% -0.0208227
+WARNING 54.55% of sleep were falling behind
+Aggregated Function Time : count 1200000 avg 0.0024371467 +/- 0.002281 min 3.1085e-05 max 0.04361865 sum 2924.57608
+# range, mid point, percentile, count
+>= 3.1085e-05 <= 0.001 , 0.000515542 , 27.25, 327021
+> 0.001 <= 0.002 , 0.0015 , 51.49, 290810
+> 0.002 <= 0.003 , 0.0025 , 71.44, 239428
+> 0.003 <= 0.004 , 0.0035 , 84.20, 153113
+> 0.004 <= 0.005 , 0.0045 , 90.70, 78086
+> 0.005 <= 0.006 , 0.0055 , 94.08, 40539
+> 0.006 <= 0.007 , 0.0065 , 95.96, 22550
+> 0.007 <= 0.008 , 0.0075 , 97.12, 13902
+> 0.008 <= 0.009 , 0.0085 , 97.93, 9682
+> 0.009 <= 0.01 , 0.0095 , 98.49, 6725
+> 0.01 <= 0.011 , 0.0105 , 98.89, 4770
+> 0.011 <= 0.012 , 0.0115 , 99.21, 3909
+> 0.012 <= 0.014 , 0.013 , 99.60, 4664
+> 0.014 <= 0.016 , 0.015 , 99.77, 2070
+> 0.016 <= 0.018 , 0.017 , 99.87, 1133
+> 0.018 <= 0.02 , 0.019 , 99.92, 602
+> 0.02 <= 0.025 , 0.0225 , 99.96, 502
+> 0.025 <= 0.03 , 0.0275 , 99.99, 350
+> 0.03 <= 0.035 , 0.0325 , 99.99, 71
+> 0.035 <= 0.04 , 0.0375 , 100.00, 67
+> 0.04 <= 0.0436187 , 0.0418093 , 100.00, 6
+# target 50% 0.00193869
+# target 75% 0.00327915
+# target 90% 0.00489168
+# target 99% 0.0113515
+# target 99.9% 0.0193223
+Error cases : no data
+# Socket and IP used for each connection:
+[0]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.000566587 +/- 0 min 0.000566587 max 0.000566587 sum 0.000566587
+[1]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.002236234 +/- 0 min 0.002236234 max 0.002236234 sum 0.002236234
+[2]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.000196292 +/- 0 min 0.000196292 max 0.000196292 sum 0.000196292
+[3]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.00010559 +/- 0 min 0.00010559 max 0.00010559 sum 0.00010559
+[4]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.000416252 +/- 0 min 0.000416252 max 0.000416252 sum 0.000416252
+[5]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.000321744 +/- 0 min 0.000321744 max 0.000321744 sum 0.000321744
+[6]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.000231637 +/- 0 min 0.000231637 max 0.000231637 sum 0.000231637
+[7]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.000140426 +/- 0 min 0.000140426 max 0.000140426 sum 0.000140426
+[8]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 6.1743e-05 +/- 0 min 6.1743e-05 max 6.1743e-05 sum 6.1743e-05
+[9]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.00038629 +/- 0 min 0.00038629 max 0.00038629 sum 0.00038629
+[10]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.000292071 +/- 0 min 0.000292071 max 0.000292071 sum 0.000292071
+[11]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.000138237 +/- 0 min 0.000138237 max 0.000138237 sum 0.000138237
+[12]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.000276888 +/- 0 min 0.000276888 max 0.000276888 sum 0.000276888
+[13]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.000139377 +/- 0 min 0.000139377 max 0.000139377 sum 0.000139377
+[14]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.000139669 +/- 0 min 0.000139669 max 0.000139669 sum 0.000139669
+[15]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 5.9072e-05 +/- 0 min 5.9072e-05 max 5.9072e-05 sum 5.9072e-05
+[16]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.000320468 +/- 0 min 0.000320468 max 0.000320468 sum 0.000320468
+[17]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.000259437 +/- 0 min 0.000259437 max 0.000259437 sum 0.000259437
+[18]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 8.3853e-05 +/- 0 min 8.3853e-05 max 8.3853e-05 sum 8.3853e-05
+[19]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.000192214 +/- 0 min 0.000192214 max 0.000192214 sum 0.000192214
+[20]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.000244018 +/- 0 min 0.000244018 max 0.000244018 sum 0.000244018
+[21]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.002899401 +/- 0 min 0.002899401 max 0.002899401 sum 0.002899401
+[22]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.017787354 +/- 0 min 0.017787354 max 0.017787354 sum 0.017787354
+[23]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.015604362 +/- 0 min 0.015604362 max 0.015604362 sum 0.015604362
+[24]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.000209324 +/- 0 min 0.000209324 max 0.000209324 sum 0.000209324
+[25]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.000126154 +/- 0 min 0.000126154 max 0.000126154 sum 0.000126154
+[26]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.002329808 +/- 0 min 0.002329808 max 0.002329808 sum 0.002329808
+[27]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.018480061 +/- 0 min 0.018480061 max 0.018480061 sum 0.018480061
+[28]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 8.2596e-05 +/- 0 min 8.2596e-05 max 8.2596e-05 sum 8.2596e-05
+[29]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.000121499 +/- 0 min 0.000121499 max 0.000121499 sum 0.000121499
+[30]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.018522898 +/- 0 min 0.018522898 max 0.018522898 sum 0.018522898
+[31]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.000929879 +/- 0 min 0.000929879 max 0.000929879 sum 0.000929879
+[32]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.000606876 +/- 0 min 0.000606876 max 0.000606876 sum 0.000606876
+[33]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.00211377 +/- 0 min 0.00211377 max 0.00211377 sum 0.00211377
+[34]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.000237133 +/- 0 min 0.000237133 max 0.000237133 sum 0.000237133
+[35]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 7.2607e-05 +/- 0 min 7.2607e-05 max 7.2607e-05 sum 7.2607e-05
+[36]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.000396505 +/- 0 min 0.000396505 max 0.000396505 sum 0.000396505
+[37]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.000257016 +/- 0 min 0.000257016 max 0.000257016 sum 0.000257016
+[38]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 6.5515e-05 +/- 0 min 6.5515e-05 max 6.5515e-05 sum 6.5515e-05
+[39]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.000965881 +/- 0 min 0.000965881 max 0.000965881 sum 0.000965881
+[40]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.00070419 +/- 0 min 0.00070419 max 0.00070419 sum 0.00070419
+[41]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.000476871 +/- 0 min 0.000476871 max 0.000476871 sum 0.000476871
+[42]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.000389937 +/- 0 min 0.000389937 max 0.000389937 sum 0.000389937
+[43]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.00030821 +/- 0 min 0.00030821 max 0.00030821 sum 0.00030821
+[44]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.000229613 +/- 0 min 0.000229613 max 0.000229613 sum 0.000229613
+[45]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.000159028 +/- 0 min 0.000159028 max 0.000159028 sum 0.000159028
+[46]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 6.5169e-05 +/- 0 min 6.5169e-05 max 6.5169e-05 sum 6.5169e-05
+[47]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.00095337 +/- 0 min 0.00095337 max 0.00095337 sum 0.00095337
+[48]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.000671106 +/- 0 min 0.000671106 max 0.000671106 sum 0.000671106
+[49]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.000840829 +/- 0 min 0.000840829 max 0.000840829 sum 0.000840829
+[50]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.000146758 +/- 0 min 0.000146758 max 0.000146758 sum 0.000146758
+[51]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.000220506 +/- 0 min 0.000220506 max 0.000220506 sum 0.000220506
+[52]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.000106094 +/- 0 min 0.000106094 max 0.000106094 sum 0.000106094
+[53]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.000191915 +/- 0 min 0.000191915 max 0.000191915 sum 0.000191915
+[54]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.000101861 +/- 0 min 0.000101861 max 0.000101861 sum 0.000101861
+[55]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.000177788 +/- 0 min 0.000177788 max 0.000177788 sum 0.000177788
+[56]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 8.4995e-05 +/- 0 min 8.4995e-05 max 8.4995e-05 sum 8.4995e-05
+[57]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.000151312 +/- 0 min 0.000151312 max 0.000151312 sum 0.000151312
+[58]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 6.6172e-05 +/- 0 min 6.6172e-05 max 6.6172e-05 sum 6.6172e-05
+[59]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.000109636 +/- 0 min 0.000109636 max 0.000109636 sum 0.000109636
+[60]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.000110675 +/- 0 min 0.000110675 max 0.000110675 sum 0.000110675
+[61]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 6.9515e-05 +/- 0 min 6.9515e-05 max 6.9515e-05 sum 6.9515e-05
+[62]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 5.8989e-05 +/- 0 min 5.8989e-05 max 5.8989e-05 sum 5.8989e-05
+[63]   1 socket used, resolved to 10.200.0.3:8081, connection timing : count 1 avg 0.001044544 +/- 0 min 0.001044544 max 0.001044544 sum 0.001044544
+Connection time histogram (s) : count 64 avg 0.0015008722 +/- 0.004206 min 5.8989e-05 max 0.018522898 sum 0.096055821
+# range, mid point, percentile, count
+>= 5.8989e-05 <= 0.001 , 0.000529494 , 85.94, 55
+> 0.001 <= 0.002 , 0.0015 , 87.50, 1
+> 0.002 <= 0.003 , 0.0025 , 93.75, 4
+> 0.014 <= 0.016 , 0.015 , 95.31, 1
+> 0.016 <= 0.018 , 0.017 , 96.88, 1
+> 0.018 <= 0.0185229 , 0.0182614 , 100.00, 2
+# target 50% 0.000599199
+# target 75% 0.000878017
+# target 90% 0.0024
+# target 99% 0.0183556
+# target 99.9% 0.0185062
+Sockets used: 64 (for perfect keepalive, would be 64)
+Uniform: false, Jitter: false, Catchup allowed: true
+IP addresses distribution:
+10.200.0.3:8081: 64
+Code 200 : 1200000 (100.0 %)
+Response Header Sizes : count 1200000 avg 75 +/- 0 min 75 max 75 sum 90000000
+Response Body/Total Sizes : count 1200000 avg 75 +/- 0 min 75 max 75 sum 90000000
+All done 1200000 calls (plus 64 warmup) 2.437 ms avg, 19997.9 qps

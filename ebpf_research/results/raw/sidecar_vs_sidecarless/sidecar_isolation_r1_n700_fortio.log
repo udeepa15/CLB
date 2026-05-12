@@ -1,0 +1,5 @@
+{"ts":1776273419.039680,"level":"info","r":1,"file":"scli.go","line":124,"msg":"Starting","command":"Φορτίο","version":"1.75.1 h1:KJa0as+u9Ht9fcTyBlpQsdqJi9ysXpSpcOjDn4UxmCI= go1.25.9 amd64 linux","go-max-procs":1}
+Fortio 1.75.1 running at 0 queries per second, 1->1 procs, for 1m0s: http://10.200.0.2:8080/
+{"ts":1776273419.040891,"level":"info","r":1,"file":"httprunner.go","line":121,"msg":"Starting http test","run":0,"url":"http://10.200.0.2:8080/","threads":16,"qps":"-1.0","warmup":"parallel","conn-reuse":""}
+{"ts":1776273423.050889,"level":"err","r":18,"file":"http_client.go","line":1138,"msg":"Timeout error (incomplete/invalid response)","err":"read tcp 10.200.0.1:50598->10.200.0.2:8080: i/o timeout","size":0,"header_len":0,"dest":{"IP":"10.200.0.2","Port":8080,"Zone":""},"url":"http://10.200.0.2:8080/","thread":7,"run":0}
+Aborting because of error -1 for http://10.200.0.2:8080/ (0 bytes)

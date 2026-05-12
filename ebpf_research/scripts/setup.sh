@@ -8,16 +8,18 @@ BPF_DIR="${ROOT_DIR}/bpf"
 BUNDLES_DIR="${ROOT_DIR}/bundles"
 RESULTS_DIR="${ROOT_DIR}/results"
 
-VICTIM_NS="victim_ns"
+NUM_VICTIMS="${NUM_VICTIMS:-5}"
+VICTIM_NS_PREFIX="victim_ns"
 ATTACKER_NS="attacker_ns"
-BRIDGE="br0"
-VETH_V_HOST="veth_vic_h"
-VETH_V_NS="veth_vic_n"
+BRIDGE="mesh0"
+VETH_V_HOST_PREFIX="veth_vic"
+VETH_V_NS_SUFFIX="n"
 VETH_A_HOST="veth_att_h"
 VETH_A_NS="veth_att_n"
 
-VICTIM_IP="10.200.0.2/24"
-ATTACKER_IP="10.200.0.3/24"
+VICTIM_IP_BASE="10.200.0"
+VICTIM_IP_START="2"
+ATTACKER_IP="10.200.0.100/24"
 BRIDGE_IP="10.200.0.1/24"
 
 ROOTFS_SOURCE="${PROJECT_ROOT}/ebpf-noisy-neighbor/containers/alpine-rootfs/rootfs-template"
@@ -54,34 +56,44 @@ setup_network() {
     ip addr show dev "${BRIDGE}" | grep -q "10.200.0.1/24" || ip addr add "${BRIDGE_IP}" dev "${BRIDGE}"
     ip link set "${BRIDGE}" up
 
-    ip netns list | grep -q "^${VICTIM_NS}\b" || ip netns add "${VICTIM_NS}"
     ip netns list | grep -q "^${ATTACKER_NS}\b" || ip netns add "${ATTACKER_NS}"
-
-    ip link show "${VETH_V_HOST}" >/dev/null 2>&1 || ip link add "${VETH_V_HOST}" type veth peer name "${VETH_V_NS}"
     ip link show "${VETH_A_HOST}" >/dev/null 2>&1 || ip link add "${VETH_A_HOST}" type veth peer name "${VETH_A_NS}"
-
-    ip link set "${VETH_V_HOST}" master "${BRIDGE}"
     ip link set "${VETH_A_HOST}" master "${BRIDGE}"
-    ip link set "${VETH_V_HOST}" up
     ip link set "${VETH_A_HOST}" up
 
-    if ip link show "${VETH_V_NS}" >/dev/null 2>&1; then
-        ip link set "${VETH_V_NS}" netns "${VICTIM_NS}"
-    fi
     if ip link show "${VETH_A_NS}" >/dev/null 2>&1; then
         ip link set "${VETH_A_NS}" netns "${ATTACKER_NS}"
     fi
 
-    ip -n "${VICTIM_NS}" addr flush dev "${VETH_V_NS}" || true
     ip -n "${ATTACKER_NS}" addr flush dev "${VETH_A_NS}" || true
-    ip -n "${VICTIM_NS}" addr add "${VICTIM_IP}" dev "${VETH_V_NS}" || true
     ip -n "${ATTACKER_NS}" addr add "${ATTACKER_IP}" dev "${VETH_A_NS}" || true
-    ip -n "${VICTIM_NS}" link set lo up
     ip -n "${ATTACKER_NS}" link set lo up
-    ip -n "${VICTIM_NS}" link set "${VETH_V_NS}" up
     ip -n "${ATTACKER_NS}" link set "${VETH_A_NS}" up
-    ip -n "${VICTIM_NS}" route replace default via 10.200.0.1
     ip -n "${ATTACKER_NS}" route replace default via 10.200.0.1
+
+    for i in $(seq 1 "${NUM_VICTIMS}"); do
+        local victim_ns="${VICTIM_NS_PREFIX}${i}"
+        local veth_host="${VETH_V_HOST_PREFIX}${i}_h"
+        local veth_ns="${VETH_V_HOST_PREFIX}${i}_${VETH_V_NS_SUFFIX}"
+        local ip_octet=$((VICTIM_IP_START + i - 1))
+        local victim_ip="${VICTIM_IP_BASE}.${ip_octet}/24"
+
+        ip netns list | grep -q "^${victim_ns}\\b" || ip netns add "${victim_ns}"
+
+        ip link show "${veth_host}" >/dev/null 2>&1 || ip link add "${veth_host}" type veth peer name "${veth_ns}"
+        ip link set "${veth_host}" master "${BRIDGE}"
+        ip link set "${veth_host}" up
+
+        if ip link show "${veth_ns}" >/dev/null 2>&1; then
+            ip link set "${veth_ns}" netns "${victim_ns}"
+        fi
+
+        ip -n "${victim_ns}" addr flush dev "${veth_ns}" || true
+        ip -n "${victim_ns}" addr add "${victim_ip}" dev "${veth_ns}" || true
+        ip -n "${victim_ns}" link set lo up
+        ip -n "${victim_ns}" link set "${veth_ns}" up
+        ip -n "${victim_ns}" route replace default via 10.200.0.1
+    done
 }
 
 prepare_rootfs() {
@@ -172,13 +184,18 @@ main() {
     setup_bpffs
     setup_network
 
-    write_bundle_config "victim" "${VICTIM_NS}" "busybox nc -lk -p 8080 -e /bin/http-echo.sh"
+    for i in $(seq 1 "${NUM_VICTIMS}"); do
+        write_bundle_config "victim${i}" "${VICTIM_NS_PREFIX}${i}" "busybox nc -lk -p 8080 -e /bin/http-echo.sh"
+    done
     write_bundle_config "attacker" "${ATTACKER_NS}" "sleep infinity"
 
     build_bpf
 
     echo "[setup] Completed."
-    echo "[setup] Victim endpoint: http://10.200.0.2:8080/"
+    for i in $(seq 1 "${NUM_VICTIMS}"); do
+        local ip_octet=$((VICTIM_IP_START + i - 1))
+        echo "[setup] Victim${i} endpoint: http://${VICTIM_IP_BASE}.${ip_octet}:8080/"
+    done
 }
 
 main "$@"

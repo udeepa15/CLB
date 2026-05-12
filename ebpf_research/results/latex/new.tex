@@ -1,48 +1,50 @@
-\section{Preliminary Study}
-This section reports the most recent run outputs generated from the current eBPF noisy-neighbor benchmark pipeline. The results are based on the files in \texttt{results/graphs/} and the aggregated table in \texttt{summary\_statistics.csv}.
-
-\subsection{Tested Configurations and Sample Coverage}
-The latest run includes three configurations:
+\section{Recent Phase-2 Results (5 Victims, 1 Attacker)}
+This section reports the latest high-density multi-tenant experiment from \texttt{phase2\_5v1\_metrics.csv}. The test compares only two data-plane strategies under increasing attacker pressure:
 \begin{enumerate}
-  \item \textbf{Baseline (No Noise)}: victim-only traffic, no attacker load.
-  \item \textbf{Sidecar Isolation (Separate eBPF)}: attacker present with separate eBPF handling.
-  \item \textbf{Sidecarless (Shared eBPF)}: shared eBPF path with high attacker pressure.
+  \item \textbf{Sidecar Isolation (Separate eBPF)}
+  \item \textbf{Sidecarless Contention (Shared eBPF)}
 \end{enumerate}
 
-Sample counts from the summary table are:
+\subsection{Experimental Coverage}
+The run matrix contains five attacker target levels and three repetitions per level for each configuration:
 \begin{itemize}
-  \item Baseline: $n=1$
-  \item Sidecar Isolation: $n=1$
-  \item Sidecarless: $n=1$
+  \item Noise targets: $\{0, 10{,}000, 20{,}000, 40{,}000, 60{,}000\}$ RPS
+  \item Repetitions per (config, noise): $n=3$
+  \item Total samples: $30$ rows ($15$ per configuration)
 \end{itemize}
 
-\subsection{Latency and Throughput Summary}
-From the current aggregated statistics:
+\subsection{Aggregate Means Across All Phase-2 Samples}
+Across all noise levels and repetitions, the averaged metrics are:
 \begin{itemize}
-  \item \textbf{Baseline}: mean $p50=0.907$ ms, mean $p99=28.393$ ms, mean throughput $=1503.1$ QPS.
-  \item \textbf{Sidecar Isolation}: mean $p50=0.934$ ms, mean $p99=64.543$ ms, mean throughput $=1316.9$ QPS.
-  \item \textbf{Sidecarless}: mean $p50=0.890$ ms, mean $p99=1413.338$ ms, mean throughput $=780.1$ QPS, mean attacker load $=1284.9$ RPS.
+  \item \textbf{Sidecar Isolation}: $p50=1.483$ ms, $p95=4.436$ ms, $p99=8.090$ ms, throughput $=906.456$ QPS.
+  \item \textbf{Sidecarless Contention}: $p50=1.522$ ms, $p95=4.643$ ms, $p99=8.547$ ms, throughput $=896.845$ QPS.
 \end{itemize}
 
-Compared to baseline, the current sidecar-isolation run shows:
+At aggregate level, sidecarless shows slightly higher tail latency and slightly lower throughput.
+
+\subsection{Noise-Level Comparison}
+The strongest separation appears at \textbf{20,000 RPS} attacker target:
 \begin{itemize}
-  \item about $\frac{64.543}{28.393} \approx 2.27\times$ increase in tail latency ($p99$),
-  \item about $\left(1-\frac{1316.9}{1503.1}\right)\times100 \approx 12.4\%$ reduction in throughput.
+  \item Sidecar Isolation: mean $p99=9.078$ ms, throughput $=885.315$ QPS.
+  \item Sidecarless Contention: mean $p99=11.930$ ms, throughput $=836.492$ QPS.
 \end{itemize}
 
-\subsection{Visual Evidence from Current Graph}
-Figure~\ref{fig:current-latency-comparison} is sufficient to show the core effect: baseline remains compact, sidecar isolation shows a pronounced tail increase, and sidecarless shared eBPF shows the strongest tail amplification. Even without the throughput plot, the latency graph alone demonstrates the noisy-neighbor impact clearly because the P95 and P99 curves separate sharply from the baseline while P50 stays comparatively stable.
+This corresponds to:
+\begin{itemize}
+  \item $\frac{11.930}{9.078} \approx 1.314\times$ higher $p99$ in sidecarless,
+  \item $\frac{836.492}{885.315} \approx 0.945$ throughput ratio (about $5.5\%$ lower) in sidecarless.
+\end{itemize}
 
+At higher target rates (40k--60k RPS), both configurations show elevated latency and reduced throughput, while their relative ordering becomes less stable across repetitions.
+
+\subsection{Figure for the Recent Run}
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.95\linewidth]{images/latency_comparison.png}
-  \caption{Latency percentile comparison (P50/P95/P99) across current configurations.}
-  \label{fig:current-latency-comparison}
+  \includegraphics[width=0.95\linewidth]{../graphs/latency_degradation_chart.png}
+  \caption{Recent Phase-2 (5v1) latency behavior under increasing attacker load for sidecar isolation and sidecarless contention.}
+  \label{fig:phase2-5v1-latency}
 \end{figure}
 
-
-\subsection{Current Interpretation}
-The latest data confirms tail-latency sensitivity under noisy-neighbor conditions. Median latency remains relatively stable, but the P95 and P99 values diverge sharply once attacker load is introduced. That separation is enough to support the main claim: shared-path contention produces a large tail-latency penalty even when the median remains close to baseline.
-
-The sidecarless shared-eBPF mode shows the strongest tail amplification in this run, with $p99$ rising to $1585.902$ ms and throughput dropping to $594.7$ QPS. This makes the latency comparison graph the most direct evidence for the noisy-neighbor effect in the current dataset.
+\subsection{Interpretation}
+The recent 5-victim campaign shows that attacker pressure increases tail latency in both configurations. The most pronounced penalty for the sidecarless shared path occurs at the mid-high contention point (20k RPS), where both $p99$ inflation and throughput loss are visible relative to sidecar isolation. This supports the central observation that shared-path contention can amplify tail behavior under multi-tenant load.
 
