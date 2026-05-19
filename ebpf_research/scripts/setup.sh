@@ -168,10 +168,13 @@ write_bundle_config() {
 }
 
 build_bpf() {
-    clang -O2 -g -target bpf -D__TARGET_ARCH_x86 \
+    # Use libbpf pkg-config flags if available, otherwise fall back to /usr/include
+    LIBBPF_CFLAGS="$(pkg-config --cflags libbpf 2>/dev/null || echo -I/usr/include)"
+
+    clang ${LIBBPF_CFLAGS} -O2 -g -target bpf -D__TARGET_ARCH_x86 \
         -c "${BPF_DIR}/counter_tc.c" -o "${BPF_DIR}/counter_tc_shared.o"
 
-    clang -O2 -g -target bpf -D__TARGET_ARCH_x86 -DPER_IFINDEX_KEY=1 \
+    clang ${LIBBPF_CFLAGS} -O2 -g -target bpf -D__TARGET_ARCH_x86 -DPER_IFINDEX_KEY=1 \
         -c "${BPF_DIR}/counter_tc.c" -o "${BPF_DIR}/counter_tc_isolated.o"
 }
 

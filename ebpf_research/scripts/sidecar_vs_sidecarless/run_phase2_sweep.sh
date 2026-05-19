@@ -11,6 +11,8 @@ BUNDLES_DIR="${ROOT_DIR}/bundles"
 RESULTS_DIR="${ROOT_DIR}/results"
 RAW_DIR="${RESULTS_DIR}/raw/phase2_5v1"
 METRICS_CSV="${RESULTS_DIR}/phase2_5v1_metrics.csv"
+BPF_SOURCE="${BPF_DIR}/counter_tc.c"
+BPF_OBJECTS=("${BPF_DIR}/counter_tc_shared.o" "${BPF_DIR}/counter_tc_isolated.o")
 
 # Tunables (can be overridden with env vars)
 NUM_VICTIMS="${NUM_VICTIMS:-5}"
@@ -47,9 +49,22 @@ require_bin() {
 }
 
 ensure_setup() {
+    local needs_setup=0
+
     if ! ip link show "veth_vic1_h" >/dev/null 2>&1; then
-        echo "[run] Network not prepared. You must run the updated multi-tenant setup.sh first."
-        exit 1
+        needs_setup=1
+    fi
+
+    for object_file in "${BPF_OBJECTS[@]}"; do
+        if [[ ! -f "${object_file}" || "${BPF_SOURCE}" -nt "${object_file}" ]]; then
+            needs_setup=1
+            break
+        fi
+    done
+
+    if [[ "${needs_setup}" -ne 0 ]]; then
+        echo "[run] Network or BPF artifacts are not prepared. Running setup.sh first."
+        "${ROOT_DIR}/scripts/setup.sh"
     fi
 }
 
@@ -117,27 +132,51 @@ reset_tc() {
     rm -rf /sys/fs/bpf/ebpf_research/shared >/dev/null 2>&1 || true
 }
 
+resolve_shared_prog_pin() {
+    local shared_dir="/sys/fs/bpf/ebpf_research/shared"
+    local candidate=""
+
+    for candidate in "${shared_dir}/count_ingress" "${shared_dir}/classifier"; do
+        if [[ -e "${candidate}" ]]; then
+            echo "${candidate}"
+            return 0
+        fi
+    done
+
+    candidate="$(find "${shared_dir}" -maxdepth 1 -type f 2>/dev/null | head -n 1 || true)"
+    if [[ -n "${candidate}" ]]; then
+        echo "${candidate}"
+        return 0
+    fi
+
+    echo "[run] Failed to locate pinned shared program under ${shared_dir}" >&2
+    return 1
+}
+
 apply_config_isolated() {
     reset_tc
     # Attach isolated sidecar hooks to all 5 victims independently
     for i in $(seq 1 "${NUM_VICTIMS}"); do
-        tc filter replace dev "veth_vic${i}_h" ingress bpf da obj "${BPF_DIR}/counter_tc_isolated.o" sec tc
+        tc filter replace dev "veth_vic${i}_h" ingress bpf da obj "${BPF_DIR}/counter_tc_isolated.o" sec classifier
     done
     
-    tc filter replace dev "${ATTACKER_IF}" ingress bpf da obj "${BPF_DIR}/counter_tc_isolated.o" sec tc
+    tc filter replace dev "${ATTACKER_IF}" ingress bpf da obj "${BPF_DIR}/counter_tc_isolated.o" sec classifier
 }
 
 apply_config_shared() {
     reset_tc
+    local shared_prog_pin
+
     mkdir -p /sys/fs/bpf/ebpf_research
     bpftool prog loadall "${BPF_DIR}/counter_tc_shared.o" /sys/fs/bpf/ebpf_research/shared
+    shared_prog_pin="$(resolve_shared_prog_pin)"
     
     # Force ALL 5 victims to share the exact same eBPF pinned map
     for i in $(seq 1 "${NUM_VICTIMS}"); do
-        tc filter replace dev "veth_vic${i}_h" ingress bpf da pinned /sys/fs/bpf/ebpf_research/shared/count_ingress
+        tc filter replace dev "veth_vic${i}_h" ingress bpf da pinned "${shared_prog_pin}"
     done
     
-    tc filter replace dev "${ATTACKER_IF}" ingress bpf da pinned /sys/fs/bpf/ebpf_research/shared/count_ingress
+    tc filter replace dev "${ATTACKER_IF}" ingress bpf da pinned "${shared_prog_pin}"
 }
 
 to_ms() {

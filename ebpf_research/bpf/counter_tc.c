@@ -9,7 +9,7 @@ struct {
     __type(value, __u64);
 } packet_count SEC(".maps");
 
-SEC("tc")
+SEC("classifier")
 int count_ingress(struct __sk_buff *skb)
 {
 #ifdef PER_IFINDEX_KEY

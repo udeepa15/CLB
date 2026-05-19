@@ -1,13 +1,13 @@
-{"ts":1776280368.893875,"level":"info","r":1,"file":"scli.go","line":124,"msg":"Starting","command":"Φορτίο","version":"1.75.1 h1:KJa0as+u9Ht9fcTyBlpQsdqJi9ysXpSpcOjDn4UxmCI= go1.25.9 amd64 linux","go-max-procs":4}
-{"ts":1776280368.898522,"level":"info","r":1,"msg":"Fortio 1.75.1 tcp-echo server listening on tcp [::]:8078"}
-{"ts":1776280368.898693,"level":"info","r":1,"msg":"Fortio 1.75.1 udp-echo server listening on udp [::]:8078"}
-{"ts":1776280368.898813,"level":"info","r":1,"msg":"Fortio 1.75.1 grpc 'ping' server listening on tcp [::]:36423"}
-{"ts":1776280368.898912,"level":"info","r":1,"msg":"Fortio 1.75.1 https redirector server listening on tcp [::]:34841"}
-{"ts":1776280368.898975,"level":"info","r":1,"msg":"Fortio 1.75.1 http-echo server listening on tcp [::]:8081"}
-{"ts":1776280368.899063,"level":"info","r":1,"msg":"Data directory is /home/udeepa/4_th_yesr_research/CLB/ebpf_research/scripts/sidecar_vs_sidecarless"}
-{"ts":1776280368.899111,"level":"info","r":1,"msg":"REST API on /fortio/rest/run, /fortio/rest/status, /fortio/rest/stop, /fortio/rest/dns"}
-{"ts":1776280368.899502,"level":"info","r":1,"msg":"Debug endpoint on /debug, Additional Echo on /debug/echo/, Flags on /fortio/flags, and Metrics on /debug/metrics"}
+{"ts":1779176524.897576,"level":"info","r":1,"file":"scli.go","line":124,"msg":"Starting","command":"Φορτίο","version":"1.75.1 h1:KJa0as+u9Ht9fcTyBlpQsdqJi9ysXpSpcOjDn4UxmCI= go1.25.8 amd64 linux","go-max-procs":8}
+{"ts":1779176524.900568,"level":"info","r":1,"msg":"Fortio 1.75.1 tcp-echo server listening on tcp [::]:8078"}
+{"ts":1779176524.901072,"level":"info","r":1,"msg":"Fortio 1.75.1 udp-echo server listening on udp [::]:8078"}
+{"ts":1779176524.901157,"level":"info","r":1,"msg":"Fortio 1.75.1 grpc 'ping' server listening on tcp [::]:39189"}
+{"ts":1779176524.901335,"level":"info","r":1,"msg":"Fortio 1.75.1 https redirector server listening on tcp [::]:36817"}
+{"ts":1779176524.901442,"level":"info","r":1,"msg":"Fortio 1.75.1 http-echo server listening on tcp [::]:8081"}
+{"ts":1779176524.901604,"level":"info","r":1,"msg":"Data directory is /home/udeepa/CLB/ebpf_research/scripts/sidecar_vs_sidecarless"}
+{"ts":1779176524.901673,"level":"info","r":1,"msg":"REST API on /fortio/rest/run, /fortio/rest/status, /fortio/rest/stop, /fortio/rest/dns"}
+{"ts":1779176524.902284,"level":"info","r":1,"msg":"Debug endpoint on /debug, Additional Echo on /debug/echo/, Flags on /fortio/flags, and Metrics on /debug/metrics"}
 	 UI started - visit:
 		http://localhost:8081/fortio/
 	 (or any host/ip reachable on this server)
-{"ts":1776280368.899570,"level":"info","r":1,"file":"fortio_main.go","line":300,"msg":"All fortio 1.75.1 h1:KJa0as+u9Ht9fcTyBlpQsdqJi9ysXpSpcOjDn4UxmCI= go1.25.9 amd64 linux servers started!"}
+{"ts":1779176524.902357,"level":"info","r":1,"file":"fortio_main.go","line":300,"msg":"All fortio 1.75.1 h1:KJa0as+u9Ht9fcTyBlpQsdqJi9ysXpSpcOjDn4UxmCI= go1.25.8 amd64 linux servers started!"}

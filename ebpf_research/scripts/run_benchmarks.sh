@@ -8,6 +8,8 @@ BUNDLES_DIR="${ROOT_DIR}/bundles"
 RESULTS_DIR="${ROOT_DIR}/results"
 METRICS_CSV="${RESULTS_DIR}/metrics.csv"
 RAW_DIR="${RESULTS_DIR}/raw"
+BPF_SOURCE="${BPF_DIR}/counter_tc.c"
+BPF_OBJECTS=("${BPF_DIR}/counter_tc_shared.o" "${BPF_DIR}/counter_tc_isolated.o")
 
 DURATION_SECONDS=60
 TARGET_URL="http://10.200.0.2:8080/"
@@ -39,7 +41,20 @@ require_bin() {
 }
 
 ensure_setup() {
+    local needs_setup=0
+
     if ! ip link show "${VICTIM_IF}" >/dev/null 2>&1; then
+        needs_setup=1
+    fi
+
+    for object_file in "${BPF_OBJECTS[@]}"; do
+        if [[ ! -f "${object_file}" || "${BPF_SOURCE}" -nt "${object_file}" ]]; then
+            needs_setup=1
+            break
+        fi
+    done
+
+    if [[ "${needs_setup}" -ne 0 ]]; then
         echo "[run] Network not prepared. Running setup.sh first."
         "${SCRIPT_DIR}/setup.sh"
     fi
@@ -81,22 +96,46 @@ reset_tc() {
     rm -rf /sys/fs/bpf/ebpf_research/shared >/dev/null 2>&1 || true
 }
 
+resolve_shared_prog_pin() {
+    local shared_dir="/sys/fs/bpf/ebpf_research/shared"
+    local candidate=""
+
+    for candidate in "${shared_dir}/count_ingress" "${shared_dir}/classifier"; do
+        if [[ -e "${candidate}" ]]; then
+            echo "${candidate}"
+            return 0
+        fi
+    done
+
+    candidate="$(find "${shared_dir}" -maxdepth 1 -type f 2>/dev/null | head -n 1 || true)"
+    if [[ -n "${candidate}" ]]; then
+        echo "${candidate}"
+        return 0
+    fi
+
+    echo "[run] Failed to locate pinned shared program under ${shared_dir}" >&2
+    return 1
+}
+
 apply_config_baseline() {
     reset_tc
 }
 
 apply_config_isolated() {
     reset_tc
-    tc filter replace dev "${VICTIM_IF}" ingress bpf da obj "${BPF_DIR}/counter_tc_isolated.o" sec tc
-    tc filter replace dev "${ATTACKER_IF}" ingress bpf da obj "${BPF_DIR}/counter_tc_isolated.o" sec tc
+    tc filter replace dev "${VICTIM_IF}" ingress bpf da obj "${BPF_DIR}/counter_tc_isolated.o" sec classifier
+    tc filter replace dev "${ATTACKER_IF}" ingress bpf da obj "${BPF_DIR}/counter_tc_isolated.o" sec classifier
 }
 
 apply_config_shared() {
     reset_tc
+    local shared_prog_pin
+
     mkdir -p /sys/fs/bpf/ebpf_research
     bpftool prog loadall "${BPF_DIR}/counter_tc_shared.o" /sys/fs/bpf/ebpf_research/shared
-    tc filter replace dev "${VICTIM_IF}" ingress bpf da pinned /sys/fs/bpf/ebpf_research/shared/count_ingress
-    tc filter replace dev "${ATTACKER_IF}" ingress bpf da pinned /sys/fs/bpf/ebpf_research/shared/count_ingress
+    shared_prog_pin="$(resolve_shared_prog_pin)"
+    tc filter replace dev "${VICTIM_IF}" ingress bpf da pinned "${shared_prog_pin}"
+    tc filter replace dev "${ATTACKER_IF}" ingress bpf da pinned "${shared_prog_pin}"
 }
 
 to_ms() {
