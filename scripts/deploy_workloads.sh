@@ -20,7 +20,7 @@ start_one() {
     return 0
   fi
 
-  sudo ip netns exec "$ns" bash -lc "nohup python3 -m http.server '$port' > '$log_file' 2>&1 & echo \$!"
+  sudo ip netns exec "$ns" bash -lc "nohup python3 '$SCRIPT_DIR/fast_http_server.py' '$port' > '$log_file' 2>&1 & echo \$!"
 
   for _ in $(seq 1 20); do
     if sudo ip netns exec "$ns" ss -lnt | grep -q ":${port} "; then
