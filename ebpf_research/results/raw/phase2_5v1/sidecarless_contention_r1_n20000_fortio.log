@@ -1,5 +1,0 @@
-{"ts":1779175017.084813,"level":"info","r":1,"file":"scli.go","line":124,"msg":"Starting","command":"Φορτίο","version":"1.75.1 h1:KJa0as+u9Ht9fcTyBlpQsdqJi9ysXpSpcOjDn4UxmCI= go1.25.8 amd64 linux","go-max-procs":8}
-Fortio 1.75.1 running at 1000 queries per second, 8->8 procs, for 1m0s: http://10.200.0.2:8080/
-{"ts":1779175017.087466,"level":"info","r":1,"file":"httprunner.go","line":121,"msg":"Starting http test","run":0,"url":"http://10.200.0.2:8080/","threads":4,"qps":"1000.0","warmup":"parallel","conn-reuse":""}
-{"ts":1779175017.089981,"level":"err","r":16,"file":"http_client.go","line":1138,"msg":"Read error","err":"read tcp 10.200.0.1:35820->10.200.0.2:8080: read: connection reset by peer","size":17,"header_len":15,"dest":{"IP":"10.200.0.2","Port":8080,"Zone":""},"url":"http://10.200.0.2:8080/","thread":3,"run":0}
-Aborting because of error -1 for http://10.200.0.2:8080/ (17 bytes)
