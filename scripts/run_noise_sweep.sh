@@ -100,6 +100,8 @@ for mode in "${modes[@]}"; do
     ts=$(date +%s)
     echo "Run mode=$mode attacker_rate=$rate"
     sudo sh -c 'echo 3 > /proc/sys/vm/drop_caches'
+    victim_pids=()
+    attacker_pid=""
 
     # start bpftrace capture (if available)
     if [ "$BPFTRACE_AVAILABLE" -eq 1 ]; then
@@ -120,21 +122,37 @@ for mode in "${modes[@]}"; do
     for i in 1 2 3 4 5; do
       TARGET="http://10.200.${i}.2:8080"
       OUT="$RESULT_DIR/fortio_v${i}_${mode}_${rate}_${ts}.json"
-      fortio load -qps 200 -c 50 -t 60 -json "$OUT" "$TARGET" > /dev/null 2>&1 &
+      LOG="$RESULT_DIR/fortio_v${i}_${mode}_${rate}_${ts}.log"
+      fortio load -qps 200 -c 50 -t 60 -json "$OUT" "$TARGET" >"$LOG" 2>&1 &
+      victim_pids+=("$!")
     done
 
     # start attacker traffic in namespace
     if [ "$rate" -gt 0 ]; then
       ATT_OUT="$RESULT_DIR/attacker_${ATTACKER_TOOL}_${mode}_${rate}_${ts}.json"
       if [ "$ATTACKER_TOOL" = "fortio" ]; then
-        fortio load -qps "$rate" -c 50 -t 60 -json "$ATT_OUT" http://10.200.6.2:9090/ > /dev/null 2>&1 &
+        ATT_LOG="$RESULT_DIR/attacker_${ATTACKER_TOOL}_${mode}_${rate}_${ts}.log"
+        fortio load -qps "$rate" -c 50 -t 60 -json "$ATT_OUT" http://10.200.6.2:9090/ >"$ATT_LOG" 2>&1 &
+        attacker_pid="$!"
       else
         sudo ip netns exec v_netns_adv "$ATTACKER_TOOL" -t1 -c100 -d60 -R "$rate" http://10.200.6.2:9090/ >"$ATT_OUT" 2>&1 &
+        attacker_pid="$!"
       fi
     fi
 
     # wait for workload duration plus small buffer
     sleep 65
+
+    for pid in "${victim_pids[@]}"; do
+      wait "$pid" 2>/dev/null || true
+    done
+    if [ -n "$attacker_pid" ]; then
+      wait "$attacker_pid" 2>/dev/null || true
+    fi
+
+    if ! ls "$RESULT_DIR"/fortio_v*_${mode}_${rate}_${ts}.json >/dev/null 2>&1; then
+      echo "No victim JSON files were created for mode=$mode rate=$rate" >&2
+    fi
 
     # stop bpftrace if it was started
     if [ -n "$BPFTRACE_PID" ]; then
