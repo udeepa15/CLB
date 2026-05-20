@@ -12,7 +12,6 @@ check_cmd(){
 
 check_cmd clang || true
 check_cmd bpftool || true
-check_cmd fortio || true
 # optional tools
 if ! command -v perf >/dev/null 2>&1; then
   echo "perf not available; perf recordings will be skipped"
@@ -73,9 +72,18 @@ create_pinned_map(){
 modes=(baseline isolated shared)
 attacker_rates=(0 10000 20000 40000 60000 80000)
 
-ATTACKER_TOOL="fortio"
+WRK_BIN="${WRK_BIN:-wrk2}"
+VICTIM_QPS="${VICTIM_QPS:-200}"
+VICTIM_CONNECTIONS="${VICTIM_CONNECTIONS:-100}"
+VICTIM_THREADS="${VICTIM_THREADS:-2}"
+WORKLOAD_DURATION="${WORKLOAD_DURATION:-60s}"
 
-rm -f "$RESULT_DIR"/wrk_adv_* "$RESULT_DIR"/attacker_fortio_* "$RESULT_DIR"/fortio_v*.json
+if ! command -v "$WRK_BIN" >/dev/null 2>&1; then
+  echo "$WRK_BIN not found; please install it or set WRK_BIN to a valid binary." >&2
+  exit 1
+fi
+
+rm -f "$RESULT_DIR"/fortio_* "$RESULT_DIR"/attacker_fortio_* "$RESULT_DIR"/wrk_adv_* "$RESULT_DIR"/wrk2_v* "$RESULT_DIR"/wrk2_adv_* "$RESULT_DIR"/bpftrace_*
 
 bash "$SCRIPT_DIR/deploy_workloads.sh" restart
 
@@ -103,14 +111,15 @@ for mode in "${modes[@]}"; do
     victim_pids=()
     attacker_pid=""
 
-    # start bpftrace capture (if available)
+    BPFTRACE_OUT="$RESULT_DIR/bpftrace_${mode}_${rate}_${ts}.txt"
     if [ "$BPFTRACE_AVAILABLE" -eq 1 ]; then
-      BT_OUT="$RESULT_DIR/bpftrace_${mode}_${rate}_${ts}.txt"
-      sudo bpftrace -e 'kprobe:bpf_map_lookup_elem { @t[tid] = nsecs; } kretprobe:bpf_map_lookup_elem { @[tid] = hist(nsecs - @t[tid]); }' >"$BT_OUT" 2>&1 &
+      sudo bpftrace "$SCRIPT_DIR/trace_map_locks.bt" >"$BPFTRACE_OUT" 2>&1 &
       BPFTRACE_PID=$!
     else
       BPFTRACE_PID=""
     fi
+
+    sleep 1
 
     # start perf capture (15s sample at start) if available
     if [ "$PERF_AVAILABLE" -eq 1 ]; then
@@ -118,30 +127,23 @@ for mode in "${modes[@]}"; do
       sudo perf record -e 'lock:lock_acquire,lock:lock_released' -a -o "$PERF_OUT" sleep 15 &
     fi
 
-    # start victim traffic: 5 fortio processes each 200 RPS to reach combined ~1000 RPS
+    # start victim traffic: 5 wrk2 processes each 200 RPS to reach combined ~1000 RPS
     for i in 1 2 3 4 5; do
       TARGET="http://10.200.${i}.2:8080"
-      OUT="$RESULT_DIR/fortio_v${i}_${mode}_${rate}_${ts}.json"
-      LOG="$RESULT_DIR/fortio_v${i}_${mode}_${rate}_${ts}.log"
-      fortio load -qps 200 -c 50 -t 60s -json "$OUT" "$TARGET" >"$LOG" 2>&1 &
+      LOG="$RESULT_DIR/wrk2_v${i}_${mode}_${rate}_${ts}.log"
+      TARGET_QPS="$VICTIM_QPS" "$WRK_BIN" -t"$VICTIM_THREADS" -c"$VICTIM_CONNECTIONS" -d"$WORKLOAD_DURATION" -R"$VICTIM_QPS" -s "$SCRIPT_DIR/microsecond_reporter.lua" "$TARGET" >"$LOG" 2>&1 &
       victim_pids+=("$!")
     done
 
     # start attacker traffic in namespace
     if [ "$rate" -gt 0 ]; then
-      ATT_OUT="$RESULT_DIR/attacker_${ATTACKER_TOOL}_${mode}_${rate}_${ts}.json"
-      if [ "$ATTACKER_TOOL" = "fortio" ]; then
-        ATT_LOG="$RESULT_DIR/attacker_${ATTACKER_TOOL}_${mode}_${rate}_${ts}.log"
-        fortio load -qps "$rate" -c 50 -t 60s -json "$ATT_OUT" http://10.200.6.2:9090/ >"$ATT_LOG" 2>&1 &
-        attacker_pid="$!"
-      else
-        sudo ip netns exec v_netns_adv "$ATTACKER_TOOL" -t1 -c100 -d60 -R "$rate" http://10.200.6.2:9090/ >"$ATT_OUT" 2>&1 &
-        attacker_pid="$!"
-      fi
+      ATT_LOG="$RESULT_DIR/wrk2_adv_${mode}_${rate}_${ts}.log"
+      sudo ip netns exec v_netns_adv env TARGET_QPS="$rate" "$WRK_BIN" -t"$VICTIM_THREADS" -c"$VICTIM_CONNECTIONS" -d"$WORKLOAD_DURATION" -R"$rate" -s "$SCRIPT_DIR/microsecond_reporter.lua" http://10.200.6.2:9090/ >"$ATT_LOG" 2>&1 &
+      attacker_pid="$!"
     fi
 
     # wait for workload duration plus small buffer
-    sleep 65
+    sleep 60
 
     for pid in "${victim_pids[@]}"; do
       wait "$pid" 2>/dev/null || true
@@ -150,10 +152,10 @@ for mode in "${modes[@]}"; do
       wait "$attacker_pid" 2>/dev/null || true
     fi
 
-    if ! ls "$RESULT_DIR"/fortio_v*_${mode}_${rate}_${ts}.json >/dev/null 2>&1; then
-      echo "No victim JSON files were created for mode=$mode rate=$rate" >&2
+    if ! ls "$RESULT_DIR"/wrk2_v*_${mode}_${rate}_${ts}.log >/dev/null 2>&1; then
+      echo "No victim wrk2 logs were created for mode=$mode rate=$rate" >&2
       for i in 1 2 3 4 5; do
-        VLOG="$RESULT_DIR/fortio_v${i}_${mode}_${rate}_${ts}.log"
+        VLOG="$RESULT_DIR/wrk2_v${i}_${mode}_${rate}_${ts}.log"
         if [ -f "$VLOG" ]; then
           echo "--- tail of $VLOG ---" >&2
           tail -n 20 "$VLOG" >&2 || true
@@ -163,7 +165,8 @@ for mode in "${modes[@]}"; do
 
     # stop bpftrace if it was started
     if [ -n "$BPFTRACE_PID" ]; then
-      sudo kill $BPFTRACE_PID 2>/dev/null || true
+      sudo kill -INT "$BPFTRACE_PID" 2>/dev/null || true
+      wait "$BPFTRACE_PID" 2>/dev/null || true
     fi
 
     echo "Finished run mode=$mode rate=$rate"
