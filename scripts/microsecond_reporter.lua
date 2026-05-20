@@ -2,10 +2,10 @@ local function fmt(value)
   if value == nil then
     return "nan"
   end
-  -- accept numbers or numeric strings; return a compact string
+  -- accept numbers or numeric strings; return a safe string representation
   local n = tonumber(value)
   if n ~= nil then
-    return string.format("%.17g", n)
+    return tostring(n)
   end
   return tostring(value)
 end
