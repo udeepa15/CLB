@@ -77,7 +77,7 @@ ATTACKER_TOOL="fortio"
 
 rm -f "$RESULT_DIR"/wrk_adv_* "$RESULT_DIR"/attacker_fortio_* "$RESULT_DIR"/fortio_v*.json
 
-bash "$SCRIPT_DIR/deploy_workloads.sh" start
+bash "$SCRIPT_DIR/deploy_workloads.sh" restart
 
 for mode in "${modes[@]}"; do
   echo "Starting mode: $mode"
