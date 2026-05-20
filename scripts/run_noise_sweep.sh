@@ -70,7 +70,16 @@ create_pinned_map(){
 }
 
 modes=(baseline isolated shared)
-attacker_rates=(0 10000 20000 40000 60000 80000)
+# Generate 30 evenly spaced attacker rates from 0 to 30000 inclusive.
+mapfile -t attacker_rates < <(python3 - <<'PY'
+start = 0
+end = 30000
+count = 30
+values = [round(start + (end - start) * i / (count - 1)) for i in range(count)]
+for value in values:
+  print(int(value))
+PY
+)
 
 WRK_BIN="${WRK_BIN:-wrk2}"
 VICTIM_QPS="${VICTIM_QPS:-200}"
