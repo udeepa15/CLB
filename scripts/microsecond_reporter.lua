@@ -2,7 +2,12 @@ local function fmt(value)
   if value == nil then
     return "nan"
   end
-  return string.format("%.17g", value)
+  -- accept numbers or numeric strings; return a compact string
+  local n = tonumber(value)
+  if n ~= nil then
+    return string.format("%.17g", n)
+  end
+  return tostring(value)
 end
 
 local function getenv(name, default)
