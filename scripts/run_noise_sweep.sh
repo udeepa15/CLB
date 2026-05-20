@@ -123,7 +123,7 @@ for mode in "${modes[@]}"; do
       TARGET="http://10.200.${i}.2:8080"
       OUT="$RESULT_DIR/fortio_v${i}_${mode}_${rate}_${ts}.json"
       LOG="$RESULT_DIR/fortio_v${i}_${mode}_${rate}_${ts}.log"
-      fortio load -qps 200 -c 50 -t 60 -json "$OUT" "$TARGET" >"$LOG" 2>&1 &
+      fortio load -qps 200 -c 50 -t 60s -json "$OUT" "$TARGET" >"$LOG" 2>&1 &
       victim_pids+=("$!")
     done
 
@@ -132,7 +132,7 @@ for mode in "${modes[@]}"; do
       ATT_OUT="$RESULT_DIR/attacker_${ATTACKER_TOOL}_${mode}_${rate}_${ts}.json"
       if [ "$ATTACKER_TOOL" = "fortio" ]; then
         ATT_LOG="$RESULT_DIR/attacker_${ATTACKER_TOOL}_${mode}_${rate}_${ts}.log"
-        fortio load -qps "$rate" -c 50 -t 60 -json "$ATT_OUT" http://10.200.6.2:9090/ >"$ATT_LOG" 2>&1 &
+        fortio load -qps "$rate" -c 50 -t 60s -json "$ATT_OUT" http://10.200.6.2:9090/ >"$ATT_LOG" 2>&1 &
         attacker_pid="$!"
       else
         sudo ip netns exec v_netns_adv "$ATTACKER_TOOL" -t1 -c100 -d60 -R "$rate" http://10.200.6.2:9090/ >"$ATT_OUT" 2>&1 &
@@ -152,6 +152,13 @@ for mode in "${modes[@]}"; do
 
     if ! ls "$RESULT_DIR"/fortio_v*_${mode}_${rate}_${ts}.json >/dev/null 2>&1; then
       echo "No victim JSON files were created for mode=$mode rate=$rate" >&2
+      for i in 1 2 3 4 5; do
+        VLOG="$RESULT_DIR/fortio_v${i}_${mode}_${rate}_${ts}.log"
+        if [ -f "$VLOG" ]; then
+          echo "--- tail of $VLOG ---" >&2
+          tail -n 20 "$VLOG" >&2 || true
+        fi
+      done
     fi
 
     # stop bpftrace if it was started
