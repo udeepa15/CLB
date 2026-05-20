@@ -1,0 +1,16 @@
+mode,attacker_rate,victim,qps,count,p50_ms,p95_ms,p99_ms,p999_ms,attacker_qps,fortio_file,wrk_file
+isolated,40000,adv,,,,,,,,,/home/udeepa/4_th_yesr_research/CLB/ebpf_research/results/raw/wrk_adv_isolated_40000_1779243137.txt
+shared,60000,adv,,,,,,,,,/home/udeepa/4_th_yesr_research/CLB/ebpf_research/results/raw/wrk_adv_shared_60000_1779243595.txt
+isolated,80000,adv,,,,,,,,,/home/udeepa/4_th_yesr_research/CLB/ebpf_research/results/raw/wrk_adv_isolated_80000_1779243268.txt
+baseline,80000,adv,,,,,,,,,/home/udeepa/4_th_yesr_research/CLB/ebpf_research/results/raw/wrk_adv_baseline_80000_1779242875.txt
+isolated,20000,adv,,,,,,,,,/home/udeepa/4_th_yesr_research/CLB/ebpf_research/results/raw/wrk_adv_isolated_20000_1779243072.txt
+shared,40000,adv,,,,,,,,,/home/udeepa/4_th_yesr_research/CLB/ebpf_research/results/raw/wrk_adv_shared_40000_1779243530.txt
+baseline,10000,adv,,,,,,,,,/home/udeepa/4_th_yesr_research/CLB/ebpf_research/results/raw/wrk_adv_baseline_10000_1779242614.txt
+isolated,10000,adv,,,,,,,,,/home/udeepa/4_th_yesr_research/CLB/ebpf_research/results/raw/wrk_adv_isolated_10000_1779243006.txt
+isolated,60000,adv,,,,,,,,,/home/udeepa/4_th_yesr_research/CLB/ebpf_research/results/raw/wrk_adv_isolated_60000_1779243203.txt
+shared,80000,adv,,,,,,,,,/home/udeepa/4_th_yesr_research/CLB/ebpf_research/results/raw/wrk_adv_shared_80000_1779243660.txt
+shared,20000,adv,,,,,,,,,/home/udeepa/4_th_yesr_research/CLB/ebpf_research/results/raw/wrk_adv_shared_20000_1779243465.txt
+shared,10000,adv,,,,,,,,,/home/udeepa/4_th_yesr_research/CLB/ebpf_research/results/raw/wrk_adv_shared_10000_1779243399.txt
+baseline,60000,adv,,,,,,,,,/home/udeepa/4_th_yesr_research/CLB/ebpf_research/results/raw/wrk_adv_baseline_60000_1779242810.txt
+baseline,20000,adv,,,,,,,,,/home/udeepa/4_th_yesr_research/CLB/ebpf_research/results/raw/wrk_adv_baseline_20000_1779242680.txt
+baseline,40000,adv,,,,,,,,,/home/udeepa/4_th_yesr_research/CLB/ebpf_research/results/raw/wrk_adv_baseline_40000_1779242745.txt

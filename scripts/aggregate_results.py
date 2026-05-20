@@ -51,6 +51,22 @@ def parse_wrk(path):
     qps = float(m.group(1)) if m else None
     return {'attacker_qps': qps}
 
+def parse_attacker_fortio(path):
+    with open(path) as f:
+        j = json.load(f)
+    qps = find_value(j, {'actualqps','qps','actual_qps'})
+    p50 = find_value(j, {'p50','P50','50pct','p50_ms','p50_sec'})
+    p95 = find_value(j, {'p95','P95','95pct','p95_ms'})
+    p99 = find_value(j, {'p99','P99','99pct','p99_ms'})
+    p999 = find_value(j, {'p999','P999','999pct','p999_ms'})
+    return {
+        'attacker_qps': float(qps) if qps is not None else None,
+        'attacker_p50_ms': float(p50)*1000 if isinstance(p50, (int,float)) and p50 < 10 else (float(p50) if p50 is not None else None),
+        'attacker_p95_ms': float(p95)*1000 if isinstance(p95, (int,float)) and p95 < 10 else (float(p95) if p95 is not None else None),
+        'attacker_p99_ms': float(p99)*1000 if isinstance(p99, (int,float)) and p99 < 10 else (float(p99) if p99 is not None else None),
+        'attacker_p999_ms': float(p999)*1000 if isinstance(p999, (int,float)) and p999 < 10 else (float(p999) if p999 is not None else None),
+    }
+
 def discover():
     rows = []
     for f in RESULT_DIR.glob('*'):
@@ -79,10 +95,20 @@ def discover():
             row = {'mode': mode, 'attacker_rate': rate, 'victim': 'adv', 'wrk_file': str(f)}
             row.update(data)
             rows.append(row)
+        elif name.startswith('attacker_fortio_') and name.endswith('.json'):
+            m = re.match(r'attacker_fortio_(\w+)_(\d+)_(\d+)\.json', name)
+            if not m:
+                continue
+            mode = m.group(1)
+            rate = int(m.group(2))
+            data = parse_attacker_fortio(f)
+            row = {'mode': mode, 'attacker_rate': rate, 'victim': 'adv', 'attacker_file': str(f)}
+            row.update(data)
+            rows.append(row)
     return rows
 
 def write_csv(rows):
-    fieldnames = ['mode','attacker_rate','victim','qps','count','p50_ms','p95_ms','p99_ms','p999_ms','attacker_qps','fortio_file','wrk_file']
+    fieldnames = ['mode','attacker_rate','victim','qps','count','p50_ms','p95_ms','p99_ms','p999_ms','attacker_qps','attacker_p50_ms','attacker_p95_ms','attacker_p99_ms','attacker_p999_ms','fortio_file','wrk_file','attacker_file']
     with open(OUT_CSV, 'w', newline='') as csvf:
         w = csv.DictWriter(csvf, fieldnames=fieldnames)
         w.writeheader()

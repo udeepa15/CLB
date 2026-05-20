@@ -12,6 +12,7 @@ check_cmd(){
 
 check_cmd clang || true
 check_cmd bpftool || true
+check_cmd fortio || true
 # optional tools
 if ! command -v perf >/dev/null 2>&1; then
   echo "perf not available; perf recordings will be skipped"
@@ -72,6 +73,8 @@ create_pinned_map(){
 modes=(baseline isolated shared)
 attacker_rates=(0 10000 20000 40000 60000 80000)
 
+ATTACKER_TOOL="fortio"
+
 bash "$SCRIPT_DIR/deploy_workloads.sh" start
 
 for mode in "${modes[@]}"; do
@@ -120,8 +123,12 @@ for mode in "${modes[@]}"; do
 
     # start attacker traffic in namespace
     if [ "$rate" -gt 0 ]; then
-      ATT_OUT="$RESULT_DIR/wrk_adv_${mode}_${rate}_${ts}.txt"
-      sudo ip netns exec v_netns_adv wrk -t1 -c100 -d60 -R "$rate" http://10.200.6.2:9090/ >"$ATT_OUT" 2>&1 &
+      ATT_OUT="$RESULT_DIR/attacker_${ATTACKER_TOOL}_${mode}_${rate}_${ts}.json"
+      if [ "$ATTACKER_TOOL" = "fortio" ]; then
+        fortio load -qps "$rate" -c 50 -t 60 -json "$ATT_OUT" http://10.200.6.2:9090/ > /dev/null 2>&1 &
+      else
+        sudo ip netns exec v_netns_adv "$ATTACKER_TOOL" -t1 -c100 -d60 -R "$rate" http://10.200.6.2:9090/ >"$ATT_OUT" 2>&1 &
+      fi
     fi
 
     # wait for workload duration plus small buffer
