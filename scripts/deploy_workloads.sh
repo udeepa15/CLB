@@ -13,7 +13,6 @@ binds=(10.200.1.2 10.200.2.2 10.200.3.2 10.200.4.2 10.200.5.2 10.200.6.2)
 
 start_one() {
   local ns="$1"
-  local bind_ip="$2"
   local port="$3"
   local log_file="$LOG_DIR/${ns}_${port}.log"
 
@@ -22,7 +21,7 @@ start_one() {
     return 0
   fi
 
-  sudo ip netns exec "$ns" bash -lc "nohup python3 -m http.server '$port' --bind '$bind_ip' > '$log_file' 2>&1 & echo \$!"
+  sudo ip netns exec "$ns" bash -lc "nohup python3 -m http.server '$port' > '$log_file' 2>&1 & echo \$!"
 
   for _ in $(seq 1 20); do
     if sudo ip netns exec "$ns" ss -lnt | grep -q ":${port} "; then
@@ -45,7 +44,7 @@ stop_all() {
 case "${1:-start}" in
   start)
     for idx in "${!ns_list[@]}"; do
-      start_one "${ns_list[$idx]}" "${binds[$idx]}" "${ports[$idx]}"
+      start_one "${ns_list[$idx]}" "${ports[$idx]}"
     done
     ;;
   stop)
@@ -54,7 +53,7 @@ case "${1:-start}" in
   restart)
     stop_all
     for idx in "${!ns_list[@]}"; do
-      start_one "${ns_list[$idx]}" "${binds[$idx]}" "${ports[$idx]}"
+      start_one "${ns_list[$idx]}" "${ports[$idx]}"
     done
     ;;
   *)
