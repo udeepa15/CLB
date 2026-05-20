@@ -24,6 +24,16 @@ else
   BPFTRACE_AVAILABLE=1
 fi
 
+# Verify perf supports the lock tracepoints we need; if not, skip perf
+if [ "$PERF_AVAILABLE" -eq 1 ]; then
+  if [ ! -e /sys/kernel/tracing/events/lock/lock_acquire ]; then
+    if ! perf list 2>/dev/null | grep -q 'lock:lock_acquire'; then
+      echo "perf present but lock tracepoints are unavailable; perf recordings will be skipped"
+      PERF_AVAILABLE=0
+    fi
+  fi
+fi
+
 build_bpf(){
   echo "Building BPF object"
   make -C "$(pwd)" || { echo "make failed"; exit 1; }
