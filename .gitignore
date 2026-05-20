@@ -1,0 +1,27 @@
+# Ignore compiled BPF objects and build artifacts
+/bpf/*.o
+*.o
+*.out
+
+# Ignore Python envs and caches
+venv/
+.venv/
+env/
+__pycache__/
+*.pyc
+
+# Ignore IDE/editor files
+.vscode/
+.idea/
+*.swp
+*~
+
+# Ignore system files
+.DS_Store
+
+# Ignore temporary and log files
+*.log
+*.tmp
+
+# Keep results and plots tracked (do NOT ignore results/ or plots/)
+# If you create a local results folder, do not add it to gitignore.
