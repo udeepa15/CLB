@@ -41,7 +41,7 @@ build_bpf(){
 }
 
 cleanup(){
-  "$SCRIPT_DIR/deploy_workloads.sh" stop >/dev/null 2>&1 || true
+  bash "$SCRIPT_DIR/deploy_workloads.sh" stop >/dev/null 2>&1 || true
   for i in 1 2 3 4 5 6; do
     detach_tc "veth_v${i}" || true
   done
@@ -71,7 +71,7 @@ create_pinned_map(){
 modes=(baseline isolated shared)
 attacker_rates=(0 10000 20000 40000 60000 80000)
 
-"$SCRIPT_DIR/deploy_workloads.sh" start
+bash "$SCRIPT_DIR/deploy_workloads.sh" start
 
 for mode in "${modes[@]}"; do
   echo "Starting mode: $mode"
