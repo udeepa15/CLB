@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
-ROOT_DIR="$HOME/CLB/ebpf_research"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+ROOT_DIR="$REPO_ROOT/ebpf_research"
 RESULT_DIR="$ROOT_DIR/results/raw"
 mkdir -p "$RESULT_DIR"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 check_cmd(){
   command -v "$1" >/dev/null 2>&1 || { echo "$1 not found; please install."; exit 1; }
@@ -37,7 +38,7 @@ fi
 
 build_bpf(){
   echo "Building BPF object"
-  make -C "$(pwd)" || { echo "make failed"; exit 1; }
+  make -C "$REPO_ROOT" || { echo "make failed"; exit 1; }
 }
 
 cleanup(){
@@ -79,12 +80,12 @@ for mode in "${modes[@]}"; do
     create_pinned_map
     build_bpf
     for i in 1 2 3 4 5 6; do
-      attach_tc "veth_v${i}" "$(pwd)/bpf/counter_tc.o" || true
+      attach_tc "veth_v${i}" "$REPO_ROOT/bpf/counter_tc.o" || true
     done
   elif [ "$mode" = "isolated" ]; then
     build_bpf
     for i in 1 2 3 4 5 6; do
-      attach_tc "veth_v${i}" "$(pwd)/bpf/counter_tc.o" || true
+      attach_tc "veth_v${i}" "$REPO_ROOT/bpf/counter_tc.o" || true
     done
   else
     echo "Baseline: no eBPF attached"

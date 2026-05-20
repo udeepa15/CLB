@@ -4,7 +4,8 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-ROOT = Path.home() / 'CLB' / 'ebpf_research'
+SCRIPT_DIR = Path(__file__).resolve().parent
+ROOT = SCRIPT_DIR.parent / 'ebpf_research'
 CSV = ROOT / 'sidecar_vs_sidecarless_metrics.csv'
 OUTDIR = ROOT / 'results' / 'plots'
 OUTDIR.mkdir(parents=True, exist_ok=True)

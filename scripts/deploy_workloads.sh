@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$HOME/CLB/ebpf_research"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+ROOT_DIR="$REPO_ROOT/ebpf_research"
 LOG_DIR="$ROOT_DIR/results/raw"
 mkdir -p "$LOG_DIR"
 

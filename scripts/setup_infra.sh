@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
-ROOT_DIR="$HOME/CLB/ebpf_research"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+ROOT_DIR="$REPO_ROOT/ebpf_research"
 mkdir -p "$ROOT_DIR"/results/raw
 
 if ! mountpoint -q /sys/fs/bpf; then

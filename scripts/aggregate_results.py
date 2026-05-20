@@ -5,8 +5,10 @@ from pathlib import Path
 import csv
 import sys
 
-RESULT_DIR = Path.home() / 'CLB' / 'ebpf_research' / 'results' / 'raw'
-OUT_CSV = Path.home() / 'CLB' / 'ebpf_research' / 'sidecar_vs_sidecarless_metrics.csv'
+SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_ROOT = SCRIPT_DIR.parent
+RESULT_DIR = REPO_ROOT / 'ebpf_research' / 'results' / 'raw'
+OUT_CSV = REPO_ROOT / 'ebpf_research' / 'sidecar_vs_sidecarless_metrics.csv'
 
 def find_value(obj, keys):
     if isinstance(obj, dict):
