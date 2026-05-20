@@ -75,6 +75,8 @@ attacker_rates=(0 10000 20000 40000 60000 80000)
 
 ATTACKER_TOOL="fortio"
 
+rm -f "$RESULT_DIR"/wrk_adv_* "$RESULT_DIR"/attacker_fortio_* "$RESULT_DIR"/fortio_v*.json
+
 bash "$SCRIPT_DIR/deploy_workloads.sh" start
 
 for mode in "${modes[@]}"; do
