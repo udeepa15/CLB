@@ -17,12 +17,23 @@ start_one() {
   local port="$3"
   local log_file="$LOG_DIR/${ns}_${port}.log"
 
-  if ip netns pids "$ns" | xargs -r kill -0 2>/dev/null; then
+  if sudo ip netns exec "$ns" ss -lnt | grep -q ":${port} "; then
     echo "Listener already running in $ns:$port"
     return 0
   fi
 
   sudo ip netns exec "$ns" bash -lc "nohup python3 -m http.server '$port' --bind '$bind_ip' > '$log_file' 2>&1 & echo \$!"
+
+  for _ in $(seq 1 20); do
+    if sudo ip netns exec "$ns" ss -lnt | grep -q ":${port} "; then
+      return 0
+    fi
+    sleep 0.5
+  done
+
+  echo "Listener failed to start in $ns:$port" >&2
+  tail -n 20 "$log_file" >&2 || true
+  return 1
 }
 
 stop_all() {
