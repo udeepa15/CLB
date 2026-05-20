@@ -9,11 +9,10 @@ mkdir -p "$LOG_DIR"
 
 ns_list=(v_netns1 v_netns2 v_netns3 v_netns4 v_netns5 v_netns_adv)
 ports=(8080 8080 8080 8080 8080 9090)
-binds=(10.200.1.2 10.200.2.2 10.200.3.2 10.200.4.2 10.200.5.2 10.200.6.2)
 
 start_one() {
   local ns="$1"
-  local port="$3"
+  local port="$2"
   local log_file="$LOG_DIR/${ns}_${port}.log"
 
   if sudo ip netns exec "$ns" ss -lnt | grep -q ":${port} "; then
