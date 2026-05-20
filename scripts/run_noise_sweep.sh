@@ -3,6 +3,7 @@ set -euo pipefail
 ROOT_DIR="$HOME/CLB/ebpf_research"
 RESULT_DIR="$ROOT_DIR/results/raw"
 mkdir -p "$RESULT_DIR"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 check_cmd(){
   command -v "$1" >/dev/null 2>&1 || { echo "$1 not found; please install."; exit 1; }
@@ -39,6 +40,15 @@ build_bpf(){
   make -C "$(pwd)" || { echo "make failed"; exit 1; }
 }
 
+cleanup(){
+  "$SCRIPT_DIR/deploy_workloads.sh" stop >/dev/null 2>&1 || true
+  for i in 1 2 3 4 5 6; do
+    detach_tc "veth_v${i}" || true
+  done
+}
+
+trap cleanup EXIT
+
 attach_tc(){
   local dev="$1"
   local obj="$2"
@@ -60,6 +70,8 @@ create_pinned_map(){
 
 modes=(baseline isolated shared)
 attacker_rates=(0 10000 20000 40000 60000 80000)
+
+"$SCRIPT_DIR/deploy_workloads.sh" start
 
 for mode in "${modes[@]}"; do
   echo "Starting mode: $mode"
@@ -120,11 +132,6 @@ for mode in "${modes[@]}"; do
     fi
 
     echo "Finished run mode=$mode rate=$rate"
-  done
-
-  # detach programs
-  for i in 1 2 3 4 5 6; do
-    detach_tc "veth_v${i}" || true
   done
 
 done
