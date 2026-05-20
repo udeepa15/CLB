@@ -1,0 +1,66 @@
+Act as an expert Linux Systems Engineer, eBPF Kernel Developer, and Network Performance Researcher. Your goal is to design, implement, automate, and document a multi-tenant OCI container lab using runC, Network Namespaces, and libbpf/Traffic Control (TC) hooks on an Ubuntu server running Linux Kernel 5.15.0-171-generic. 
+
+This environment is designed to empirically evaluate the "Isolation Deficit" between traditional Sidecar Mesh topologies (isolated maps/contexts) and modern Sidecarless Mesh architectures (shared, pinned node-level eBPF maps) under heavy load contention.
+
+---
+
+### PART 1: SYSTEM ENVIRONMENT & TARGET MATRIX
+All components, networking setups, and binaries must be configured locally in the user's home workspace under `~/CLB/ebpf_research/`. 
+The environment consists of 6 core isolated namespaces connected back to the root host network:
+- 5x Victim Namespaces: `v_netns1`, `v_netns2`, `v_netns3`, `v_netns4`, `v_netns5`
+- 1x Adversarial/Attacker Namespace: `v_netns_adv`
+
+You must build out and compare three clear experimental configurations sequentially:
+1. BASELINE: Pure Linux network stack over veth pairs without eBPF attachments or L7 routing modification.
+2. ISOLATED (Sidecar Model): eBPF bytecode attached to each namespace interface, querying and updating unique, separate, private BPF hash maps per tenant.
+3. SHARED (Sidecarless Model): eBPF bytecode attached across all interfaces querying and updating a single globally pinned BPF hash map located at `/sys/fs/bpf/shared_counter_map`.
+
+---
+
+### PART 2: STEP-BY-STEP EXECUTION REQUIREMENTS
+
+You must automatically write, verify, and run the shell scripts and C code needed to accomplish the following phases:
+
+#### PHASE 1: AUTOMATED INFRASTRUCTURE PLUMBING (setup_infra.sh)
+Write a robust bash script that cleans any previous runtime garbage, mounts the BPF file system if unmounted, and handles namespace allocations:
+- Instantiate the 6 namespaces (`v_netns1` to `v_netns5`, plus `v_netns_adv`).
+- Provision dedicated veth interface pairs interconnecting each namespace directly to the root namespace (e.g., `veth_v1` on host <=> `veth_child1` inside `v_netns1`).
+- Assign strict static subnets to isolate routing domains cleanly (e.g., `10.200.1.0/24` through `10.200.6.0/24`).
+- Bring all loopback and veth interfaces UP, and assign default gateway paths leading out through the root namespace host.
+- Set up an independent cgroups v2 tree node for the attacker namespace to restrict its resource group slice. Clamp the attacker's maximum CPU shares to 20% to guarantee that any victim metrics decay is caused by kernel/eBPF map lock contention, not user-space host CPU starvation.
+
+#### PHASE 2: APPLICATION WORKLOAD INJECTION (deploy_workloads.sh)
+Using minimum overhead runC OCI specifications or simple lightweight background Go-based listener servers wrapped in the target namespaces, execute the application layer:
+- In the 5 Victim Namespaces: Bind a fast HTTP listener handling simple GET requests on port 8080.
+- In the Attacker Namespace: Bind a separate dummy target listener on port 9090.
+
+#### PHASE 3: METRIC LAYER AND PROFILING ENGINE (run_profiler.sh)
+Write a script that hooks deep-kernel tracing mechanisms and coordinates application edge traffic:
+- Traffic Generators:
+  - Victim Traffic: Run `fortio` from the root namespace to target all 5 victim HTTP listeners concurrently at a constant, uniform combined rate of 1,000 Requests Per Second (RPS) to prevent Coordinated Omission.
+  - Attacker Traffic: Run `wrk2` inside the attacker namespace directed at its local 9090 listener. Generate a sustained traffic flood using an incremental loading ladder: [0 RPS, 10k RPS, 20k RPS, 40k RPS, 60k RPS, 80k RPS].
+- Core Telemetry Metrics Collection:
+  - Application Metrics: Extract throughput, median latency (p50), and tail-latencies (p95, p99, p99.9) directly from `fortio`'s structured JSON outputs.
+  - Map Lookup Contention: Execute a non-blocking background `bpftrace` daemon tracking `kprobe:bpf_map_lookup_elem` and `kretprobe:bpf_map_lookup_elem` to compute a microsecond-level latency histogram.
+  - Spinlock Saturation: Use `perf record -e lock:lock_acquire,lock:lock_released -a` for 15 seconds during peak noise injection to isolate cycles spent on `native_queued_spin_lock_by_cpu` mapped to `bpf_map_update_elem` invocation paths.
+
+#### PHASE 4: EXPERIMENTAL SWEEP LOGIC (run_automated_matrix.sh)
+Orchestrate the global testing matrix. For each of the three configurations (Baseline, Isolated, Shared), loop through the Attacker traffic thresholds (0 to 80k+ RPS). For each threshold, clear kernel drop_caches, execute the tests for 60 seconds, output separate logs into `~/CLB/ebpf_research/results/raw/`, and aggregate the statistics into a final summary CSV file named `sidecar_vs_sidecarless_metrics.csv`.
+
+---
+
+### PART 3: REFACTORING CODES AND BINDINGS
+Make sure that your generated eBPF source code strictly complies with modern libbpf formatting requirements. 
+- Ensure all Traffic Control macro declarations use `SEC("classifier")` instead of deprecated `SEC("tc")` definitions to pass validation checks cleanly.
+- Include explicit instructions on how you will use a unified Makefile to invoke `clang -O2 -g -target bpf -c` to rebuild the object files (`counter_tc.o`) before kicking off the automated execution sweeps.
+
+---
+
+### DELIVERABLES EXPECTED
+Provide the complete, uncommented, production-ready implementation scripts for:
+1. `bpf/counter_tc.c` - The unified eBPF source file using `SEC("classifier")` capable of handling both private array map indices and globally pinned paths via conditional preprocessor macros.
+2. `Makefile` - To handle clean object compilation.
+3. `scripts/setup_infra.sh` - Handling networking namespaces, veth assignments, cgroups allocation, and runC target initializations.
+4. `scripts/run_noise_sweep.sh` - The master experiment execution engine driving the `fortio`/`wrk2` loads, capturing background `bpftrace`/`perf` data, and updating the final `metrics.csv`.
+
+Verify every path, handle missing directory initializations gracefully, and output the complete structural setup files now.
