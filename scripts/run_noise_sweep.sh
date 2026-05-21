@@ -4,7 +4,15 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 ROOT_DIR="$REPO_ROOT/ebpf_research"
 RESULT_DIR="$ROOT_DIR/results/raw"
-mkdir -p "$RESULT_DIR"
+PLOT_DIR="$ROOT_DIR/results/plots"
+mkdir -p "$RESULT_DIR" "$PLOT_DIR"
+
+for dir in "$ROOT_DIR" "$ROOT_DIR/results" "$RESULT_DIR" "$PLOT_DIR"; do
+  if [ ! -d "$dir" ]; then
+    echo "Required directory missing: $dir" >&2
+    exit 1
+  fi
+done
 
 check_cmd(){
   command -v "$1" >/dev/null 2>&1 || { echo "$1 not found; please install."; exit 1; }
@@ -70,16 +78,8 @@ create_pinned_map(){
 }
 
 modes=(baseline isolated shared)
-# Generate 30 evenly spaced attacker rates from 0 to 1000 inclusive.
-mapfile -t attacker_rates < <(python3 - <<'PY'
-start = 0
-end = 1000
-count = 30
-values = [round(start + (end - start) * i / (count - 1)) for i in range(count)]
-for value in values:
-  print(int(value))
-PY
-)
+# Hardware-tailored attacker ladder for the x3650 M4 / 1 Gbps NIC inflection window.
+attacker_rates=(0 15000 25000 35000 45000)
 
 WRK_BIN="${WRK_BIN:-wrk2}"
 VICTIM_QPS="${VICTIM_QPS:-200}"
