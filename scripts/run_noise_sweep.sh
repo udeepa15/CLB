@@ -46,6 +46,7 @@ cleanup(){
   for i in 1 2 3 4 5 6; do
     detach_tc "veth_v${i}" || true
   done
+  sudo rm -f /sys/fs/bpf/shared_counter_map >/dev/null 2>&1 || true
 }
 
 trap cleanup EXIT
@@ -64,16 +65,15 @@ detach_tc(){
 
 create_pinned_map(){
   local pinpath="/sys/fs/bpf/shared_counter_map"
-  if [ ! -e "$pinpath" ]; then
-    sudo bpftool map create "$pinpath" type hash key 4 value 8 entries 1024 name shared_counter_map
-  fi
+  sudo rm -f "$pinpath" >/dev/null 2>&1 || true
+  sudo bpftool map create "$pinpath" type hash key 4 value 8 entries 1024 name shared_counter_map
 }
 
 modes=(baseline isolated shared)
-# Generate 30 evenly spaced attacker rates from 0 to 30000 inclusive.
+# Generate 30 evenly spaced attacker rates from 0 to 1000 inclusive.
 mapfile -t attacker_rates < <(python3 - <<'PY'
 start = 0
-end = 30000
+end = 1000
 count = 30
 values = [round(start + (end - start) * i / (count - 1)) for i in range(count)]
 for value in values:
