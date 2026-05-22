@@ -13,6 +13,17 @@ DEFAULT_OUTPUT = ROOT / "results" / "cleaned_matrix_metrics.csv"
 
 MODES = ["baseline", "isolated", "shared"]
 
+VICTIM_LOG_RE = re.compile(
+    r"^wrk2_v(?P<victim_id>\d+)_of_(?P<victim_count>\d+)_(?P<mode>baseline|isolated|shared)_(?P<attacker_rate>\d+)_(?P<ts>\d+)\.log$"
+)
+ATTACKER_LOG_RE = re.compile(
+    r"^wrk2_adv_(?P<mode>baseline|isolated|shared)_v?(?P<victim_count>\d+)_r(?P<attacker_rate>\d+)_(?P<ts>\d+)\.log$"
+)
+RESULT_RE = re.compile(
+    r"RESULT\s+target_qps=(?P<target_qps>\S+)\s+actual_qps=(?P<actual_qps>\S+)\s+"
+    r"p50_us=(?P<p50_us>\d+)\s+p95_us=(?P<p95_us>\d+)\s+p99_us=(?P<p99_us>\d+)\s+p999_us=(?P<p999_us>\d+)"
+)
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Parse and clean multi-tenant wrk2 benchmarks.")
     parser.add_argument("--input-dir", type=Path, default=DEFAULT_INPUT_DIR, help="Directory containing raw log files")
@@ -20,20 +31,28 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 def extract_metrics_from_log(file_path: Path) -> dict | None:
-    """Parses custom latency reporter logs."""
     try:
         content = file_path.read_text()
-        p50 = re.search(r"50\.000%\s+([\d\.]+)(us|ms)", content)
-        p95 = re.search(r"95\.000%\s+([\d\.]+)(us|ms)", content)
-        p99 = re.search(r"99\.000%\s+([\d\.]+)(us|ms)", content)
-        p999 = re.search(r"99\.900%\s+([\d\.]+)(us|ms)", content)
-        
+        result_match = RESULT_RE.search(content)
+        if result_match:
+            return {
+                "p50_us": float(result_match.group("p50_us")),
+                "p95_us": float(result_match.group("p95_us")),
+                "p99_us": float(result_match.group("p99_us")),
+                "p999_us": float(result_match.group("p999_us")),
+            }
+
+        p50 = re.search(r"^p50:\s+([\d\.]+)(us|ms)$", content, re.MULTILINE)
+        p95 = re.search(r"^p95:\s+([\d\.]+)(us|ms)$", content, re.MULTILINE)
+        p99 = re.search(r"^p99:\s+([\d\.]+)(us|ms)$", content, re.MULTILINE)
+        p999 = re.search(r"^p99\.9:\s+([\d\.]+)(us|ms)$", content, re.MULTILINE)
+
         if not (p50 and p95 and p99 and p999):
             return None
-            
+
         def to_us(match) -> float:
-            val, unit = float(match.group(1)), match.group(2)
-            return val if unit == "us" else val * 1000.0
+            value, unit = float(match.group(1)), match.group(2)
+            return value if unit == "us" else value * 1000.0
 
         return {
             "p50_us": to_us(p50),
@@ -46,30 +65,23 @@ def extract_metrics_from_log(file_path: Path) -> dict | None:
 
 def process_raw_logs(input_dir: Path) -> pd.DataFrame:
     records = []
-    # Search for all wrk2 log files
     for file in input_dir.glob("wrk2_*.log"):
-        parts = file.stem.split('_')
-        
-        # Determine mode, count, and rate based on naming convention
-        try:
-            if "of" in parts:
-                # Format: wrk2_v{i}_of_{count}_{mode}_{rate}_{ts}
-                victim_id = int(parts[1].replace('v', ''))
-                victim_count = int(parts[3])
-                mode = parts[4]
-                attacker_rate = int(parts[5])
-            elif "adv" in parts:
-                # Format: wrk2_adv_{mode}_v{count}_r{rate}_{ts}
-                # Note: Attacker logs don't have a 'victim_id', setting to 0
-                victim_id = 0 
-                mode = parts[2]
-                victim_count = int(parts[4].replace('v', ''))
-                attacker_rate = int(parts[6].replace('r', ''))
-            else:
-                continue
-        except (ValueError, IndexError):
+        victim_match = VICTIM_LOG_RE.match(file.name)
+        attacker_match = ATTACKER_LOG_RE.match(file.name)
+
+        victim_id = 0  # 0 explicitly flags Attacker/Adversary logs
+        if victim_match:
+            mode = victim_match.group("mode")
+            victim_id = int(victim_match.group("victim_id"))
+            victim_count = int(victim_match.group("victim_count"))
+            attacker_rate = int(victim_match.group("attacker_rate"))
+        elif attacker_match:
+            mode = attacker_match.group("mode")
+            victim_count = int(attacker_match.group("victim_count"))
+            attacker_rate = int(attacker_match.group("attacker_rate"))
+        else:
             continue
-            
+
         if mode not in MODES:
             continue
             
@@ -94,14 +106,15 @@ def main() -> int:
     print(f"Scanning raw logs in {args.input_dir}...")
     df = process_raw_logs(args.input_dir)
     if df.empty:
-        print("No valid victim log records extracted. Check your file naming convention!")
+        print("No valid log records extracted. Check your file naming convention!")
         return 1
         
-    # Data cleaning: remove infrastructure outliers
-    df = df[~(
-        ((df["attacker_rate"] == 0) & (df["p99_us"] > 5000)) |
-        ((df["attacker_rate"] > 0) & (df["p99_us"] > 13000))
-    )]
+    # FIX 1: Isolate real victims. Drop attacker data (victim_id == 0) from victim profile matrix.
+    df = df[df["victim_id"] > 0]
+    
+    # FIX 2: Relax outlier filter. Only eliminate actual system deadlocks (>500ms).
+    # This ensures valid high-load queueing stalls (e.g. 13.4ms) aren't deleted.
+    df = df[df["p99_us"] < 500000]
     
     # Aggregation
     summary = (
@@ -116,6 +129,11 @@ def main() -> int:
         .sort_values(["victim_count", "mode", "attacker_rate"])
         .reset_index(drop=True)
     )
+    
+    # Validation alert for low sample sizes
+    low_samples = summary[summary["sample_count"] < 3]
+    if not low_samples.empty:
+        print("⚠️ WARNING: Some configurations have less than 3 samples. Latency plots may be noisy.")
     
     args.output.parent.mkdir(parents=True, exist_ok=True)
     summary.to_csv(args.output, index=False)
