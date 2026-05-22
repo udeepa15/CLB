@@ -46,22 +46,28 @@ def extract_metrics_from_log(file_path: Path) -> dict | None:
 
 def process_raw_logs(input_dir: Path) -> pd.DataFrame:
     records = []
-    # Search for all files starting with wrk2_v, which covers your victim logs
-    for file in input_dir.glob("wrk2_v*.log"):
-        # Example filename: wrk2_v1_of_5_shared_35000_1779420779.log
+    # Search for all wrk2 log files
+    for file in input_dir.glob("wrk2_*.log"):
         parts = file.stem.split('_')
         
-        # We need at least 6 parts: wrk2, v{i}, of, {count}, {mode}, {rate}, {ts}
-        if len(parts) >= 6 and "of" in parts:
-            try:
-                # parts[1] is 'v{id}', parts[3] is 'count', parts[4] is 'mode', parts[5] is 'rate'
+        # Determine mode, count, and rate based on naming convention
+        try:
+            if "of" in parts:
+                # Format: wrk2_v{i}_of_{count}_{mode}_{rate}_{ts}
                 victim_id = int(parts[1].replace('v', ''))
                 victim_count = int(parts[3])
                 mode = parts[4]
                 attacker_rate = int(parts[5])
-            except (ValueError, IndexError):
+            elif "adv" in parts:
+                # Format: wrk2_adv_{mode}_v{count}_r{rate}_{ts}
+                # Note: Attacker logs don't have a 'victim_id', setting to 0
+                victim_id = 0 
+                mode = parts[2]
+                victim_count = int(parts[4].replace('v', ''))
+                attacker_rate = int(parts[6].replace('r', ''))
+            else:
                 continue
-        else:
+        except (ValueError, IndexError):
             continue
             
         if mode not in MODES:
