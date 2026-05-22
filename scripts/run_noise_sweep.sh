@@ -66,6 +66,19 @@ attach_tc(){
   sudo tc filter add dev "$dev" ingress bpf da obj "$obj" sec classifier || true
 }
 
+prepare_veth_execution_paths(){
+  local obj="$1"
+  for i in 1 2 3 4 5 6; do
+    local dev="veth_v${i}"
+    sudo ip link set dev "$dev" up 2>/dev/null || true
+    sudo tc qdisc replace dev "$dev" clsact 2>/dev/null || sudo tc qdisc add dev "$dev" clsact 2>/dev/null || true
+    sudo tc filter add dev "$dev" ingress bpf da obj "$obj" sec classifier 2>/dev/null || true
+    sudo tc qdisc show dev "$dev" >/dev/null 2>&1 || {
+      echo "Warning: unable to confirm qdisc on $dev" >&2
+    }
+  done
+}
+
 detach_tc(){
   local dev="$1"
   sudo tc filter del dev "$dev" ingress 2>/dev/null || true
@@ -78,8 +91,8 @@ create_pinned_map(){
 }
 
 modes=(baseline isolated shared)
-# Hardware-tailored attacker ladder for the x3650 M4 / 1 Gbps NIC inflection window.
-attacker_rates=(0 15000 25000 35000 45000)
+victim_counts=(1 3 5)
+attacker_rates=(0 10000 20000 25000 27500 30000 32500 35000 37500 40000 42500 45000)
 
 WRK_BIN="${WRK_BIN:-wrk2}"
 VICTIM_QPS="${VICTIM_QPS:-200}"
@@ -96,91 +109,74 @@ rm -f "$RESULT_DIR"/fortio_* "$RESULT_DIR"/attacker_fortio_* "$RESULT_DIR"/wrk_a
 
 bash "$SCRIPT_DIR/deploy_workloads.sh" restart
 
-for mode in "${modes[@]}"; do
-  echo "Starting mode: $mode"
-  if [ "$mode" = "shared" ]; then
-    create_pinned_map
-    build_bpf
-    for i in 1 2 3 4 5 6; do
-      attach_tc "veth_v${i}" "$REPO_ROOT/bpf/counter_tc.o" || true
-    done
-  elif [ "$mode" = "isolated" ]; then
-    build_bpf
-    for i in 1 2 3 4 5 6; do
-      attach_tc "veth_v${i}" "$REPO_ROOT/bpf/counter_tc.o" || true
-    done
-  else
-    echo "Baseline: no eBPF attached"
-  fi
+for v_count in "${victim_counts[@]}"; do
+  echo "=== Beginning Experiment Matrix: Active Victims = ${v_count} ==="
 
-  for rate in "${attacker_rates[@]}"; do
-    ts=$(date +%s)
-    echo "Run mode=$mode attacker_rate=$rate"
-    sudo sh -c 'echo 3 > /proc/sys/vm/drop_caches'
-    victim_pids=()
-    attacker_pid=""
-
-    BPFTRACE_OUT="$RESULT_DIR/bpftrace_${mode}_${rate}_${ts}.txt"
-    if [ "$BPFTRACE_AVAILABLE" -eq 1 ]; then
-      sudo bpftrace "$SCRIPT_DIR/trace_map_locks.bt" >"$BPFTRACE_OUT" 2>&1 &
-      BPFTRACE_PID=$!
+  for mode in "${modes[@]}"; do
+    echo "Starting mode: $mode with $v_count victims"
+    if [ "$mode" = "shared" ]; then
+      create_pinned_map
+      build_bpf
+      prepare_veth_execution_paths "$REPO_ROOT/bpf/counter_tc.o"
+    elif [ "$mode" = "isolated" ]; then
+      build_bpf
+      prepare_veth_execution_paths "$REPO_ROOT/bpf/counter_tc.o"
     else
-      BPFTRACE_PID=""
+      echo "Baseline: no eBPF attached"
     fi
 
-    sleep 1
+    for rate in "${attacker_rates[@]}"; do
+      ts=$(date +%s)
+      echo "Run matrix: mode=$mode | victims=$v_count | attacker_rate=$rate"
+      sudo sh -c 'echo 3 > /proc/sys/vm/drop_caches'
+      victim_pids=()
+      attacker_pid=""
 
-    # start perf capture (15s sample at start) if available
-    if [ "$PERF_AVAILABLE" -eq 1 ]; then
-      PERF_OUT="$RESULT_DIR/perf_${mode}_${rate}_${ts}.data"
-      sudo perf record -e 'lock:lock_acquire,lock:lock_released' -a -o "$PERF_OUT" sleep 15 &
-    fi
+      BPFTRACE_OUT="$RESULT_DIR/bpftrace_${mode}_v${v_count}_r${rate}_${ts}.txt"
+      if [ "$BPFTRACE_AVAILABLE" -eq 1 ]; then
+        sudo bpftrace "$SCRIPT_DIR/trace_map_locks.bt" >"$BPFTRACE_OUT" 2>&1 &
+        BPFTRACE_PID=$!
+      else
+        BPFTRACE_PID=""
+      fi
 
-    # start victim traffic: 5 wrk2 processes each 200 RPS to reach combined ~1000 RPS
-    for i in 1 2 3 4 5; do
-      TARGET="http://10.200.${i}.2:8080"
-      LOG="$RESULT_DIR/wrk2_v${i}_${mode}_${rate}_${ts}.log"
-      TARGET_QPS="$VICTIM_QPS" "$WRK_BIN" -t"$VICTIM_THREADS" -c"$VICTIM_CONNECTIONS" -d"$WORKLOAD_DURATION" -R"$VICTIM_QPS" -s "$SCRIPT_DIR/microsecond_reporter.lua" "$TARGET" >"$LOG" 2>&1 &
-      victim_pids+=("$!")
-    done
+      sleep 1
 
-    # start attacker traffic in namespace
-    if [ "$rate" -gt 0 ]; then
-      ATT_LOG="$RESULT_DIR/wrk2_adv_${mode}_${rate}_${ts}.log"
-      sudo ip netns exec v_netns_adv env TARGET_QPS="$rate" "$WRK_BIN" -t"$VICTIM_THREADS" -c"$VICTIM_CONNECTIONS" -d"$WORKLOAD_DURATION" -R"$rate" -s "$SCRIPT_DIR/microsecond_reporter.lua" http://10.200.6.2:9090/ >"$ATT_LOG" 2>&1 &
-      attacker_pid="$!"
-    fi
+      if [ "$PERF_AVAILABLE" -eq 1 ]; then
+        PERF_OUT="$RESULT_DIR/perf_${mode}_v${v_count}_r${rate}_${ts}.data"
+        sudo perf record -e 'lock:lock_acquire,lock:lock_released' -a -o "$PERF_OUT" sleep 15 &
+      fi
 
-    # wait for workload duration plus small buffer
-    sleep 60
-
-    for pid in "${victim_pids[@]}"; do
-      wait "$pid" 2>/dev/null || true
-    done
-    if [ -n "$attacker_pid" ]; then
-      wait "$attacker_pid" 2>/dev/null || true
-    fi
-
-    if ! ls "$RESULT_DIR"/wrk2_v*_${mode}_${rate}_${ts}.log >/dev/null 2>&1; then
-      echo "No victim wrk2 logs were created for mode=$mode rate=$rate" >&2
-      for i in 1 2 3 4 5; do
-        VLOG="$RESULT_DIR/wrk2_v${i}_${mode}_${rate}_${ts}.log"
-        if [ -f "$VLOG" ]; then
-          echo "--- tail of $VLOG ---" >&2
-          tail -n 20 "$VLOG" >&2 || true
-        fi
+      for ((i=1; i<=v_count; i++)); do
+        TARGET="http://10.200.${i}.2:8080"
+        LOG="$RESULT_DIR/wrk2_v${i}_of_${v_count}_${mode}_${rate}_${ts}.log"
+        TARGET_QPS="$VICTIM_QPS" "$WRK_BIN" -t"$VICTIM_THREADS" -c"$VICTIM_CONNECTIONS" -d"$WORKLOAD_DURATION" -R"$VICTIM_QPS" -s "$SCRIPT_DIR/microsecond_reporter.lua" "$TARGET" >"$LOG" 2>&1 &
+        victim_pids+=("$!")
       done
-    fi
 
-    # stop bpftrace if it was started
-    if [ -n "$BPFTRACE_PID" ]; then
-      sudo kill -INT "$BPFTRACE_PID" 2>/dev/null || true
-      wait "$BPFTRACE_PID" 2>/dev/null || true
-    fi
+      if [ "$rate" -gt 0 ]; then
+        ATT_LOG="$RESULT_DIR/wrk2_adv_${mode}_v${v_count}_r${rate}_${ts}.log"
+        sudo ip netns exec v_netns_adv env TARGET_QPS="$rate" "$WRK_BIN" -t"$VICTIM_THREADS" -c"$VICTIM_CONNECTIONS" -d"$WORKLOAD_DURATION" -R"$rate" -s "$SCRIPT_DIR/microsecond_reporter.lua" http://10.200.6.2:9090/ >"$ATT_LOG" 2>&1 &
+        attacker_pid="$!"
+      fi
 
-    echo "Finished run mode=$mode rate=$rate"
+      sleep 60
+
+      for pid in "${victim_pids[@]}"; do
+        wait "$pid" 2>/dev/null || true
+      done
+      if [ -n "$attacker_pid" ]; then
+        wait "$attacker_pid" 2>/dev/null || true
+      fi
+
+      if [ -n "$BPFTRACE_PID" ]; then
+        sudo kill -INT "$BPFTRACE_PID" 2>/dev/null || true
+        wait "$BPFTRACE_PID" 2>/dev/null || true
+      fi
+
+      echo "Finished run mode=$mode victims=$v_count rate=$rate"
+    done
   done
-
 done
 
 echo "Sweep complete. Results in $RESULT_DIR"
