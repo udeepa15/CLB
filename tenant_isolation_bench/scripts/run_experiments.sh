@@ -65,20 +65,21 @@ require_bin() {
 }
 
 show_progress() {
-  # Prints a stable progress line that will not be overwritten by other output.
+  # Prints a stable, single-line progress status that will not wrap.
   local label="${1:-}"
   if [[ ${TOTAL_CASES} -le 0 ]]; then
     return 0
   fi
   local percent=$(( CASE_NUM * 100 / TOTAL_CASES ))
-  local width=40
+  local width=24
   local filled=$(( percent * width / 100 ))
   local empty=$(( width - filled ))
   local filled_bar
   local empty_bar
   filled_bar=$(printf '%*s' "${filled}" '' | tr ' ' '#')
   empty_bar=$(printf '%*s' "${empty}" '' | tr ' ' '-')
-  printf '[progress] [%-40s] %3d%% (%d/%d) %s\n' "${filled_bar}${empty_bar}" "${percent}" "${CASE_NUM}" "${TOTAL_CASES}" "${label}"
+  printf '\r\033[2K[progress] [%s%s] %5.1f%% %d/%d %s' \
+    "${filled_bar}" "${empty_bar}" "${percent}" "${CASE_NUM}" "${TOTAL_CASES}" "${label}" >&2
 }
 
 show_progress_case() {
@@ -93,8 +94,9 @@ show_progress_case() {
   local tenths=$(( completed_ticks * 1000 / total_ticks ))
   local whole=$(( tenths / 10 ))
   local frac=$(( tenths % 10 ))
-  printf '[progress] case=%d/%d mode=%s victims=%s rate=%s elapsed=%ss/%ss overall=%d.%d%%\n' \
-    "${CASE_NUM}" "${TOTAL_CASES}" "${mode}" "${active_count}" "${attacker_rate}" "${elapsed}" "${total_seconds}" "${whole}" "${frac}"
+  local rem=$(( total_seconds - elapsed ))
+  printf '\r\033[2K[progress] case %d/%d | %s v%s r%s | elapsed %ss/%ss | remaining %ss | overall %d.%d%%' \
+    "${CASE_NUM}" "${TOTAL_CASES}" "${mode}" "${active_count}" "${attacker_rate}" "${elapsed}" "${total_seconds}" "${rem}" "${whole}" "${frac}" >&2
 }
 
 victim_host_if() {
@@ -295,9 +297,7 @@ run_case() {
     if [[ ${STOP_REQUESTED} -eq 1 ]]; then
       return 130
     fi
-    local rem=$(( total_seconds - elapsed ))
     show_progress_case "${mode}" "${active_count}" "${attacker_rate}" "${elapsed}" "${total_seconds}"
-    printf '[progress] current=%s victims=%s attacker_rate=%s remaining=%ss\n' "${mode}" "${active_count}" "${attacker_rate}" "${rem}"
     sleep "${tick_interval}"
     elapsed=$(( elapsed + tick_interval ))
   done
@@ -306,6 +306,7 @@ run_case() {
   fi
   # final update to mark case nearing completion
   show_progress_case "${mode}" "${active_count}" "${attacker_rate}" "${total_seconds}" "${total_seconds}"
+  printf '\n'
 
   for victim_idx in $(seq 1 "${active_count}"); do
     wait "${CURRENT_VICTIM_PIDS[$((victim_idx - 1))]}" >/dev/null 2>&1 || true
@@ -342,6 +343,7 @@ main() {
       for attacker_rate in "${ATTACKER_RATES[@]}"; do
         CASE_NUM=$((CASE_NUM + 1))
         show_progress "Starting ${mode} v${active_count} r${attacker_rate}"
+        printf '\n'
         run_case "${mode}" "${active_count}" "${attacker_rate}" || {
           if [[ ${STOP_REQUESTED} -eq 1 ]]; then
             exit 130
@@ -349,6 +351,7 @@ main() {
           return 1
         }
         show_progress "Completed ${mode} v${active_count} r${attacker_rate}"
+        printf '\n'
         if [[ ${STOP_REQUESTED} -eq 1 ]]; then
           exit 130
         fi
