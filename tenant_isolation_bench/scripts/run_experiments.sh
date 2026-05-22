@@ -20,6 +20,9 @@ RUN_SECONDS="${RUN_SECONDS:-${WORKLOAD_DURATION%s}}"
 WRK_BIN="${WRK_BIN:-wrk2}"
 CASE_NUM=0
 TOTAL_CASES=0
+STOP_REQUESTED=0
+CURRENT_VICTIM_PIDS=()
+CURRENT_ATTACKER_PID=""
 
 require_root() {
   if [[ "$(id -u)" -ne 0 ]]; then
@@ -192,6 +195,31 @@ cleanup_tracers() {
   fi
 }
 
+kill_current_case() {
+  local pid
+  for pid in "${CURRENT_VICTIM_PIDS[@]:-}"; do
+    if [[ -n "${pid}" ]]; then
+      kill -INT "${pid}" >/dev/null 2>&1 || true
+    fi
+  done
+  if [[ -n "${CURRENT_ATTACKER_PID:-}" ]]; then
+    kill -INT "${CURRENT_ATTACKER_PID}" >/dev/null 2>&1 || true
+  fi
+}
+
+request_stop() {
+  STOP_REQUESTED=1
+  echo
+  echo "[run] stop requested; cleaning up"
+  kill_current_case
+  cleanup_tracers
+}
+
+cleanup_on_exit() {
+  cleanup_tracers
+  "${DEPLOY_SCRIPT}" stop >/dev/null 2>&1 || true
+}
+
 run_case() {
   local mode="$1"
   local active_count="$2"
@@ -201,8 +229,9 @@ run_case() {
   local victim_url
   local victim_log
   local attacker_log
-  local victim_pids=()
-  local attacker_pid=""
+
+  CURRENT_VICTIM_PIDS=()
+  CURRENT_ATTACKER_PID=""
 
   ts="$(date +%s)"
   echo "[run] mode=${mode} victims=${active_count} attacker_rate=${attacker_rate}"
@@ -246,13 +275,13 @@ run_case() {
     victim_url="http://$(victim_ip "${victim_idx}"):8080/"
     victim_log="${RAW_DIR}/wrk2_v${victim_idx}_of_${active_count}_${mode}_${attacker_rate}_${ts}.log"
     TARGET_QPS="${VICTIM_QPS}" "${WRK_BIN}" -t"${VICTIM_THREADS}" -c"${VICTIM_CONNECTIONS}" -d"${WORKLOAD_DURATION}" -R"${VICTIM_QPS}" -s "${SCRIPT_DIR}/microsecond_reporter.lua" "${victim_url}" >"${victim_log}" 2>&1 &
-    victim_pids+=("$!")
+    CURRENT_VICTIM_PIDS+=("$!")
   done
 
   if [[ "${attacker_rate}" -gt 0 ]]; then
     attacker_log="${RAW_DIR}/wrk2_adv_${mode}_v${active_count}_r${attacker_rate}_${ts}.log"
     sudo ip netns exec "$(victim_ns adv)" env TARGET_QPS="${attacker_rate}" "${WRK_BIN}" -t"${VICTIM_THREADS}" -c"${VICTIM_CONNECTIONS}" -d"${WORKLOAD_DURATION}" -R"${attacker_rate}" -s "${SCRIPT_DIR}/microsecond_reporter.lua" "http://$(adv_ns_ip):9090/" >"${attacker_log}" 2>&1 &
-    attacker_pid="$!"
+    CURRENT_ATTACKER_PID="$!"
   fi
 
   # Wait for duration while showing progress so user sees activity.
@@ -263,20 +292,26 @@ run_case() {
     tick_interval=5
   fi
   while [[ ${elapsed} -lt ${total_seconds} ]]; do
+    if [[ ${STOP_REQUESTED} -eq 1 ]]; then
+      return 130
+    fi
     local rem=$(( total_seconds - elapsed ))
     show_progress_case "${mode}" "${active_count}" "${attacker_rate}" "${elapsed}" "${total_seconds}"
     printf '[progress] current=%s victims=%s attacker_rate=%s remaining=%ss\n' "${mode}" "${active_count}" "${attacker_rate}" "${rem}"
     sleep "${tick_interval}"
     elapsed=$(( elapsed + tick_interval ))
   done
+  if [[ ${STOP_REQUESTED} -eq 1 ]]; then
+    return 130
+  fi
   # final update to mark case nearing completion
   show_progress_case "${mode}" "${active_count}" "${attacker_rate}" "${total_seconds}" "${total_seconds}"
 
   for victim_idx in $(seq 1 "${active_count}"); do
-    wait "${victim_pids[$((victim_idx - 1))]}" >/dev/null 2>&1 || true
+    wait "${CURRENT_VICTIM_PIDS[$((victim_idx - 1))]}" >/dev/null 2>&1 || true
   done
-  if [[ -n "${attacker_pid}" ]]; then
-    wait "${attacker_pid}" >/dev/null 2>&1 || true
+  if [[ -n "${CURRENT_ATTACKER_PID}" ]]; then
+    wait "${CURRENT_ATTACKER_PID}" >/dev/null 2>&1 || true
   fi
 
   cleanup_tracers
@@ -299,22 +334,31 @@ main() {
     done
   done
 
-  trap 'printf "\n"; cleanup_tracers; "${DEPLOY_SCRIPT}" stop >/dev/null 2>&1 || true' EXIT INT TERM
+  trap 'cleanup_on_exit' EXIT
+  trap 'request_stop; exit 130' INT TERM
 
   for active_count in "${ACTIVE_COUNTS[@]}"; do
     for mode in "${MODES[@]}"; do
       for attacker_rate in "${ATTACKER_RATES[@]}"; do
         CASE_NUM=$((CASE_NUM + 1))
         show_progress "Starting ${mode} v${active_count} r${attacker_rate}"
-        run_case "${mode}" "${active_count}" "${attacker_rate}"
+        run_case "${mode}" "${active_count}" "${attacker_rate}" || {
+          if [[ ${STOP_REQUESTED} -eq 1 ]]; then
+            exit 130
+          fi
+          return 1
+        }
         show_progress "Completed ${mode} v${active_count} r${attacker_rate}"
+        if [[ ${STOP_REQUESTED} -eq 1 ]]; then
+          exit 130
+        fi
       done
     done
   done
 
   python3 "${SUMMARY_SCRIPT}" --input-dir "${RAW_DIR}" --output "${RESULT_DIR}/cleaned_matrix_metrics.csv"
-  trap - EXIT INT TERM
-  "${DEPLOY_SCRIPT}" stop >/dev/null 2>&1 || true
+  trap - EXIT
+  cleanup_on_exit
   echo "[run] sweep complete"
 }
 
