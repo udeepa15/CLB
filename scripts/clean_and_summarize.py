@@ -20,10 +20,9 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 def extract_metrics_from_log(file_path: Path) -> dict | None:
-    """Parses custom latency reporter logs generated via microsecond_reporter.lua"""
+    """Parses custom latency reporter logs."""
     try:
         content = file_path.read_text()
-        # Fallback regex patterns if you write out standard or custom comma-separated summaries
         p50 = re.search(r"50\.000%\s+([\d\.]+)(us|ms)", content)
         p95 = re.search(r"95\.000%\s+([\d\.]+)(us|ms)", content)
         p99 = re.search(r"99\.000%\s+([\d\.]+)(us|ms)", content)
@@ -47,19 +46,24 @@ def extract_metrics_from_log(file_path: Path) -> dict | None:
 
 def process_raw_logs(input_dir: Path) -> pd.DataFrame:
     records = []
-    # Match the file signature: wrk2_v{i}_of_{v_count}_{mode}_{rate}_{ts}.log
-    log_pattern = re.compile(r"wrk2_v(\d+)_of_(\d+)_([a-zA-Z0-9]+)_(\d+)_(\d+)\.log")
-    
-    for file in input_dir.glob("wrk2_v*_of_*.log"):
-        match = log_pattern.match(file.name)
-        if not match:
+    # Search for all files starting with wrk2_v, which covers your victim logs
+    for file in input_dir.glob("wrk2_v*.log"):
+        # Example filename: wrk2_v1_of_5_shared_35000_1779420779.log
+        parts = file.stem.split('_')
+        
+        # We need at least 6 parts: wrk2, v{i}, of, {count}, {mode}, {rate}, {ts}
+        if len(parts) >= 6 and "of" in parts:
+            try:
+                # parts[1] is 'v{id}', parts[3] is 'count', parts[4] is 'mode', parts[5] is 'rate'
+                victim_id = int(parts[1].replace('v', ''))
+                victim_count = int(parts[3])
+                mode = parts[4]
+                attacker_rate = int(parts[5])
+            except (ValueError, IndexError):
+                continue
+        else:
             continue
             
-        victim_id = int(match.group(1))
-        victim_count = int(match.group(2))
-        mode = match.group(3)
-        attacker_rate = int(match.group(4))
-        
         if mode not in MODES:
             continue
             
@@ -84,16 +88,16 @@ def main() -> int:
     print(f"Scanning raw logs in {args.input_dir}...")
     df = process_raw_logs(args.input_dir)
     if df.empty:
-        print("No valid victim log records extracted.")
+        print("No valid victim log records extracted. Check your file naming convention!")
         return 1
         
-    # Filter out anomalous system infrastructure stalls 
+    # Data cleaning: remove infrastructure outliers
     df = df[~(
         ((df["attacker_rate"] == 0) & (df["p99_us"] > 5000)) |
         ((df["attacker_rate"] > 0) & (df["p99_us"] > 13000))
     )]
     
-    # Aggregate using median to show system structural baseline trends
+    # Aggregation
     summary = (
         df.groupby(["mode", "victim_count", "attacker_rate"], as_index=False)
         .agg(
