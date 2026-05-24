@@ -26,6 +26,9 @@ done
 
 echo "Deploying $NUM_TENANTS tenant namespaces (duration ${DURATION}s) sidecar=${SIDECAR}"
 
+# ensure bridge exists and is up (should already be from manage_broker.sh)
+sudo ip link set dev br-queue up 2>/dev/null || true
+
 for i in $(seq 1 "$NUM_TENANTS"); do
   ns=tenant${i}
   if ! ip netns list | grep -qw "$ns"; then
@@ -38,9 +41,9 @@ for i in $(seq 1 "$NUM_TENANTS"); do
     # create veth and move one end to namespace
     sudo ip link add "$veth_host" type veth peer name "$veth_ns"
     sudo ip link set "$veth_ns" netns "$ns"
-    # attach host veth to bridge
-    sudo ip link set "$veth_host" master br-queue
+    # bring up veth on host first, then attach to bridge
     sudo ip link set "$veth_host" up
+    sudo ip link set "$veth_host" master br-queue
     # assign IPs on the 10.200.0.0/24 subnet so all can reach broker at 10.200.0.1
     sudo ip netns exec "$ns" ip addr add 10.200.0.$((100 + i))/24 dev "$veth_ns" || true
     sudo ip netns exec "$ns" ip link set "$veth_ns" up
