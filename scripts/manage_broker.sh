@@ -13,7 +13,7 @@ BRIDGE=br-queue
 BROKER_IP=10.200.0.1
 BROKER_PORT=6379
 REDIS_CONF="$ROOT/redis_broker.conf"
-REDIS_PIDFILE="/var/run/redis_broker_6379.pid"
+REDIS_PIDFILE="$RESULTS/redis_broker_6379.pid"
 
 check_cmd(){ command -v "$1" >/dev/null 2>&1 || { echo "Please install $1" >&2; exit 1; } }
 
@@ -38,7 +38,7 @@ save ""
 protected-mode no
 daemonize yes
 pidfile $REDIS_PIDFILE
-logfile "$ROOT/results/redis_broker.log"
+logfile "$RESULTS/redis_broker.log"
 # optional memory policy to avoid disk pressure; tune as needed
 maxmemory 0
 maxmemory-policy noeviction
@@ -49,7 +49,7 @@ EOF
   if [ -f "$REDIS_PIDFILE" ]; then
     echo "Started redis (pidfile: $REDIS_PIDFILE)"
   else
-    echo "Failed to start redis; check $ROOT/results/redis_broker.log" >&2
+    echo "Failed to start redis; check $RESULTS/redis_broker.log" >&2
     exit 1
   fi
 }

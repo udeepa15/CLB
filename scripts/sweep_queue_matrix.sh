@@ -28,11 +28,17 @@ echo "Sweep tenants:${TENANTS[*]} rates:${ATTACKER_RATES[*]} duration:${DURATION
 
 # ensure broker
 echo "Starting broker"
-sudo $SCRIPT_DIR/manage_broker.sh start
+sudo bash "$SCRIPT_DIR/manage_broker.sh" start
 
 # seed queues
 echo "Seeding queues"
-python3 $SCRIPT_DIR/seed_queues.py --broker-ip 10.200.0.1 --num-queues ${TENANTS[-1]} --total-items "$SEED_ITEMS"
+MAX_TENANTS="${TENANTS[0]}"
+for t in "${TENANTS[@]}"; do
+  if [ "$t" -gt "$MAX_TENANTS" ]; then
+    MAX_TENANTS="$t"
+  fi
+done
+python3 "$SCRIPT_DIR/seed_queues.py" --broker-ip 10.200.0.1 --num-queues "$MAX_TENANTS" --total-items "$SEED_ITEMS"
 
 for t in "${TENANTS[@]}"; do
   for r in "${ATTACKER_RATES[@]}"; do
@@ -42,18 +48,18 @@ for t in "${TENANTS[@]}"; do
     echo "Running sweep: tenants=$t attacker_rate=$r -> $outdir"
 
     # deploy tenants (no sidecars) and start workers
-    $SCRIPT_DIR/deploy_queue_workloads.sh --num-tenants "$t" --duration "$DURATION" --broker-ip 10.200.0.1
+    bash "$SCRIPT_DIR/deploy_queue_workloads.sh" --num-tenants "$t" --duration "$DURATION" --broker-ip 10.200.0.1
 
     # start adversary (host namespace) if r>0
     if [ "$r" -gt 0 ]; then
-      nohup python3 $SCRIPT_DIR/adv_storm.py --broker-ip 10.200.0.1 --rate "$r" --duration "$DURATION" --queue-name tenant_queue_v1 > "$outdir/adv_storm.log" 2>&1 &
+      nohup python3 "$SCRIPT_DIR/adv_storm.py" --broker-ip 10.200.0.1 --rate "$r" --duration "$DURATION" --queue-name tenant_queue_v1 > "$outdir/adv_storm.log" 2>&1 &
     fi
 
     # wait for sweep duration
     sleep "$DURATION"
 
     # collect results: worker logs contain RESULT lines
-    cp $ROOT/results/worker_*.log "$outdir/" || true
+    cp "$ROOT/results"/worker_*.log "$outdir/" 2>/dev/null || true
     [ -f "$ROOT/results/redis_broker.log" ] && cp "$ROOT/results/redis_broker.log" "$outdir/" || true
 
     echo "Completed sweep $stamp"
@@ -61,4 +67,4 @@ for t in "${TENANTS[@]}"; do
 done
 
 echo "Stopping broker"
-sudo $SCRIPT_DIR/manage_broker.sh stop
+sudo bash "$SCRIPT_DIR/manage_broker.sh" stop

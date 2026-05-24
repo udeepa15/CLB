@@ -6,6 +6,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 ROOT="$REPO_ROOT/ebpf_research"
+RESULTS="$ROOT/results"
+mkdir -p "$RESULTS"
 
 NUM_TENANTS=3
 DURATION=60
@@ -43,10 +45,10 @@ for i in $(seq 1 "$NUM_TENANTS"); do
 
   # start worker inside namespace or leave for sidecar
   if [ "$SIDECAR" -eq 0 ]; then
-    sudo ip netns exec "$ns" bash -c "nohup python3 $SCRIPT_DIR/queue_worker.py --broker-ip $BROKER_IP --queue-name tenant_queue_v${i} --duration-sec $DURATION > $ROOT/results/worker_${ns}.log 2>&1 &"
+    sudo ip netns exec "$ns" bash -c "nohup python3 $SCRIPT_DIR/queue_worker.py --broker-ip $BROKER_IP --queue-name tenant_queue_v${i} --duration-sec $DURATION > $RESULTS/worker_${ns}.log 2>&1 &"
   else
     echo "Sidecar mode: not starting in-namespace worker for $ns"
   fi
 done
 
-echo "Deployed tenants. Logs: $ROOT/results/"
+echo "Deployed tenants. Logs: $RESULTS/"
