@@ -23,5 +23,9 @@ __pycache__/
 *.log
 *.tmp
 
+# Keep benchmark/server logs under results tracked so they are visible after pull
+!ebpf_research/results/*.log
+!ebpf_research/results/**/*.log
+
 # Keep results and plots tracked (do NOT ignore results/ or plots/)
 # If you create a local results folder, do not add it to gitignore.
