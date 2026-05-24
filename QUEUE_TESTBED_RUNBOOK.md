@@ -19,10 +19,10 @@ sudo apt update
 sudo apt install -y redis-server iproute2 python3 python3-pip tmux
 ```
 
-Install the Python Redis client:
+Install the Python Redis client globally (required for root inside namespaces):
 
 ```bash
-python3 -m pip install --user redis
+sudo pip3 install redis
 ```
 
 If you plan to run long tests, `tmux` is strongly recommended.
@@ -122,5 +122,6 @@ sudo ip link delete br-queue type bridge || true
 
 - If `sudo manage_broker.sh start` says command not found, use `sudo bash scripts/manage_broker.sh start` or `sudo ./manage_broker.sh start` after `chmod +x`.
 - If the attacker log redirection fails, make sure you write to `ebpf_research/results/...`, not a relative `results/` directory inside `scripts/`.
-- If `redis` is missing in Python, install it with `python3 -m pip install --user redis`.
+- If `redis` is missing in Python, install it with `sudo pip3 install redis` (must be global, not `--user`, since workers run as root in namespaces).
+- If workers show `completed=0 errors=<N>`, the namespaces can't reach the broker. Run `sudo ip link show br-queue` to confirm the bridge exists; if not, restart the broker with `sudo bash scripts/manage_broker.sh start`.
 - If you get namespace or veth errors, rerun the commands with `sudo` and confirm your user has permission to create network namespaces.

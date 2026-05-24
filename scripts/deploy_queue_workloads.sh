@@ -31,15 +31,18 @@ for i in $(seq 1 "$NUM_TENANTS"); do
   if ! ip netns list | grep -qw "$ns"; then
     sudo ip netns add "$ns"
   fi
-  # create veth pair to bridge if not exists
+  # create veth pair attached to the bridge so all tenants can reach broker
   veth_host=v_${ns}
   veth_ns=${ns}_v
   if ! ip link show "$veth_host" >/dev/null 2>&1; then
+    # create veth and move one end to namespace
     sudo ip link add "$veth_host" type veth peer name "$veth_ns"
     sudo ip link set "$veth_ns" netns "$ns"
-    sudo ip addr add 10.200.${i}.2/24 dev "$veth_host" || true
+    # attach host veth to bridge
+    sudo ip link set "$veth_host" master br-queue
     sudo ip link set "$veth_host" up
-    sudo ip netns exec "$ns" ip addr add 10.200.${i}.3/24 dev "$veth_ns" || true
+    # assign IPs on the 10.200.0.0/24 subnet so all can reach broker at 10.200.0.1
+    sudo ip netns exec "$ns" ip addr add 10.200.0.$((100 + i))/24 dev "$veth_ns" || true
     sudo ip netns exec "$ns" ip link set "$veth_ns" up
   fi
 
