@@ -126,15 +126,16 @@ echo ""
 SWEEP_END=$(date +%s)
 SWEEP_ELAPSED=$((SWEEP_END - SWEEP_START))
 SWEEP_ELAPSED_MIN=$((SWEEP_ELAPSED / 60))
+SWEEP_ELAPSED_SEC=$((SWEEP_ELAPSED % 60))
 
 wait $SWEEP_PID || true
 echo ""
-echo "      ✓ Sweep completed in ${SWEEP_ELAPSED_MIN}m ${SWEEP_ELAPSED}s"
+echo "      ✓ Sweep completed in ${SWEEP_ELAPSED_MIN}m ${SWEEP_ELAPSED_SEC}s"
 echo ""
 
 # Step 4: Aggregate and show results
 echo "[4/4] Aggregating results..."
-RESULTS_CSV="$REPO_ROOT/sweep_results_v2.csv"
+RESULTS_CSV="$RESULTS/sweep_results_v2.csv"
 
 python3 "$SCRIPT_DIR/aggregate_sweep_results.py" \
   --results-dir "$RESULTS" \

@@ -36,6 +36,9 @@ def main():
     if "mode" not in df.columns:
         df["mode"] = "unknown"
 
+    if df["mode"].isin(["sidecar", "sidecarless_ebpf"]).any():
+        df = df[df["mode"] != "unknown"]
+
     # Group by mode, tenant_count, attacker_rate
     grouped = df.groupby(["mode", "tenant_count", "attacker_rate"])["throughput_mps"].agg(["mean", "std", "count"]).reset_index()
 

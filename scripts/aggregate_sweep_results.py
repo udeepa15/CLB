@@ -52,8 +52,11 @@ def main():
     args = parse_args()
     rows = []
 
-    # walk all sweep subdirectories
-    for dirpath, _, filenames in os.walk(args.results_dir):
+    # walk all sweep subdirectories (skip archived runs)
+    for dirpath, dirnames, filenames in os.walk(args.results_dir):
+        dirnames[:] = [d for d in dirnames if not d.startswith("archive_")]
+        if os.path.basename(dirpath).startswith("archive_"):
+            continue
         sweep_params = extract_sweep_params(dirpath)
         if not sweep_params:
             continue
