@@ -38,6 +38,37 @@ echo "  Duration/run:  ${DURATION}s"
 echo "  Queue seed:    $SEED items"
 echo ""
 
+count_csv_items() {
+  local input="$1"
+  local IFS=","
+  read -r -a items <<< "$input"
+  echo "${#items[@]}"
+}
+
+TOTAL_MODES=$(count_csv_items "$MODES")
+TOTAL_TENANTS=$(count_csv_items "$TENANTS")
+TOTAL_RATES=$(count_csv_items "$RATES")
+TOTAL_STEPS=$((TOTAL_MODES * TOTAL_TENANTS * TOTAL_RATES))
+
+render_progress_bar() {
+  local done="$1"
+  local total="$2"
+  local width=30
+  if [ "$total" -le 0 ]; then
+    return
+  fi
+  if [ "$done" -gt "$total" ]; then
+    done="$total"
+  fi
+  local filled=$((done * width / total))
+  local empty=$((width - filled))
+  local bar
+  local space
+  bar=$(printf "%*s" "$filled" "" | tr ' ' '#')
+  space=$(printf "%*s" "$empty" "" | tr ' ' '.')
+  printf "\r      Progress: [%s%s] %d/%d" "$bar" "$space" "$done" "$total"
+}
+
 # Step 1: Cleanup
 echo "[1/4] Cleaning up old namespaces and processes..."
 for ns in $(ip netns list 2>/dev/null | awk '{print $1}' || true); do
@@ -74,17 +105,23 @@ echo ""
 POLL_COUNT=0
 while kill -0 $SWEEP_PID 2>/dev/null; do
   POLL_COUNT=$((POLL_COUNT + 1))
-  
+  if [ -f "$SWEEP_LOG" ]; then
+    DONE_STEPS=$(grep -c "^Running sweep:" "$SWEEP_LOG" 2>/dev/null || echo "0")
+    render_progress_bar "$DONE_STEPS" "$TOTAL_STEPS"
+  fi
+
   # Show sweep log status every ~30s (15 iterations of 2s sleep)
   if [ $((POLL_COUNT % 15)) -eq 0 ]; then
-    # Get line count to show activity
     if [ -f "$SWEEP_LOG" ]; then
       LINE_COUNT=$(wc -l < "$SWEEP_LOG" 2>/dev/null || echo "0")
+      echo ""
       echo "      [$(date +%H:%M:%S)] $LINE_COUNT log lines - sweep in progress..."
     fi
   fi
   sleep 2
 done
+
+echo ""
 
 SWEEP_END=$(date +%s)
 SWEEP_ELAPSED=$((SWEEP_END - SWEEP_START))

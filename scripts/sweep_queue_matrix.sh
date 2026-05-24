@@ -14,6 +14,9 @@ ARCHIVE_DIR="$RESULTS/archive_$(date +%s)"
 mkdir -p "$ARCHIVE_DIR"
 shopt -s nullglob
 for f in "$RESULTS"/*.csv "$RESULTS"/*.log; do
+  if [ "$(basename "$f")" = "sweep_v2.log" ]; then
+    continue
+  fi
   mv "$f" "$ARCHIVE_DIR/" || true
 done
 for d in "$RESULTS"/m*_t*_r_* "$RESULTS"/t*_r_*; do
