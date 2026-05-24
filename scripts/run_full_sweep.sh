@@ -67,13 +67,17 @@ echo "[3/4] Monitoring progress..."
 echo "      (Press Ctrl+C to stop monitoring; sweep will continue)"
 echo ""
 
-last_line=""
+POLL_COUNT=0
 while kill -0 $SWEEP_PID 2>/dev/null; do
-  # Show latest log lines
-  current_line=$(tail -1 "$SWEEP_LOG" 2>/dev/null || echo "")
-  if [ "$current_line" != "$last_line" ] && [ -n "$current_line" ]; then
-    echo "      $current_line"
-    last_line="$current_line"
+  POLL_COUNT=$((POLL_COUNT + 1))
+  
+  # Show sweep log status every ~30s (15 iterations of 2s sleep)
+  if [ $((POLL_COUNT % 15)) -eq 0 ]; then
+    # Get line count to show activity
+    if [ -f "$SWEEP_LOG" ]; then
+      LINE_COUNT=$(wc -l < "$SWEEP_LOG" 2>/dev/null || echo "0")
+      echo "      [$(date +%H:%M:%S)] $LINE_COUNT log lines - sweep in progress..."
+    fi
   fi
   sleep 2
 done
