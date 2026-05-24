@@ -80,7 +80,27 @@ What the sweep does:
 - Seeds the largest queue set needed by the tenant list.
 - Deploys tenant namespaces.
 - Runs the attacker when the attacker rate is greater than zero.
+- **If `bpftrace` is available**, captures Redis `dictFind`, `dictAdd`, and `lpop` operation latencies.
 - Copies logs into `ebpf_research/results/t<tenants>_r<rate>_<timestamp>/`.
+
+## Aggregating results
+
+After a sweep completes, aggregate all worker logs into a CSV:
+
+```bash
+cd ~/CLB
+python3 scripts/aggregate_sweep_results.py --results-dir ebpf_research/results --output-csv sweep_results.csv
+```
+
+This produces a CSV with columns:
+- `timestamp`: sweep timestamp
+- `tenant_count`: number of tenant namespaces
+- `attacker_rate`: attacker message rate (msg/sec)
+- `worker`: worker namespace name
+- `completed`: items successfully popped from queue
+- `errors`: connection errors
+- `duration_sec`: duration of worker run
+- `throughput_mps`: messages per second (completed / duration_sec)
 
 ## Where to look for outputs
 
@@ -88,11 +108,19 @@ What the sweep does:
 - Broker pidfile: `ebpf_research/results/redis_broker_6379.pid`
 - Tenant worker logs: `ebpf_research/results/worker_tenant<N>.log`
 - Sweep subdirectories: `ebpf_research/results/t<tenants>_r<rate>_<timestamp>/`
+- Bpftrace captures (if enabled): `ebpf_research/results/t<tenants>_r<rate>_<timestamp>/bpftrace_redis_dict.log`
+- Aggregated CSV: `sweep_results.csv` (after running `aggregate_sweep_results.py`)
 
 To inspect completion lines:
 
 ```bash
 grep -R "RESULT:" ebpf_research/results
+```
+
+To view Redis latency histograms from bpftrace:
+
+```bash
+less ebpf_research/results/t*/bpftrace_redis_dict.log
 ```
 
 ## Cleanup
@@ -125,3 +153,4 @@ sudo ip link delete br-queue type bridge || true
 - If `redis` is missing in Python, install it with `sudo pip3 install redis` (must be global, not `--user`, since workers run as root in namespaces).
 - If workers show `completed=0 errors=<N>`, the namespaces can't reach the broker. Run `sudo ip link show br-queue` to confirm the bridge exists; if not, restart the broker with `sudo bash scripts/manage_broker.sh start`.
 - If you get namespace or veth errors, rerun the commands with `sudo` and confirm your user has permission to create network namespaces.
+- If bpftrace fails during sweep, check that it's installed: `sudo apt install -y bpftrace`. If unavailable on your system, the sweep will continue without it; the worker logs will still be collected.

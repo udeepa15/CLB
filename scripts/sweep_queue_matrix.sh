@@ -47,6 +47,15 @@ for t in "${TENANTS[@]}"; do
     mkdir -p "$outdir"
     echo "Running sweep: tenants=$t attacker_rate=$r -> $outdir"
 
+    # start bpftrace if available (background capture of Redis dict operations)
+    BPFTRACE_PID=""
+    if command -v bpftrace >/dev/null 2>&1; then
+      echo "Starting bpftrace to capture Redis latencies"
+      sudo bpftrace "$SCRIPT_DIR/trace_redis_dict.bt" > "$outdir/bpftrace_redis_dict.log" 2>&1 &
+      BPFTRACE_PID=$!
+      sleep 1  # give bpftrace time to attach
+    fi
+
     # deploy tenants (no sidecars) and start workers
     bash "$SCRIPT_DIR/deploy_queue_workloads.sh" --num-tenants "$t" --duration "$DURATION" --broker-ip 10.200.0.1
 
@@ -57,6 +66,13 @@ for t in "${TENANTS[@]}"; do
 
     # wait for sweep duration
     sleep "$DURATION"
+
+    # stop bpftrace if running
+    if [ -n "$BPFTRACE_PID" ]; then
+      echo "Stopping bpftrace (PID $BPFTRACE_PID)"
+      sudo kill "$BPFTRACE_PID" 2>/dev/null || true
+      sleep 1
+    fi
 
     # collect results: worker logs contain RESULT lines
     cp "$ROOT/results"/worker_*.log "$outdir/" 2>/dev/null || true

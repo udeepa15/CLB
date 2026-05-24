@@ -1,0 +1,53 @@
+#!/usr/bin/env bpftrace
+/*
+ * Trace Redis dict operations and hash table lock contention during queue operations.
+ * Measures time spent in dictFind, dictAdd, etc.
+ * Output: per-second histograms of operation duration in microseconds.
+ */
+#include <linux/sched.h>
+
+uprobe:/usr/bin/redis-server:dictFind
+{
+  @start[tid] = nsecs;
+}
+
+uretprobe:/usr/bin/redis-server:dictFind
+/@start[tid]/
+{
+  @dictFind_us = hist((nsecs - @start[tid]) / 1000);
+  delete @start[tid];
+}
+
+uprobe:/usr/bin/redis-server:dictAdd
+{
+  @start[tid] = nsecs;
+}
+
+uretprobe:/usr/bin/redis-server:dictAdd
+/@start[tid]/
+{
+  @dictAdd_us = hist((nsecs - @start[tid]) / 1000);
+  delete @start[tid];
+}
+
+uprobe:/usr/bin/redis-server:lpop
+{
+  @start[tid] = nsecs;
+}
+
+uretprobe:/usr/bin/redis-server:lpop
+/@start[tid]/
+{
+  @lpop_us = hist((nsecs - @start[tid]) / 1000);
+  delete @start[tid];
+}
+
+END
+{
+  print("=== dictFind latency (us) ===");
+  print(@dictFind_us);
+  print("=== dictAdd latency (us) ===");
+  print(@dictAdd_us);
+  print("=== lpop latency (us) ===");
+  print(@lpop_us);
+}
