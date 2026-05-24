@@ -30,6 +30,7 @@ ATTACKER_RATES=(0 10000 20000 30000 40000)
 DURATION=60
 SEED_ITEMS=1000000
 BROKER_IP=10.200.0.1
+ADV_PID=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -86,6 +87,14 @@ cleanup_iteration() {
     sudo kill "$BPFTRACE_PID" 2>/dev/null || true
     BPFTRACE_PID=""
   fi
+
+  # Reap explicit adversary job first to avoid bash "Killed" job notifications.
+  if [ -n "${ADV_PID:-}" ]; then
+    sudo kill -9 "$ADV_PID" 2>/dev/null || true
+    wait "$ADV_PID" 2>/dev/null || true
+    ADV_PID=""
+  fi
+
   for pattern in 'adv_storm.py' 'queue_worker.py' 'socat TCP-LISTEN:6379'; do
     local pids
     pids=$(pgrep -f "$pattern" || true)
@@ -125,6 +134,9 @@ for mode in "${MODES[@]}"; do
       # start adversary (host namespace) if r>0
       if [ "$r" -gt 0 ]; then
         nohup python3 "$SCRIPT_DIR/adv_storm.py" --broker-ip "$BROKER_IP" --rate "$r" --duration "$DURATION" --queue-name tenant_queue_v1 > "$outdir/adv_storm.log" 2>&1 &
+        ADV_PID=$!
+      else
+        ADV_PID=""
       fi
 
       # wait for sweep duration
