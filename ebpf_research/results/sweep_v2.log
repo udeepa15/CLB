@@ -1,58 +1,115 @@
-Sweep modes:sidecar tenants:1 rates:0 10000 20000 30000 40000 duration:15s seed:100000
+Sweep modes:sidecar sidecarless tenants:1 rates:0 10000 20000 30000 40000 duration:15s seed:100000
 
-[###---------------------] 1/7 Starting broker
+[##----------------------] 1/12 Starting broker
 Starting redis-server bound to 10.200.0.1:6379
 Started redis (pidfile: /home/udeepa/CLB/ebpf_research/results/redis_broker_6379.pid)
 
-[######------------------] 2/7 Running mode=sidecar tenants=1 attacker_rate=0
-Output directory: /home/udeepa/CLB/ebpf_research/results/msidecar_t1_r0_1779646331
-Resetting Redis queues
-Seeding 100000 items across 1 queues (100000 each + 0 extra).
-Seeded 100000 items into tenant_queue_v1 (elapsed 1.97s)
-Starting bpftrace to capture Redis latencies
-Deploying 1 tenant namespaces (duration 15s) mode=sidecar
-Deployed tenants. Logs: /home/udeepa/CLB/ebpf_research/results/msidecar_t1_r0_1779646331/
-Completed sweep msidecar_t1_r0_1779646331
-
-[##########--------------] 3/7 Running mode=sidecar tenants=1 attacker_rate=10000
-Output directory: /home/udeepa/CLB/ebpf_research/results/msidecar_t1_r10000_1779646350
+[####--------------------] 2/12 Running mode=sidecar tenants=1 attacker_rate=0
+Output directory: /home/udeepa/CLB/ebpf_research/results/msidecar_t1_r0_1779646707
 Resetting Redis queues
 Seeding 100000 items across 1 queues (100000 each + 0 extra).
 Seeded 100000 items into tenant_queue_v1 (elapsed 1.92s)
 Starting bpftrace to capture Redis latencies
 Deploying 1 tenant namespaces (duration 15s) mode=sidecar
-Deployed tenants. Logs: /home/udeepa/CLB/ebpf_research/results/msidecar_t1_r10000_1779646350/
-Completed sweep msidecar_t1_r10000_1779646350
+Deployed tenants. Logs: /home/udeepa/CLB/ebpf_research/results/msidecar_t1_r0_1779646707/
+Completed sweep msidecar_t1_r0_1779646707
 
-[#############-----------] 4/7 Running mode=sidecar tenants=1 attacker_rate=20000
-Output directory: /home/udeepa/CLB/ebpf_research/results/msidecar_t1_r20000_1779646368
+[######------------------] 3/12 Running mode=sidecar tenants=1 attacker_rate=10000
+Output directory: /home/udeepa/CLB/ebpf_research/results/msidecar_t1_r10000_1779646725
+Resetting Redis queues
+Seeding 100000 items across 1 queues (100000 each + 0 extra).
+Seeded 100000 items into tenant_queue_v1 (elapsed 1.96s)
+Starting bpftrace to capture Redis latencies
+Deploying 1 tenant namespaces (duration 15s) mode=sidecar
+Deployed tenants. Logs: /home/udeepa/CLB/ebpf_research/results/msidecar_t1_r10000_1779646725/
+Completed sweep msidecar_t1_r10000_1779646725
+
+[########----------------] 4/12 Running mode=sidecar tenants=1 attacker_rate=20000
+Output directory: /home/udeepa/CLB/ebpf_research/results/msidecar_t1_r20000_1779646744
+Resetting Redis queues
+Seeding 100000 items across 1 queues (100000 each + 0 extra).
+Seeded 100000 items into tenant_queue_v1 (elapsed 1.94s)
+Starting bpftrace to capture Redis latencies
+Deploying 1 tenant namespaces (duration 15s) mode=sidecar
+Deployed tenants. Logs: /home/udeepa/CLB/ebpf_research/results/msidecar_t1_r20000_1779646744/
+/home/udeepa/CLB/scripts/sweep_queue_matrix.sh: line 85: 480411 Killed                  nohup python3 "$SCRIPT_DIR/adv_storm.py" --broker-ip "$BROKER_IP" --rate "$r" --duration "$DURATION" --queue-name tenant_queue_v1 > "$outdir/adv_storm.log" 2>&1
+Completed sweep msidecar_t1_r20000_1779646744
+
+[##########--------------] 5/12 Running mode=sidecar tenants=1 attacker_rate=30000
+Output directory: /home/udeepa/CLB/ebpf_research/results/msidecar_t1_r30000_1779646762
 Resetting Redis queues
 Seeding 100000 items across 1 queues (100000 each + 0 extra).
 Seeded 100000 items into tenant_queue_v1 (elapsed 1.95s)
 Starting bpftrace to capture Redis latencies
 Deploying 1 tenant namespaces (duration 15s) mode=sidecar
-Deployed tenants. Logs: /home/udeepa/CLB/ebpf_research/results/msidecar_t1_r20000_1779646368/
-Completed sweep msidecar_t1_r20000_1779646368
+Deployed tenants. Logs: /home/udeepa/CLB/ebpf_research/results/msidecar_t1_r30000_1779646762/
+Completed sweep msidecar_t1_r30000_1779646762
 
-[#################-------] 5/7 Running mode=sidecar tenants=1 attacker_rate=30000
-Output directory: /home/udeepa/CLB/ebpf_research/results/msidecar_t1_r30000_1779646386
+[############------------] 6/12 Running mode=sidecar tenants=1 attacker_rate=40000
+Output directory: /home/udeepa/CLB/ebpf_research/results/msidecar_t1_r40000_1779646780
 Resetting Redis queues
 Seeding 100000 items across 1 queues (100000 each + 0 extra).
-Seeded 100000 items into tenant_queue_v1 (elapsed 1.95s)
+Seeded 100000 items into tenant_queue_v1 (elapsed 1.96s)
 Starting bpftrace to capture Redis latencies
 Deploying 1 tenant namespaces (duration 15s) mode=sidecar
-Deployed tenants. Logs: /home/udeepa/CLB/ebpf_research/results/msidecar_t1_r30000_1779646386/
-Completed sweep msidecar_t1_r30000_1779646386
+Deployed tenants. Logs: /home/udeepa/CLB/ebpf_research/results/msidecar_t1_r40000_1779646780/
+/home/udeepa/CLB/scripts/sweep_queue_matrix.sh: line 85: 480568 Killed                  nohup python3 "$SCRIPT_DIR/adv_storm.py" --broker-ip "$BROKER_IP" --rate "$r" --duration "$DURATION" --queue-name tenant_queue_v1 > "$outdir/adv_storm.log" 2>&1
+Completed sweep msidecar_t1_r40000_1779646780
 
-[####################----] 6/7 Running mode=sidecar tenants=1 attacker_rate=40000
-Output directory: /home/udeepa/CLB/ebpf_research/results/msidecar_t1_r40000_1779646405
+[##############----------] 7/12 Running mode=sidecarless tenants=1 attacker_rate=0
+Output directory: /home/udeepa/CLB/ebpf_research/results/msidecarless_t1_r0_1779646799
 Resetting Redis queues
 Seeding 100000 items across 1 queues (100000 each + 0 extra).
-Seeded 100000 items into tenant_queue_v1 (elapsed 1.97s)
+Seeded 100000 items into tenant_queue_v1 (elapsed 1.89s)
 Starting bpftrace to capture Redis latencies
-Deploying 1 tenant namespaces (duration 15s) mode=sidecar
-Deployed tenants. Logs: /home/udeepa/CLB/ebpf_research/results/msidecar_t1_r40000_1779646405/
-Completed sweep msidecar_t1_r40000_1779646405
+Deploying 1 tenant namespaces (duration 15s) mode=sidecarless
+Running in sidecarless mode (direct worker -> broker connections).
+Deployed tenants. Logs: /home/udeepa/CLB/ebpf_research/results/msidecarless_t1_r0_1779646799/
+Completed sweep msidecarless_t1_r0_1779646799
 
-[########################] 7/7 Stopping broker
-Stopping redis PID 479551
+[################--------] 8/12 Running mode=sidecarless tenants=1 attacker_rate=10000
+Output directory: /home/udeepa/CLB/ebpf_research/results/msidecarless_t1_r10000_1779646817
+Resetting Redis queues
+Seeding 100000 items across 1 queues (100000 each + 0 extra).
+Seeded 100000 items into tenant_queue_v1 (elapsed 1.93s)
+Starting bpftrace to capture Redis latencies
+Deploying 1 tenant namespaces (duration 15s) mode=sidecarless
+Running in sidecarless mode (direct worker -> broker connections).
+Deployed tenants. Logs: /home/udeepa/CLB/ebpf_research/results/msidecarless_t1_r10000_1779646817/
+Completed sweep msidecarless_t1_r10000_1779646817
+
+[##################------] 9/12 Running mode=sidecarless tenants=1 attacker_rate=20000
+Output directory: /home/udeepa/CLB/ebpf_research/results/msidecarless_t1_r20000_1779646835
+Resetting Redis queues
+Seeding 100000 items across 1 queues (100000 each + 0 extra).
+Seeded 100000 items into tenant_queue_v1 (elapsed 1.88s)
+Starting bpftrace to capture Redis latencies
+Deploying 1 tenant namespaces (duration 15s) mode=sidecarless
+Running in sidecarless mode (direct worker -> broker connections).
+Deployed tenants. Logs: /home/udeepa/CLB/ebpf_research/results/msidecarless_t1_r20000_1779646835/
+Completed sweep msidecarless_t1_r20000_1779646835
+
+[####################----] 10/12 Running mode=sidecarless tenants=1 attacker_rate=30000
+Output directory: /home/udeepa/CLB/ebpf_research/results/msidecarless_t1_r30000_1779646854
+Resetting Redis queues
+Seeding 100000 items across 1 queues (100000 each + 0 extra).
+Seeded 100000 items into tenant_queue_v1 (elapsed 1.94s)
+Starting bpftrace to capture Redis latencies
+Deploying 1 tenant namespaces (duration 15s) mode=sidecarless
+Running in sidecarless mode (direct worker -> broker connections).
+Deployed tenants. Logs: /home/udeepa/CLB/ebpf_research/results/msidecarless_t1_r30000_1779646854/
+Completed sweep msidecarless_t1_r30000_1779646854
+
+[######################--] 11/12 Running mode=sidecarless tenants=1 attacker_rate=40000
+Output directory: /home/udeepa/CLB/ebpf_research/results/msidecarless_t1_r40000_1779646872
+Resetting Redis queues
+Seeding 100000 items across 1 queues (100000 each + 0 extra).
+Seeded 100000 items into tenant_queue_v1 (elapsed 1.94s)
+Starting bpftrace to capture Redis latencies
+Deploying 1 tenant namespaces (duration 15s) mode=sidecarless
+Running in sidecarless mode (direct worker -> broker connections).
+Deployed tenants. Logs: /home/udeepa/CLB/ebpf_research/results/msidecarless_t1_r40000_1779646872/
+Completed sweep msidecarless_t1_r40000_1779646872
+
+[########################] 12/12 Stopping broker
+Stopping redis PID 480157
