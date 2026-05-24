@@ -40,20 +40,32 @@ echo ""
 
 count_csv_items() {
   local input="$1"
+  local count=0
   local IFS=","
-  read -r -a items <<< "$input"
-  echo "${#items[@]}"
+  for item in $input; do
+    item="${item//[[:space:]]/}"
+    if [ -n "$item" ]; then
+      count=$((count + 1))
+    fi
+  done
+  echo "$count"
 }
 
 TOTAL_MODES=$(count_csv_items "$MODES")
 TOTAL_TENANTS=$(count_csv_items "$TENANTS")
 TOTAL_RATES=$(count_csv_items "$RATES")
+if ! [[ "$TOTAL_MODES" =~ ^[0-9]+$ ]]; then TOTAL_MODES=0; fi
+if ! [[ "$TOTAL_TENANTS" =~ ^[0-9]+$ ]]; then TOTAL_TENANTS=0; fi
+if ! [[ "$TOTAL_RATES" =~ ^[0-9]+$ ]]; then TOTAL_RATES=0; fi
 TOTAL_STEPS=$((TOTAL_MODES * TOTAL_TENANTS * TOTAL_RATES))
 
 render_progress_bar() {
   local done="$1"
   local total="$2"
   local width=30
+  if ! [[ "$done" =~ ^[0-9]+$ ]] || ! [[ "$total" =~ ^[0-9]+$ ]]; then
+    return
+  fi
   if [ "$total" -le 0 ]; then
     return
   fi
