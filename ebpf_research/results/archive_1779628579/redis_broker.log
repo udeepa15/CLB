@@ -1,0 +1,5 @@
+473511:C 24 May 2026 18:21:22.313 # oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
+473511:C 24 May 2026 18:21:22.313 # Redis version=6.0.16, bits=64, commit=00000000, modified=0, pid=473511, just started
+473511:C 24 May 2026 18:21:22.313 # Configuration loaded
+473511:M 24 May 2026 18:21:22.315 * Increased maximum number of open files to 10032 (it was originally set to 1024).
+473511:M 24 May 2026 18:21:22.315 # Could not create server TCP listening socket 10.200.0.1:6379: bind: Address already in use
