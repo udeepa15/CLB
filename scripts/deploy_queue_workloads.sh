@@ -45,7 +45,7 @@ if [ "$MODE" = "sidecarless_ebpf" ]; then
   fi
 
   SOCKOPS_SRC="$REPO_ROOT/bpf/bpf_sockops.c"
-  SOCKOPS_OBJ="$REPO_ROOT/bpf/bpf_sockops.o"
+  SOCKOPS_OBJ="$(mktemp /tmp/redis_sockops.XXXXXX.o)"
 
   clang -O2 -g -target bpf -c "$SOCKOPS_SRC" -o "$SOCKOPS_OBJ"
 
@@ -58,6 +58,7 @@ if [ "$MODE" = "sidecarless_ebpf" ]; then
   sudo bpftool prog loadall "$SOCKOPS_OBJ" /sys/fs/bpf/redis_sockops
   sudo bpftool cgroup attach /sys/fs/cgroup sock_ops pinned /sys/fs/bpf/redis_sockops/bpf_sockmap_ctrl
   sudo bpftool prog attach pinned /sys/fs/bpf/redis_sockops/bpf_redis_redirect msg_verdict pinned /sys/fs/bpf/redis_sockops/redis_sock_map
+  rm -f "$SOCKOPS_OBJ"
 fi
 
 WORKER_BROKER_IP="$BROKER_IP"
