@@ -44,8 +44,35 @@ done
 
 echo "Sweep modes:${MODES[*]} tenants:${TENANTS[*]} rates:${ATTACKER_RATES[*]} duration:${DURATION}s seed:${SEED_ITEMS}"
 
+TOTAL_STEPS=$((1 + ${#MODES[@]} * ${#TENANTS[@]} * ${#ATTACKER_RATES[@]} + 1))
+CURRENT_STEP=0
+
+render_progress() {
+  local current="$1"
+  local total="$2"
+  local label="$3"
+  local width=24
+  local filled=$(( current * width / total ))
+  local bar=""
+  local i
+
+  for ((i = 0; i < filled; i++)); do
+    bar+="#"
+  done
+  for ((i = filled; i < width; i++)); do
+    bar+="-"
+  done
+
+  printf '\n[%s] %d/%d %s\n' "$bar" "$current" "$total" "$label"
+}
+
+advance_progress() {
+  CURRENT_STEP=$((CURRENT_STEP + 1))
+  render_progress "$CURRENT_STEP" "$TOTAL_STEPS" "$1"
+}
+
 # ensure broker
-echo "Starting broker"
+advance_progress "Starting broker"
 sudo bash "$SCRIPT_DIR/manage_broker.sh" start
 
 # verify redis-cli is available
@@ -59,12 +86,13 @@ cleanup_iteration() {
     sudo kill "$BPFTRACE_PID" 2>/dev/null || true
     BPFTRACE_PID=""
   fi
-  sudo pkill -9 -f "adv_storm.py" 2>/dev/null || true
-  sudo pkill -9 -f "queue_worker.py" 2>/dev/null || true
-  sudo pkill -9 -f "socat TCP-LISTEN:6379" 2>/dev/null || true
-  
-  # ADD THIS LINE TO PREVENT DATA OVERWRITE BLEEDING
-  sudo rm -f "$RESULTS"/worker_*.log "$RESULTS"/socat_*.log 2>/dev/null || true
+  for pattern in 'adv_storm.py' 'queue_worker.py' 'socat TCP-LISTEN:6379'; do
+    local pids
+    pids=$(pgrep -f "$pattern" || true)
+    if [ -n "$pids" ]; then
+      sudo kill -9 $pids 2>/dev/null || true
+    fi
+  done
 }
 
 trap cleanup_iteration EXIT
@@ -72,10 +100,11 @@ trap cleanup_iteration EXIT
 for mode in "${MODES[@]}"; do
   for t in "${TENANTS[@]}"; do
     for r in "${ATTACKER_RATES[@]}"; do
+      advance_progress "Running mode=$mode tenants=$t attacker_rate=$r"
       stamp="m${mode}_t${t}_r${r}_$(date +%s)"
       outdir="$RESULTS/$stamp"
       mkdir -p "$outdir"
-      echo "Running sweep: mode=$mode tenants=$t attacker_rate=$r -> $outdir"
+      echo "Output directory: $outdir"
 
       echo "Resetting Redis queues"
       redis-cli -h "$BROKER_IP" FLUSHALL >/dev/null
@@ -112,5 +141,5 @@ for mode in "${MODES[@]}"; do
   done
 done
 
-echo "Stopping broker"
+advance_progress "Stopping broker"
 sudo bash "$SCRIPT_DIR/manage_broker.sh" stop
