@@ -11,7 +11,7 @@ struct {
     __uint(type, BPF_MAP_TYPE_SOCKMAP);
     __uint(max_entries, 2);
     __type(key, __u32);
-    __type(value, __u64);
+    __type(value, __u32);
     __uint(pinning, LIBBPF_PIN_BY_NAME);
 } redis_sock_map SEC(".maps");
 
