@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
-# deploy_queue_workloads.sh - create netns tenants and run queue workers in sidecar or eBPF mode
-# Usage: deploy_queue_workloads.sh --num-tenants 3 --duration 60 --mode sidecar|sidecarless_ebpf
+# deploy_queue_workloads.sh - create netns tenants and run queue workers in two modes
+# Usage: deploy_queue_workloads.sh --num-tenants 3 --duration 60 --mode sidecar|sidecarless
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -11,7 +11,7 @@ mkdir -p "$RESULTS"
 
 NUM_TENANTS=3
 DURATION=60
-MODE="sidecarless_ebpf"
+MODE="sidecarless"
 BROKER_IP=10.200.0.1
 
 while [[ $# -gt 0 ]]; do
@@ -19,7 +19,6 @@ while [[ $# -gt 0 ]]; do
     --num-tenants) NUM_TENANTS="$2"; shift 2;;
     --duration) DURATION="$2"; shift 2;;
     --mode) MODE="$2"; shift 2;;
-    --sidecar) MODE="sidecar"; shift 1;;
     --broker-ip) BROKER_IP="$2"; shift 2;;
     *) echo "Unknown arg: $1"; exit 1;;
   esac
@@ -27,39 +26,18 @@ done
 
 echo "Deploying $NUM_TENANTS tenant namespaces (duration ${DURATION}s) mode=${MODE}"
 
+# Validate mode and required tools
 if [ "$MODE" = "sidecar" ]; then
   if ! command -v socat >/dev/null 2>&1; then
     echo "socat is required for sidecar mode" >&2
     exit 1
   fi
-fi
-
-if [ "$MODE" = "sidecarless_ebpf" ]; then
-  if ! command -v clang >/dev/null 2>&1; then
-    echo "clang is required to compile bpf_sockops.c" >&2
-    exit 1
-  fi
-  if ! command -v bpftool >/dev/null 2>&1; then
-    echo "bpftool is required to load sockmap programs" >&2
-    exit 1
-  fi
-
-  SOCKOPS_SRC="$REPO_ROOT/bpf/bpf_sockops.c"
-  SOCKOPS_OBJ="$(mktemp /tmp/redis_sockops.XXXXXX.o)"
-
-  clang -O2 -g -target bpf -c "$SOCKOPS_SRC" -o "$SOCKOPS_OBJ"
-
-  if ! mountpoint -q /sys/fs/cgroup; then
-    sudo mount -t cgroup2 none /sys/fs/cgroup || true
-  fi
-
-  sudo rm -rf /sys/fs/bpf/redis_sockops || true
-  sudo rm -f /sys/fs/bpf/redis_sock_map || true
-  sudo mkdir -p /sys/fs/bpf/redis_sockops
-  sudo bpftool prog loadall "$SOCKOPS_OBJ" /sys/fs/bpf/redis_sockops
-  sudo bpftool cgroup attach /sys/fs/cgroup sock_ops pinned /sys/fs/bpf/redis_sockops/bpf_sockmap_ctrl
-  sudo bpftool prog attach pinned /sys/fs/bpf/redis_sockops/bpf_redis_redirect msg_verdict pinned /sys/fs/bpf/redis_sockops/redis_sock_map
-  rm -f "$SOCKOPS_OBJ"
+elif [ "$MODE" = "sidecarless" ]; then
+  # sidecarless is plain direct TCP to the broker; no eBPF or sockmap used
+  echo "Running in sidecarless mode (direct worker -> broker connections)."
+else
+  echo "Unknown mode: $MODE" >&2
+  exit 1
 fi
 
 WORKER_BROKER_IP="$BROKER_IP"

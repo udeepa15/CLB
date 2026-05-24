@@ -24,11 +24,12 @@ for d in "$RESULTS"/m*_t*_r_* "$RESULTS"/t*_r_*; do
 done
 shopt -u nullglob
 
-MODES=(sidecar sidecarless_ebpf)
+MODES=(sidecar sidecarless)
 TENANTS=(1 3 5)
 ATTACKER_RATES=(0 10000 20000 30000 40000)
 DURATION=60
 SEED_ITEMS=1000000
+BROKER_IP=10.200.0.1
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -58,14 +59,12 @@ cleanup_iteration() {
     sudo kill "$BPFTRACE_PID" 2>/dev/null || true
     BPFTRACE_PID=""
   fi
-  sudo pkill -f "adv_storm.py" 2>/dev/null || true
-  sudo pkill -f "queue_worker.py" 2>/dev/null || true
-  sudo pkill -f "socat TCP-LISTEN:6379" 2>/dev/null || true
-  if command -v bpftool >/dev/null 2>&1; then
-    sudo bpftool prog detach pinned /sys/fs/bpf/redis_sockops/bpf_redis_redirect msg_verdict pinned /sys/fs/bpf/redis_sockops/redis_sock_map 2>/dev/null || true
-    sudo bpftool cgroup detach /sys/fs/cgroup sock_ops pinned /sys/fs/bpf/redis_sockops/bpf_sockmap_ctrl 2>/dev/null || true
-    sudo rm -rf /sys/fs/bpf/redis_sockops 2>/dev/null || true
-  fi
+  sudo pkill -9 -f "adv_storm.py" 2>/dev/null || true
+  sudo pkill -9 -f "queue_worker.py" 2>/dev/null || true
+  sudo pkill -9 -f "socat TCP-LISTEN:6379" 2>/dev/null || true
+  
+  # ADD THIS LINE TO PREVENT DATA OVERWRITE BLEEDING
+  sudo rm -f "$RESULTS"/worker_*.log "$RESULTS"/socat_*.log 2>/dev/null || true
 }
 
 trap cleanup_iteration EXIT
@@ -79,8 +78,8 @@ for mode in "${MODES[@]}"; do
       echo "Running sweep: mode=$mode tenants=$t attacker_rate=$r -> $outdir"
 
       echo "Resetting Redis queues"
-      redis-cli -h 10.200.0.1 FLUSHALL >/dev/null
-      python3 "$SCRIPT_DIR/seed_queues.py" --broker-ip 10.200.0.1 --num-queues "$t" --total-items "$SEED_ITEMS"
+      redis-cli -h "$BROKER_IP" FLUSHALL >/dev/null
+      python3 "$SCRIPT_DIR/seed_queues.py" --broker-ip "$BROKER_IP" --num-queues "$t" --total-items "$SEED_ITEMS"
 
       # start bpftrace if available (background capture of Redis dict operations)
       BPFTRACE_PID=""
@@ -92,11 +91,11 @@ for mode in "${MODES[@]}"; do
       fi
 
       # deploy tenants and start workers
-      bash "$SCRIPT_DIR/deploy_queue_workloads.sh" --mode "$mode" --num-tenants "$t" --duration "$DURATION" --broker-ip 10.200.0.1
+      bash "$SCRIPT_DIR/deploy_queue_workloads.sh" --mode "$mode" --num-tenants "$t" --duration "$DURATION" --broker-ip "$BROKER_IP"
 
       # start adversary (host namespace) if r>0
       if [ "$r" -gt 0 ]; then
-        nohup python3 "$SCRIPT_DIR/adv_storm.py" --broker-ip 10.200.0.1 --rate "$r" --duration "$DURATION" --queue-name tenant_queue_v1 > "$outdir/adv_storm.log" 2>&1 &
+        nohup python3 "$SCRIPT_DIR/adv_storm.py" --broker-ip "$BROKER_IP" --rate "$r" --duration "$DURATION" --queue-name tenant_queue_v1 > "$outdir/adv_storm.log" 2>&1 &
       fi
 
       # wait for sweep duration

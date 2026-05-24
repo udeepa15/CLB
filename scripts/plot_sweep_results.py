@@ -36,7 +36,9 @@ def main():
     if "mode" not in df.columns:
         df["mode"] = "unknown"
 
-    if df["mode"].isin(["sidecar", "sidecarless_ebpf"]).any():
+    # Normalize legacy mode names and drop unknowns if real modes present
+    df["mode"] = df["mode"].replace({"sidecarless_ebpf": "sidecarless"})
+    if df["mode"].isin(["sidecar", "sidecarless"]).any():
         df = df[df["mode"] != "unknown"]
 
     # Group by mode, tenant_count, attacker_rate
@@ -48,8 +50,9 @@ def main():
     tenant_values = sorted(grouped["tenant_count"].unique())
     colors = sns.color_palette("tab10", n_colors=len(tenant_values))
     color_map = {t: colors[i] for i, t in enumerate(tenant_values)}
+    # sidecarless: solid, sidecar: dashed
     line_styles = {
-        "sidecarless_ebpf": "-",
+        "sidecarless": "-",
         "sidecar": "--",
         "unknown": ":"
     }
@@ -77,6 +80,24 @@ def main():
                     alpha=0.15,
                     color=color_map[tenant_count]
                 )
+    # Annotate crossover points where sidecar throughput exceeds sidecarless
+    modes_present = grouped["mode"].unique()
+    if set(["sidecar", "sidecarless"]).issubset(set(modes_present)):
+        for tenant_count in tenant_values:
+            sc = grouped[(grouped["tenant_count"] == tenant_count) & (grouped["mode"] == "sidecar")][["attacker_rate", "mean"]].set_index("attacker_rate").squeeze()
+            sl = grouped[(grouped["tenant_count"] == tenant_count) & (grouped["mode"] == "sidecarless")][["attacker_rate", "mean"]].set_index("attacker_rate").squeeze()
+            if sc.empty or sl.empty:
+                continue
+            # align by attacker_rate
+            merged = pd.concat([sc, sl], axis=1, join="inner")
+            merged.columns = ["sidecar", "sidecarless"]
+            diff = merged["sidecar"] - merged["sidecarless"]
+            cross = diff[diff > 0]
+            if not cross.empty:
+                r_cross = cross.index[0]
+                peak = max(merged.loc[r_cross].max(), merged.max().max())
+                ax.axvline(x=r_cross, color=color_map[tenant_count], linestyle=":", alpha=0.6)
+                ax.text(r_cross, peak * 0.95, f"crossover t={tenant_count} r={r_cross}", rotation=90, va="top", ha="right", fontsize=9, color=color_map[tenant_count])
     
     ax.set_xlabel("Attacker Rate (msg/sec)", fontsize=12, fontweight="bold")
     ax.set_ylabel("Throughput (msg/sec)", fontsize=12, fontweight="bold")
