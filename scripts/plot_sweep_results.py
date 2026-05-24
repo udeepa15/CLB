@@ -33,31 +33,47 @@ def main():
         print(f"CSV not found: {args.csv}", file=sys.stderr)
         sys.exit(1)
     
-    # Group by tenant_count and attacker_rate, average throughput
-    grouped = df.groupby(["tenant_count", "attacker_rate"])["throughput_mps"].agg(["mean", "std", "count"]).reset_index()
-    
+    if "mode" not in df.columns:
+        df["mode"] = "unknown"
+
+    # Group by mode, tenant_count, attacker_rate
+    grouped = df.groupby(["mode", "tenant_count", "attacker_rate"])["throughput_mps"].agg(["mean", "std", "count"]).reset_index()
+
     # Create figure
     fig, ax = plt.subplots(figsize=(12, 6))
-    
-    # Plot lines for each tenant count
-    for tenant_count in sorted(grouped["tenant_count"].unique()):
-        subset = grouped[grouped["tenant_count"] == tenant_count].sort_values("attacker_rate")
-        ax.plot(
-            subset["attacker_rate"],
-            subset["mean"],
-            marker="o",
-            label=f"Tenants={tenant_count}",
-            linewidth=2,
-            markersize=6
-        )
-        # Add error bars if std available
-        if (subset["std"] > 0).any():
-            ax.fill_between(
+
+    tenant_values = sorted(grouped["tenant_count"].unique())
+    colors = sns.color_palette("tab10", n_colors=len(tenant_values))
+    color_map = {t: colors[i] for i, t in enumerate(tenant_values)}
+    line_styles = {
+        "sidecarless_ebpf": "-",
+        "sidecar": "--",
+        "unknown": ":"
+    }
+
+    for mode in sorted(grouped["mode"].unique()):
+        for tenant_count in tenant_values:
+            subset = grouped[(grouped["tenant_count"] == tenant_count) & (grouped["mode"] == mode)].sort_values("attacker_rate")
+            if subset.empty:
+                continue
+            ax.plot(
                 subset["attacker_rate"],
-                subset["mean"] - subset["std"],
-                subset["mean"] + subset["std"],
-                alpha=0.2
+                subset["mean"],
+                marker="o",
+                label=f"Tenants={tenant_count} ({mode})",
+                linewidth=2,
+                markersize=6,
+                color=color_map[tenant_count],
+                linestyle=line_styles.get(mode, "-")
             )
+            if (subset["std"] > 0).any():
+                ax.fill_between(
+                    subset["attacker_rate"],
+                    subset["mean"] - subset["std"],
+                    subset["mean"] + subset["std"],
+                    alpha=0.15,
+                    color=color_map[tenant_count]
+                )
     
     ax.set_xlabel("Attacker Rate (msg/sec)", fontsize=12, fontweight="bold")
     ax.set_ylabel("Throughput (msg/sec)", fontsize=12, fontweight="bold")
@@ -73,7 +89,7 @@ def main():
     # Print summary statistics
     print("\nSummary Statistics:")
     print("=" * 70)
-    summary = df.groupby("tenant_count").agg({
+    summary = df.groupby(["mode", "tenant_count"]).agg({
         "throughput_mps": ["min", "max", "mean"],
         "errors": ["sum", "max"],
         "completed": ["sum", "mean"]

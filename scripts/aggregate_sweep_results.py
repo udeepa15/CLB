@@ -35,11 +35,16 @@ def parse_result_line(line: str) -> dict | None:
     }
 
 
-def extract_sweep_params(dirpath: str) -> tuple[int, int, str] | None:
-    """Extract tenants and rate from sweep dir name like t<tenants>_r<rate>_<timestamp>."""
-    match = re.search(r"t(\d+)_r(\d+)_(\d+)$", os.path.basename(dirpath))
+def extract_sweep_params(dirpath: str) -> tuple[str, int, int, str] | None:
+    """Extract mode, tenants, and rate from sweep dir name."""
+    base = os.path.basename(dirpath)
+    match = re.search(r"m([^_]+)_t(\d+)_r(\d+)_(\d+)$", base)
     if match:
-        return int(match.group(1)), int(match.group(2)), match.group(3)
+        return match.group(1), int(match.group(2)), int(match.group(3)), match.group(4)
+
+    match = re.search(r"t(\d+)_r(\d+)_(\d+)$", base)
+    if match:
+        return "unknown", int(match.group(1)), int(match.group(2)), match.group(3)
     return None
 
 
@@ -52,7 +57,7 @@ def main():
         sweep_params = extract_sweep_params(dirpath)
         if not sweep_params:
             continue
-        tenants, rate, timestamp = sweep_params
+        mode, tenants, rate, timestamp = sweep_params
 
         # parse worker logs in this directory
         for fname in filenames:
@@ -65,6 +70,7 @@ def main():
                             if result:
                                 rows.append({
                                     "timestamp": timestamp,
+                                    "mode": mode,
                                     "tenant_count": tenants,
                                     "attacker_rate": rate,
                                     "worker": fname.replace("worker_", "").replace(".log", ""),
@@ -82,13 +88,13 @@ def main():
 
     # write CSV
     fieldnames = [
-        "timestamp", "tenant_count", "attacker_rate", "worker",
+        "timestamp", "mode", "tenant_count", "attacker_rate", "worker",
         "completed", "errors", "duration_sec", "throughput_mps"
     ]
     with open(args.output_csv, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
-        for row in sorted(rows, key=lambda r: (r["tenant_count"], r["attacker_rate"])):
+        for row in sorted(rows, key=lambda r: (r["mode"], r["tenant_count"], r["attacker_rate"])):
             writer.writerow(row)
 
     print(f"Wrote {len(rows)} rows to {args.output_csv}")

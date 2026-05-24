@@ -9,6 +9,7 @@ ROOT="$REPO_ROOT/ebpf_research"
 RESULTS="$ROOT/results"
 
 # Defaults
+MODES="sidecar,sidecarless_ebpf"
 TENANTS="1,3,5"
 RATES="0,5000,10000,15000,20000,25000,30000,35000,40000"
 DURATION=60
@@ -16,6 +17,7 @@ SEED=1000000
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --modes) MODES="$2"; shift 2;;
     --tenants) TENANTS="$2"; shift 2;;
     --rates) RATES="$2"; shift 2;;
     --duration) DURATION="$2"; shift 2;;
@@ -29,6 +31,7 @@ echo "║           REDIS QUEUE TESTBED - FULL SWEEP RUNNER             ║"
 echo "╚════════════════════════════════════════════════════════════════╝"
 echo ""
 echo "Configuration:"
+echo "  Modes:         $MODES"
 echo "  Tenants:       $TENANTS"
 echo "  Attack rates:  $RATES"
 echo "  Duration/run:  ${DURATION}s"
@@ -51,6 +54,7 @@ SWEEP_LOG="$RESULTS/sweep_v2.log"
 SWEEP_START=$(date +%s)
 
 nohup bash "$SCRIPT_DIR/sweep_queue_matrix.sh" \
+  --modes "$MODES" \
   --tenants "$TENANTS" \
   --attacker_rates "$RATES" \
   --duration "$DURATION" \
