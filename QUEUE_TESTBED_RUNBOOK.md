@@ -67,8 +67,28 @@ RESULT: completed=<integer> errors=<integer> duration_sec=<float> throughput_mps
 
 ## Full sweep
 
-Example matrix sweep:
+### Quick start (single command):
+```bash
+cd ~/CLB
+bash scripts/run_full_sweep.sh
+```
 
+This will automatically:
+- Clean up old namespaces and processes
+- Run the full sweep (1/3/5 tenants × 0-40k attack rates × 60s)
+- Show live progress in real-time
+- Aggregate results into a CSV when complete
+
+### Custom sweep parameters:
+```bash
+bash scripts/run_full_sweep.sh \
+  --tenants "1,3,5" \
+  --rates "0,5000,10000,15000,20000" \
+  --duration 60 \
+  --seed 1000000
+```
+
+### Manual step-by-step (if you need more control):
 ```bash
 cd ~/CLB
 nohup bash scripts/sweep_queue_matrix.sh --tenants "1,3,5" --attacker_rates "0,10000,20000" --duration 60 --seed 1000000 > ebpf_research/results/sweep.log 2>&1 &
@@ -101,6 +121,21 @@ This produces a CSV with columns:
 - `errors`: connection errors
 - `duration_sec`: duration of worker run
 - `throughput_mps`: messages per second (completed / duration_sec)
+
+## Plotting results
+
+After aggregation, visualize throughput degradation across attack rates:
+
+```bash
+cd ~/CLB
+pip3 install pandas matplotlib seaborn  # (one-time)
+python3 scripts/plot_sweep_results.py --csv sweep_results.csv --output plot_sweep.png
+```
+
+This produces a publication-ready plot showing:
+- Mean throughput vs attacker rate (per tenant count)
+- Error bars from repeated runs
+- Summary statistics table
 
 ## Where to look for outputs
 
