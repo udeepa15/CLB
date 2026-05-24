@@ -2,8 +2,11 @@
 """
 Aggregate worker RESULT lines from sweep logs into a CSV.
 
-This version reads the current sweep layout:
+This reads both the newer mode-tagged layout:
 ebpf_research/results/msidecar*_t*_r*_<timestamp>/worker_*.log
+
+and the older legacy layout:
+ebpf_research/results/t*_r*_<timestamp>/worker_*.log
 """
 from __future__ import annotations
 
@@ -19,7 +22,12 @@ REPO_ROOT = SCRIPT_DIR.parent
 RESULT_DIR = REPO_ROOT / "ebpf_research" / "results"
 OUT_CSV = RESULT_DIR / "sweep_results_v2.csv"
 
-SWEEP_DIR_RE = re.compile(r"m(?P<mode>sidecar(?:less)?)_t(?P<tenants>\d+)_r(?P<rate>\d+)_(?P<ts>\d+)$")
+NEW_SWEEP_DIR_RE = re.compile(
+    r"m(?P<mode>.+?)_t(?P<tenants>\d+)_r(?P<rate>\d+)_(?P<ts>\d+)$"
+)
+LEGACY_SWEEP_DIR_RE = re.compile(
+    r"t(?P<tenants>\d+)_r(?P<rate>\d+)_(?P<ts>\d+)$"
+)
 RESULT_RE = re.compile(
     r"RESULT:\s+completed=(?P<completed>\d+)\s+errors=(?P<errors>\d+)\s+duration_sec=(?P<duration>[\d.]+)\s+throughput_mps=(?P<throughput>[\d.]+)"
 )
@@ -45,11 +53,24 @@ def parse_result_line(line: str) -> dict | None:
 
 
 def parse_sweep_dir(name: str) -> dict | None:
-    match = SWEEP_DIR_RE.match(name)
+    match = NEW_SWEEP_DIR_RE.match(name)
     if not match:
-        return None
+        match = LEGACY_SWEEP_DIR_RE.match(name)
+        if not match:
+            return None
+        return {
+            "mode": "legacy",
+            "tenant_count": int(match.group("tenants")),
+            "attacker_rate": int(match.group("rate")),
+            "timestamp": match.group("ts"),
+        }
+
+    mode = match.group("mode")
+    if mode.startswith("sidecarless"):
+        mode = "sidecarless"
+
     return {
-        "mode": match.group("mode"),
+        "mode": mode,
         "tenant_count": int(match.group("tenants")),
         "attacker_rate": int(match.group("rate")),
         "timestamp": match.group("ts"),

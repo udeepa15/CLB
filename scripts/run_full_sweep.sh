@@ -9,7 +9,7 @@ ROOT="$REPO_ROOT/ebpf_research"
 RESULTS="$ROOT/results"
 
 # Defaults
-MODES="sidecar,sidecarless_ebpf"
+MODES="sidecar,sidecarless"
 TENANTS="1,3,5"
 RATES="0,5000,10000,15000,20000,25000,30000,35000,40000"
 DURATION=60
@@ -148,12 +148,19 @@ echo ""
 # Step 4: Aggregate and show results
 echo "[4/4] Aggregating results..."
 RESULTS_CSV="$RESULTS/sweep_results_v2.csv"
+RESULTS_PNG="$RESULTS/plot_sweep.png"
 
-python3 "$SCRIPT_DIR/aggregate_sweep_results.py" \
+python3 "$SCRIPT_DIR/aggregate_results.py" \
   --results-dir "$RESULTS" \
   --output-csv "$RESULTS_CSV"
 
 echo "      ✓ Aggregated to: $RESULTS_CSV"
+echo "[4/4] Creating plot..."
+python3 "$SCRIPT_DIR/plot_sweep_results.py" \
+  --csv "$RESULTS_CSV" \
+  --output "$RESULTS_PNG"
+
+echo "      ✓ Plotted to: $RESULTS_PNG"
 echo ""
 
 # Summary
@@ -163,20 +170,24 @@ echo "╚═══════════════════════�
 echo ""
 echo "Results Summary:"
 echo "  CSV file:            $RESULTS_CSV"
-echo "  Sweep logs:          $RESULTS/t*_r*_*/worker_*.log"
-echo "  Bpftrace captures:   $RESULTS/t*_r*_*/bpftrace_redis_dict.log"
+echo "  Plot file:           $RESULTS_PNG"
+echo "  Sweep logs:          $RESULTS/m*_t*_r*_*/worker_*.log"
+echo "  Bpftrace captures:   $RESULTS/m*_t*_r*_*/bpftrace_redis_dict.log"
 echo ""
 echo "Next steps:"
 echo "  1. View CSV:"
 echo "     head -20 $RESULTS_CSV"
 echo ""
-echo "  2. View worker RESULT lines:"
-echo "     grep RESULT: $RESULTS/t*/worker_*.log"
+echo "  2. View plot:"
+echo "     xdg-open $RESULTS_PNG"
 echo ""
-echo "  3. View bpftrace Redis latencies:"
-echo "     less $RESULTS/t*/bpftrace_redis_dict.log"
+echo "  3. View worker RESULT lines:"
+echo "     grep RESULT: $RESULTS/m*/worker_*.log"
 echo ""
-echo "  4. Analyze in Python:"
+echo "  4. View bpftrace Redis latencies:"
+echo "     less $RESULTS/m*/bpftrace_redis_dict.log"
+echo ""
+echo "  5. Analyze in Python:"
 echo "     import pandas as pd"
 echo "     df = pd.read_csv('$RESULTS_CSV')"
 echo "     df.groupby('attacker_rate')['throughput_mps'].mean()"

@@ -129,7 +129,7 @@ for mode in "${MODES[@]}"; do
       fi
 
       # deploy tenants and start workers
-      bash "$SCRIPT_DIR/deploy_queue_workloads.sh" --mode "$mode" --num-tenants "$t" --duration "$DURATION" --broker-ip "$BROKER_IP"
+      bash "$SCRIPT_DIR/deploy_queue_workloads.sh" --mode "$mode" --num-tenants "$t" --duration "$DURATION" --broker-ip "$BROKER_IP" --output-dir "$outdir"
 
       # start adversary (host namespace) if r>0
       if [ "$r" -gt 0 ]; then
@@ -144,8 +144,7 @@ for mode in "${MODES[@]}"; do
 
       cleanup_iteration
 
-      # collect results: worker logs contain RESULT lines
-      cp "$ROOT/results"/worker_*.log "$outdir/" 2>/dev/null || true
+      # collect broker log after workers have been stopped
       [ -f "$ROOT/results/redis_broker.log" ] && cp "$ROOT/results/redis_broker.log" "$outdir/" || true
 
       echo "Completed sweep $stamp"

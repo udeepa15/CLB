@@ -13,6 +13,7 @@ NUM_TENANTS=3
 DURATION=60
 MODE="sidecarless"
 BROKER_IP=10.200.0.1
+OUTPUT_DIR="$RESULTS"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -20,11 +21,13 @@ while [[ $# -gt 0 ]]; do
     --duration) DURATION="$2"; shift 2;;
     --mode) MODE="$2"; shift 2;;
     --broker-ip) BROKER_IP="$2"; shift 2;;
+    --output-dir) OUTPUT_DIR="$2"; shift 2;;
     *) echo "Unknown arg: $1"; exit 1;;
   esac
 done
 
 echo "Deploying $NUM_TENANTS tenant namespaces (duration ${DURATION}s) mode=${MODE}"
+mkdir -p "$OUTPUT_DIR"
 
 # Validate mode and required tools
 if [ "$MODE" = "sidecar" ]; then
@@ -69,10 +72,10 @@ for i in $(seq 1 "$NUM_TENANTS"); do
   fi
 
   if [ "$MODE" = "sidecar" ]; then
-    sudo ip netns exec "$ns" bash -c "nohup socat TCP-LISTEN:6379,fork,reuseaddr TCP:${BROKER_IP}:6379 > $RESULTS/socat_${ns}.log 2>&1 & echo \$! > $RESULTS/socat_${ns}.pid"
+    sudo ip netns exec "$ns" bash -c "nohup socat TCP-LISTEN:6379,fork,reuseaddr TCP:${BROKER_IP}:6379 > $OUTPUT_DIR/socat_${ns}.log 2>&1 & echo \$! > $OUTPUT_DIR/socat_${ns}.pid"
   fi
 
-  sudo ip netns exec "$ns" bash -c "nohup python3 $SCRIPT_DIR/queue_worker.py --broker-ip $WORKER_BROKER_IP --queue-name tenant_queue_v${i} --duration-sec $DURATION > $RESULTS/worker_${ns}.log 2>&1 & echo \$! > $RESULTS/worker_${ns}.pid"
+  sudo ip netns exec "$ns" bash -c "nohup python3 $SCRIPT_DIR/queue_worker.py --broker-ip $WORKER_BROKER_IP --queue-name tenant_queue_v${i} --duration-sec $DURATION > $OUTPUT_DIR/worker_${ns}.log 2>&1 & echo \$! > $OUTPUT_DIR/worker_${ns}.pid"
 done
 
-echo "Deployed tenants. Logs: $RESULTS/"
+echo "Deployed tenants. Logs: $OUTPUT_DIR/"
