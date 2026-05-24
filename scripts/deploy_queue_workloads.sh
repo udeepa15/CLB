@@ -54,6 +54,7 @@ if [ "$MODE" = "sidecarless_ebpf" ]; then
   fi
 
   sudo rm -rf /sys/fs/bpf/redis_sockops || true
+  sudo rm -f /sys/fs/bpf/redis_sock_map || true
   sudo mkdir -p /sys/fs/bpf/redis_sockops
   sudo bpftool prog loadall "$SOCKOPS_OBJ" /sys/fs/bpf/redis_sockops
   sudo bpftool cgroup attach /sys/fs/cgroup sock_ops pinned /sys/fs/bpf/redis_sockops/bpf_sockmap_ctrl
