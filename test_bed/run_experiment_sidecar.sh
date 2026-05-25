@@ -38,8 +38,9 @@ done
 # Ensure results directory exists
 mkdir -p "$RESULTS_DIR"
 
-# Step 1: Clean/Detach eBPF from tc interfaces
-echo "Step 1: Detaching any existing eBPF programs..."
+# Step 1: Clean/Detach eBPF from tc interfaces and kill old proxies
+echo "Step 1: Detaching any existing eBPF programs and killing old proxies..."
+pkill -9 -f "socat TCP-LISTEN:8080" 2>/dev/null || true
 tc qdisc del dev veth-vic-br clsact 2>/dev/null || true
 tc qdisc del dev veth-att-br clsact 2>/dev/null || true
 rm -f /sys/fs/bpf/tc/globals/flow_map /sys/fs/bpf/ip/globals/flow_map 2>/dev/null || true
