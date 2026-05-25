@@ -33,8 +33,7 @@ for cmd in wget tar jq runc; do
     fi
 done
 
-echo "Cleaning up any old bundle configurations..."
-rm -rf "$VICTIM_DIR" "$ATTACKER_DIR"
+# Ensure target bundle directories exist
 mkdir -p "$VICTIM_DIR/rootfs" "$ATTACKER_DIR/rootfs"
 
 # Download alpine rootfs if not present
@@ -43,50 +42,65 @@ if [ ! -f "$ROOTFS_TAR" ]; then
     wget -qO "$ROOTFS_TAR" "$ALPINE_URL"
 fi
 
-echo "Extracting Alpine rootfs to target directories..."
-tar -xzf "$ROOTFS_TAR" -C "$VICTIM_DIR/rootfs"
-tar -xzf "$ROOTFS_TAR" -C "$ATTACKER_DIR/rootfs"
+# Extract rootfs if not already done
+if [ ! -f "$VICTIM_DIR/rootfs/etc/alpine-release" ]; then
+    echo "Extracting Alpine rootfs to Victim bundle..."
+    tar -xzf "$ROOTFS_TAR" -C "$VICTIM_DIR/rootfs"
+fi
+
+if [ ! -f "$ATTACKER_DIR/rootfs/etc/alpine-release" ]; then
+    echo "Extracting Alpine rootfs to Attacker bundle..."
+    tar -xzf "$ROOTFS_TAR" -C "$ATTACKER_DIR/rootfs"
+fi
 
 # Setup resolv.conf inside rootfs to enable package downloads
 cp /etc/resolv.conf "$VICTIM_DIR/rootfs/etc/resolv.conf"
 cp /etc/resolv.conf "$ATTACKER_DIR/rootfs/etc/resolv.conf"
 
 echo "Setting up Victim rootfs (Python HTTP server)..."
-# Mount proc/dev inside rootfs to allow apk to run without warnings
-mount -t proc proc "$VICTIM_DIR/rootfs/proc"
-mount --bind /dev "$VICTIM_DIR/rootfs/dev"
-trap 'umount "$VICTIM_DIR/rootfs/proc" 2>/dev/null || true; umount "$VICTIM_DIR/rootfs/dev" 2>/dev/null || true' EXIT
+if [ ! -f "$VICTIM_DIR/rootfs/usr/bin/python3" ]; then
+    # Mount proc/dev inside rootfs to allow apk to run without warnings
+    mount -t proc proc "$VICTIM_DIR/rootfs/proc"
+    mount --bind /dev "$VICTIM_DIR/rootfs/dev"
+    trap 'umount "$VICTIM_DIR/rootfs/proc" 2>/dev/null || true; umount "$VICTIM_DIR/rootfs/dev" 2>/dev/null || true' EXIT
 
-chroot "$VICTIM_DIR/rootfs" apk update
-chroot "$VICTIM_DIR/rootfs" apk add --no-cache python3
+    chroot "$VICTIM_DIR/rootfs" apk update
+    chroot "$VICTIM_DIR/rootfs" apk add --no-cache python3
 
-# Unmount victim mounts
-umount "$VICTIM_DIR/rootfs/proc"
-umount "$VICTIM_DIR/rootfs/dev"
-trap - EXIT
+    # Unmount victim mounts
+    umount "$VICTIM_DIR/rootfs/proc"
+    umount "$VICTIM_DIR/rootfs/dev"
+    trap - EXIT
+else
+    echo "Python3 already installed inside Victim rootfs. Skipping..."
+fi
 
 echo "Setting up Attacker rootfs (wrk2 load generator)..."
-# Mount proc/dev inside attacker rootfs
-mount -t proc proc "$ATTACKER_DIR/rootfs/proc"
-mount --bind /dev "$ATTACKER_DIR/rootfs/dev"
-trap 'umount "$ATTACKER_DIR/rootfs/proc" 2>/dev/null || true; umount "$ATTACKER_DIR/rootfs/dev" 2>/dev/null || true' EXIT
+if [ ! -f "$ATTACKER_DIR/rootfs/usr/bin/wrk2" ]; then
+    # Mount proc/dev inside attacker rootfs
+    mount -t proc proc "$ATTACKER_DIR/rootfs/proc"
+    mount --bind /dev "$ATTACKER_DIR/rootfs/dev"
+    trap 'umount "$ATTACKER_DIR/rootfs/proc" 2>/dev/null || true; umount "$ATTACKER_DIR/rootfs/dev" 2>/dev/null || true' EXIT
 
-chroot "$ATTACKER_DIR/rootfs" apk update
-chroot "$ATTACKER_DIR/rootfs" apk add --no-cache build-base git zlib-dev openssl-dev
+    chroot "$ATTACKER_DIR/rootfs" apk update
+    chroot "$ATTACKER_DIR/rootfs" apk add --no-cache build-base git zlib-dev openssl-dev
 
-echo "Cloning and building wrk2..."
-chroot "$ATTACKER_DIR/rootfs" git clone https://github.com/giltene/wrk2.git /usr/src/wrk2
-chroot "$ATTACKER_DIR/rootfs" make -C /usr/src/wrk2 -j$(nproc)
-chroot "$ATTACKER_DIR/rootfs" cp /usr/src/wrk2/wrk /usr/bin/wrk2
+    echo "Cloning and building wrk2..."
+    chroot "$ATTACKER_DIR/rootfs" git clone https://github.com/giltene/wrk2.git /usr/src/wrk2
+    chroot "$ATTACKER_DIR/rootfs" make -C /usr/src/wrk2 -j$(nproc)
+    chroot "$ATTACKER_DIR/rootfs" cp /usr/src/wrk2/wrk /usr/bin/wrk2
 
-# Clean up build dependencies to minimize rootfs size
-chroot "$ATTACKER_DIR/rootfs" apk del build-base git
-chroot "$ATTACKER_DIR/rootfs" rm -rf /usr/src/wrk2
+    # Clean up build dependencies to minimize rootfs size
+    chroot "$ATTACKER_DIR/rootfs" apk del build-base git
+    chroot "$ATTACKER_DIR/rootfs" rm -rf /usr/src/wrk2
 
-# Unmount attacker mounts
-umount "$ATTACKER_DIR/rootfs/proc"
-umount "$ATTACKER_DIR/rootfs/dev"
-trap - EXIT
+    # Unmount attacker mounts
+    umount "$ATTACKER_DIR/rootfs/proc"
+    umount "$ATTACKER_DIR/rootfs/dev"
+    trap - EXIT
+else
+    echo "wrk2 already built inside Attacker rootfs. Skipping..."
+fi
 
 echo "Generating and configuring OCI config.json for Victim..."
 cd "$VICTIM_DIR"
