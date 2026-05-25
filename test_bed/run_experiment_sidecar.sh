@@ -53,8 +53,8 @@ runc kill attacker_container KILL 2>/dev/null || true
 runc delete attacker_container 2>/dev/null || true
 
 # Start containers in background
-runc --bundle victim_bundle run -d victim_container
-runc --bundle attacker_bundle run -d attacker_container
+runc run --bundle victim_bundle -d victim_container
+runc run --bundle attacker_bundle -d attacker_container
 
 # Step 3: Configure transparent routing in ns_victim
 echo "Step 3: Configuring transparent redirect inside ns_victim..."

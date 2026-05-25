@@ -57,8 +57,8 @@ runc kill attacker_container KILL 2>/dev/null || true
 runc delete attacker_container 2>/dev/null || true
 
 # Start containers in background
-runc --bundle victim_bundle run -d victim_container
-runc --bundle attacker_bundle run -d attacker_container
+runc run --bundle victim_bundle -d victim_container
+runc run --bundle attacker_bundle -d attacker_container
 
 # Step 4: Start host dummy web server for Attacker to target
 echo "Step 4: Launching dummy server on host..."
