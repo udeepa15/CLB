@@ -96,7 +96,7 @@ runc spec
 # - Disable terminal allocations for background run
 # - Restrict container to CPU 1 via cpuset cgroups v2
 # - Force join ns_victim netns
-jq '.process.args = ["python3", "-m", "http.server", "80"] |
+jq '.process.args = ["sh", "-c", "exec python3 -m http.server 80 >/dev/null 2>&1"] |
     .process.terminal = false |
     .linux.resources.cpu.cpus = "1" |
     (.linux.namespaces[] | select(.type == "network")) |= . + {"path": "/var/run/netns/ns_victim"}' config.json > config.json.tmp
