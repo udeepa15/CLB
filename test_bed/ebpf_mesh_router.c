@@ -87,24 +87,26 @@ int mesh_router(struct __sk_buff *skb) {
     }
 
     /*
-     * Simulate Shared Map Contention:
-     * - Look up the flow statistic record in the shared hash map.
-     * - The lookup (htab_map_lookup_elem) grabs bucket spinlocks for read/write checks.
-     * - If found: Increment packet/byte counts atomically.
-     * - If not found: Insert new stats record (htab_map_update_elem) which acquires write locks,
-     *   simulating high write/lock-contention when packets flow concurrently from multiple cores.
+     * FORCE MAP WRITE CONTENTION:
+     * To simulate high-churn state synchronization overhead, we perform a lookup.
+     * Regardless of whether the element exists, we force a bpf_map_update_elem 
+     * call on every single packet. This forces the kernel to repeatedly acquire 
+     * the internal htab bucket spinlocks in write-mode, inducing measurable 
+     * microsecond-level p99 tail latency spikes under high RPS.
      */
     struct flow_stats *stats = bpf_map_lookup_elem(&flow_map, &key);
+    struct flow_stats updated_stats = {0};
+
     if (stats) {
-        __sync_fetch_and_add(&stats->packets, 1);
-        __sync_fetch_and_add(&stats->bytes, skb->len);
+        updated_stats.packets = stats->packets + 1;
+        updated_stats.bytes = stats->bytes + skb->len;
     } else {
-        struct flow_stats new_stats = {
-            .packets = 1,
-            .bytes = skb->len,
-        };
-        bpf_map_update_elem(&flow_map, &key, &new_stats, BPF_ANY);
+        updated_stats.packets = 1;
+        updated_stats.bytes = skb->len;
     }
+
+    // Force write-lock acquisition
+    bpf_map_update_elem(&flow_map, &key, &updated_stats, BPF_ANY);
 
     return TC_ACT_OK;
 }

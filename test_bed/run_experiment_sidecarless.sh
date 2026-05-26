@@ -17,7 +17,7 @@
 set -euo pipefail
 
 # Experiment options
-RPS_ARR=(0 10000 20000 30000)
+RPS_ARR=(0 10000 20000 30000 40000 50000)
 DURATION_SEC=30
 WARMUP_SEC=2
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)

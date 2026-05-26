@@ -8,7 +8,9 @@
 # - Attacker: Installs compilation tools, builds 'wrk2' from git, installs it, and trims the dev packages.
 # - Configures cpu-pinning (cpuset) using cgroups v2:
 #     - Victim container is pinned to CPU core 1.
-#     - Attacker container is pinned to CPU core 2.
+#     - Attacker container is pinned to CPU core 1 (SAME core as Victim).
+#     - Co-pinning forces the scheduler to interleave network softirqs on a single
+#       core, inducing cross-traffic scheduling jitter on the victim data plane.
 # - Hooks the container processes to the pre-created namespaces (/var/run/netns/ns_victim and ns_attacker)
 #   by configuring the linux namespaces array in config.json.
 
@@ -110,7 +112,7 @@ runc spec
 # Modify config.json using jq:
 # - Run python3 HTTP server on port 80
 # - Disable terminal allocations for background run
-# - Restrict container to CPU 1 via cpuset cgroups v2
+# - Restrict container to CPU 1 via cpuset cgroups v2 (same core as attacker)
 # - Force join ns_victim netns
 jq '.process.args = ["sh", "-c", "exec python3 -m http.server 80 >/dev/null 2>&1"] |
     .process.user.uid = 0 |
@@ -128,12 +130,14 @@ runc spec
 # Modify config.json using jq:
 # - Run a sleep infinity loop to keep the container daemon alive
 # - Disable terminal allocations
-# - Restrict container to CPU 2 via cpuset cgroups v2
+# - Restrict container to CPU 1 via cpuset cgroups v2 (SAME core as victim)
+#   This co-pinning is intentional: it forces the kernel scheduler to interleave
+#   softirq / packet-processing work on one core, producing scheduling jitter.
 # - Force join ns_attacker netns
 jq '.process.args = ["sleep", "infinity"] |
     .process.user.uid = 0 |
     .process.terminal = false |
-    .linux.resources.cpu.cpus = "2" |
+    .linux.resources.cpu.cpus = "1" |
     (.linux.namespaces[] | select(.type == "network")) |= . + {"path": "/var/run/netns/ns_attacker"}' config.json > config.json.tmp
 mv config.json.tmp config.json
 cd ..

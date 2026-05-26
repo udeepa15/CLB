@@ -53,7 +53,7 @@ def main():
     print(f"  Sidecar:     {sidecar_dir}")
     print(f"  Sidecarless: {sidecarless_dir}")
 
-    rps_values = [0, 10000, 20000, 30000]
+    rps_values = [0, 10000, 20000, 30000,40000, 50000]
     
     sc_data = { 'p50': [], 'p90': [], 'p99': [], 'p999': [] }
     sl_data = { 'p50': [], 'p90': [], 'p99': [], 'p999': [] }
@@ -68,8 +68,11 @@ def main():
             sc_data['p99'].append(p99)
             sc_data['p999'].append(p999)
         else:
-            print(f"Warning: {sc_file} not found.", file=sys.stderr)
-            sys.exit(1)
+            print(f"Warning: {sc_file} not found; inserting NaN.", file=sys.stderr)
+            sc_data['p50'].append(np.nan)
+            sc_data['p90'].append(np.nan)
+            sc_data['p99'].append(np.nan)
+            sc_data['p999'].append(np.nan)
 
         # Sidecarless
         sl_file = os.path.join(sidecarless_dir, f"fortio_rps_{rps}.json")
@@ -80,8 +83,11 @@ def main():
             sl_data['p99'].append(p99)
             sl_data['p999'].append(p999)
         else:
-            print(f"Warning: {sl_file} not found.", file=sys.stderr)
-            sys.exit(1)
+            print(f"Warning: {sl_file} not found; inserting NaN.", file=sys.stderr)
+            sl_data['p50'].append(np.nan)
+            sl_data['p90'].append(np.nan)
+            sl_data['p99'].append(np.nan)
+            sl_data['p999'].append(np.nan)
 
     # 1x3 subplots for P50, P90, and P99 latency
     fig, axes = plt.subplots(1, 3, figsize=(15, 5.5))
