@@ -1,0 +1,4 @@
+stdin:19-20: WARNING: queued_spin_lock_slowpath is not traceable (either non-existing, inlined, or marked as "notrace"); attaching to it will likely fail
+Attaching 5 probes...
+cannot attach kprobe, probe entry may not exist
+ERROR: Error attaching probe: 'kprobe:queued_spin_lock_slowpath'

@@ -54,8 +54,11 @@ runc kill attacker_container KILL 2>/dev/null || true
 runc delete attacker_container 2>/dev/null || true
 
 # Start containers in background
-runc run --bundle victim_bundle -d victim_container
-runc run --bundle attacker_bundle -d attacker_container
+runc run --bundle victim_bundle -d victim_container > /tmp/runc-start-victim.log 2>&1
+runc run --bundle attacker_bundle -d attacker_container > /tmp/runc-start-attacker.log 2>&1
+
+# Ensure the victim loopback interface is up after runc starts the namespace.
+ip netns exec ns_victim ip link set dev lo up
 
 # Step 3: Configure transparent routing in ns_victim
 echo "Step 3: Configuring transparent redirect inside ns_victim..."
@@ -64,8 +67,26 @@ ip netns exec ns_victim iptables -t nat -A PREROUTING -i veth-victim -p tcp --dp
 
 # Step 4: Spawn Sidecar proxy (socat) in ns_victim
 echo "Step 4: Launching socat proxy in ns_victim..."
-ip netns exec ns_victim socat TCP-LISTEN:8080,fork,reuseaddr TCP:127.0.0.1:80 &
+
+echo "Waiting for Python HTTP server inside the container to bind to port 80..."
+for i in {1..40}; do
+    if ip netns exec ns_victim nc -z 127.0.0.1 80 2>/dev/null; then
+        echo "Python HTTP server is up!"
+        break
+    fi
+    if [ "$i" -eq 40 ]; then
+        echo "ERROR: Python HTTP server failed to start inside container." >&2
+        exit 1
+    fi
+    sleep 0.5
+done
+
+# Launch socat with explicit retry and tuning parameters
+ip netns exec ns_victim socat TCP-LISTEN:8080,fork,reuseaddr,retry=5 TCP:127.0.0.1:80 &
 SOCAT_PID=$!
+
+# Give socat a split second to open port 8080
+sleep 0.5
 
 # Step 5: Start host dummy web server for Attacker to target
 echo "Step 5: Launching dummy server on host..."

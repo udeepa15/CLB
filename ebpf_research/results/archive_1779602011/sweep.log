@@ -1,0 +1,175 @@
+nohup: ignoring input
+Sweep tenants:1 3 5 rates:0 5000 10000 15000 20000 25000 30000 35000 40000 duration:60s seed:1000000
+Starting broker
+Starting redis-server bound to 10.200.0.1:6379
+Started redis (pidfile: /home/udeepa/CLB/ebpf_research/results/redis_broker_6379.pid)
+Seeding queues
+Seeding 1000000 items across 5 queues (200000 each + 0 extra).
+Seeded 200000 items into tenant_queue_v1 (elapsed 3.86s)
+Seeded 200000 items into tenant_queue_v2 (elapsed 3.87s)
+Seeded 200000 items into tenant_queue_v3 (elapsed 3.89s)
+Seeded 200000 items into tenant_queue_v4 (elapsed 3.88s)
+Seeded 200000 items into tenant_queue_v5 (elapsed 3.88s)
+Running sweep: tenants=1 attacker_rate=0 -> /home/udeepa/CLB/ebpf_research/results/t1_r0_1779591195
+Starting bpftrace to capture Redis latencies
+Deploying 1 tenant namespaces (duration 60s) sidecar=0
+Deployed tenants. Logs: /home/udeepa/CLB/ebpf_research/results/
+Stopping bpftrace (PID 446378)
+Completed sweep t1_r0_1779591195
+Running sweep: tenants=1 attacker_rate=5000 -> /home/udeepa/CLB/ebpf_research/results/t1_r5000_1779591257
+Starting bpftrace to capture Redis latencies
+Deploying 1 tenant namespaces (duration 60s) sidecar=0
+Deployed tenants. Logs: /home/udeepa/CLB/ebpf_research/results/
+Stopping bpftrace (PID 446453)
+Completed sweep t1_r5000_1779591257
+Running sweep: tenants=1 attacker_rate=10000 -> /home/udeepa/CLB/ebpf_research/results/t1_r10000_1779591319
+Starting bpftrace to capture Redis latencies
+Deploying 1 tenant namespaces (duration 60s) sidecar=0
+Deployed tenants. Logs: /home/udeepa/CLB/ebpf_research/results/
+Stopping bpftrace (PID 446534)
+Completed sweep t1_r10000_1779591319
+Running sweep: tenants=1 attacker_rate=15000 -> /home/udeepa/CLB/ebpf_research/results/t1_r15000_1779591381
+Starting bpftrace to capture Redis latencies
+Deploying 1 tenant namespaces (duration 60s) sidecar=0
+Deployed tenants. Logs: /home/udeepa/CLB/ebpf_research/results/
+Stopping bpftrace (PID 446608)
+Completed sweep t1_r15000_1779591381
+Running sweep: tenants=1 attacker_rate=20000 -> /home/udeepa/CLB/ebpf_research/results/t1_r20000_1779591444
+Starting bpftrace to capture Redis latencies
+Deploying 1 tenant namespaces (duration 60s) sidecar=0
+Deployed tenants. Logs: /home/udeepa/CLB/ebpf_research/results/
+Stopping bpftrace (PID 446782)
+Completed sweep t1_r20000_1779591444
+Running sweep: tenants=1 attacker_rate=25000 -> /home/udeepa/CLB/ebpf_research/results/t1_r25000_1779591506
+Starting bpftrace to capture Redis latencies
+Deploying 1 tenant namespaces (duration 60s) sidecar=0
+Deployed tenants. Logs: /home/udeepa/CLB/ebpf_research/results/
+Stopping bpftrace (PID 446876)
+Completed sweep t1_r25000_1779591506
+Running sweep: tenants=1 attacker_rate=30000 -> /home/udeepa/CLB/ebpf_research/results/t1_r30000_1779591568
+Starting bpftrace to capture Redis latencies
+Deploying 1 tenant namespaces (duration 60s) sidecar=0
+Deployed tenants. Logs: /home/udeepa/CLB/ebpf_research/results/
+Stopping bpftrace (PID 446964)
+Completed sweep t1_r30000_1779591568
+Running sweep: tenants=1 attacker_rate=35000 -> /home/udeepa/CLB/ebpf_research/results/t1_r35000_1779591630
+Starting bpftrace to capture Redis latencies
+Deploying 1 tenant namespaces (duration 60s) sidecar=0
+Deployed tenants. Logs: /home/udeepa/CLB/ebpf_research/results/
+Stopping bpftrace (PID 447017)
+Completed sweep t1_r35000_1779591630
+Running sweep: tenants=1 attacker_rate=40000 -> /home/udeepa/CLB/ebpf_research/results/t1_r40000_1779591692
+Starting bpftrace to capture Redis latencies
+Deploying 1 tenant namespaces (duration 60s) sidecar=0
+Deployed tenants. Logs: /home/udeepa/CLB/ebpf_research/results/
+Stopping bpftrace (PID 447047)
+Completed sweep t1_r40000_1779591692
+Running sweep: tenants=3 attacker_rate=0 -> /home/udeepa/CLB/ebpf_research/results/t3_r0_1779591754
+Starting bpftrace to capture Redis latencies
+Deploying 3 tenant namespaces (duration 60s) sidecar=0
+Deployed tenants. Logs: /home/udeepa/CLB/ebpf_research/results/
+Stopping bpftrace (PID 447077)
+Completed sweep t3_r0_1779591754
+Running sweep: tenants=3 attacker_rate=5000 -> /home/udeepa/CLB/ebpf_research/results/t3_r5000_1779591816
+Starting bpftrace to capture Redis latencies
+Deploying 3 tenant namespaces (duration 60s) sidecar=0
+Deployed tenants. Logs: /home/udeepa/CLB/ebpf_research/results/
+Stopping bpftrace (PID 447126)
+Completed sweep t3_r5000_1779591816
+Running sweep: tenants=3 attacker_rate=10000 -> /home/udeepa/CLB/ebpf_research/results/t3_r10000_1779591878
+Starting bpftrace to capture Redis latencies
+Deploying 3 tenant namespaces (duration 60s) sidecar=0
+Deployed tenants. Logs: /home/udeepa/CLB/ebpf_research/results/
+Stopping bpftrace (PID 447171)
+Completed sweep t3_r10000_1779591878
+Running sweep: tenants=3 attacker_rate=15000 -> /home/udeepa/CLB/ebpf_research/results/t3_r15000_1779591940
+Starting bpftrace to capture Redis latencies
+Deploying 3 tenant namespaces (duration 60s) sidecar=0
+Deployed tenants. Logs: /home/udeepa/CLB/ebpf_research/results/
+Stopping bpftrace (PID 447221)
+Completed sweep t3_r15000_1779591940
+Running sweep: tenants=3 attacker_rate=20000 -> /home/udeepa/CLB/ebpf_research/results/t3_r20000_1779592003
+Starting bpftrace to capture Redis latencies
+Deploying 3 tenant namespaces (duration 60s) sidecar=0
+Deployed tenants. Logs: /home/udeepa/CLB/ebpf_research/results/
+Stopping bpftrace (PID 447266)
+Completed sweep t3_r20000_1779592003
+Running sweep: tenants=3 attacker_rate=25000 -> /home/udeepa/CLB/ebpf_research/results/t3_r25000_1779592065
+Starting bpftrace to capture Redis latencies
+Deploying 3 tenant namespaces (duration 60s) sidecar=0
+Deployed tenants. Logs: /home/udeepa/CLB/ebpf_research/results/
+Stopping bpftrace (PID 447310)
+Completed sweep t3_r25000_1779592065
+Running sweep: tenants=3 attacker_rate=30000 -> /home/udeepa/CLB/ebpf_research/results/t3_r30000_1779592127
+Starting bpftrace to capture Redis latencies
+Deploying 3 tenant namespaces (duration 60s) sidecar=0
+Deployed tenants. Logs: /home/udeepa/CLB/ebpf_research/results/
+Stopping bpftrace (PID 447358)
+Completed sweep t3_r30000_1779592127
+Running sweep: tenants=3 attacker_rate=35000 -> /home/udeepa/CLB/ebpf_research/results/t3_r35000_1779592189
+Starting bpftrace to capture Redis latencies
+Deploying 3 tenant namespaces (duration 60s) sidecar=0
+Deployed tenants. Logs: /home/udeepa/CLB/ebpf_research/results/
+Stopping bpftrace (PID 447402)
+Completed sweep t3_r35000_1779592189
+Running sweep: tenants=3 attacker_rate=40000 -> /home/udeepa/CLB/ebpf_research/results/t3_r40000_1779592251
+Starting bpftrace to capture Redis latencies
+Deploying 3 tenant namespaces (duration 60s) sidecar=0
+Deployed tenants. Logs: /home/udeepa/CLB/ebpf_research/results/
+Stopping bpftrace (PID 447446)
+Completed sweep t3_r40000_1779592251
+Running sweep: tenants=5 attacker_rate=0 -> /home/udeepa/CLB/ebpf_research/results/t5_r0_1779592313
+Starting bpftrace to capture Redis latencies
+Deploying 5 tenant namespaces (duration 60s) sidecar=0
+Deployed tenants. Logs: /home/udeepa/CLB/ebpf_research/results/
+Stopping bpftrace (PID 447491)
+Completed sweep t5_r0_1779592313
+Running sweep: tenants=5 attacker_rate=5000 -> /home/udeepa/CLB/ebpf_research/results/t5_r5000_1779592375
+Starting bpftrace to capture Redis latencies
+Deploying 5 tenant namespaces (duration 60s) sidecar=0
+Deployed tenants. Logs: /home/udeepa/CLB/ebpf_research/results/
+Stopping bpftrace (PID 447552)
+Completed sweep t5_r5000_1779592375
+Running sweep: tenants=5 attacker_rate=10000 -> /home/udeepa/CLB/ebpf_research/results/t5_r10000_1779592438
+Starting bpftrace to capture Redis latencies
+Deploying 5 tenant namespaces (duration 60s) sidecar=0
+Deployed tenants. Logs: /home/udeepa/CLB/ebpf_research/results/
+Stopping bpftrace (PID 447614)
+Completed sweep t5_r10000_1779592438
+Running sweep: tenants=5 attacker_rate=15000 -> /home/udeepa/CLB/ebpf_research/results/t5_r15000_1779592500
+Starting bpftrace to capture Redis latencies
+Deploying 5 tenant namespaces (duration 60s) sidecar=0
+Deployed tenants. Logs: /home/udeepa/CLB/ebpf_research/results/
+Stopping bpftrace (PID 447672)
+Completed sweep t5_r15000_1779592500
+Running sweep: tenants=5 attacker_rate=20000 -> /home/udeepa/CLB/ebpf_research/results/t5_r20000_1779592562
+Starting bpftrace to capture Redis latencies
+Deploying 5 tenant namespaces (duration 60s) sidecar=0
+Deployed tenants. Logs: /home/udeepa/CLB/ebpf_research/results/
+Stopping bpftrace (PID 447734)
+Completed sweep t5_r20000_1779592562
+Running sweep: tenants=5 attacker_rate=25000 -> /home/udeepa/CLB/ebpf_research/results/t5_r25000_1779592624
+Starting bpftrace to capture Redis latencies
+Deploying 5 tenant namespaces (duration 60s) sidecar=0
+Deployed tenants. Logs: /home/udeepa/CLB/ebpf_research/results/
+Stopping bpftrace (PID 447793)
+Completed sweep t5_r25000_1779592624
+Running sweep: tenants=5 attacker_rate=30000 -> /home/udeepa/CLB/ebpf_research/results/t5_r30000_1779592686
+Starting bpftrace to capture Redis latencies
+Deploying 5 tenant namespaces (duration 60s) sidecar=0
+Deployed tenants. Logs: /home/udeepa/CLB/ebpf_research/results/
+Stopping bpftrace (PID 447852)
+Completed sweep t5_r30000_1779592686
+Running sweep: tenants=5 attacker_rate=35000 -> /home/udeepa/CLB/ebpf_research/results/t5_r35000_1779592748
+Starting bpftrace to capture Redis latencies
+Deploying 5 tenant namespaces (duration 60s) sidecar=0
+Deployed tenants. Logs: /home/udeepa/CLB/ebpf_research/results/
+Stopping bpftrace (PID 447916)
+Completed sweep t5_r35000_1779592748
+Running sweep: tenants=5 attacker_rate=40000 -> /home/udeepa/CLB/ebpf_research/results/t5_r40000_1779592811
+Starting bpftrace to capture Redis latencies
+Deploying 5 tenant namespaces (duration 60s) sidecar=0
+Deployed tenants. Logs: /home/udeepa/CLB/ebpf_research/results/
+Stopping bpftrace (PID 447975)
+Completed sweep t5_r40000_1779592811
+Stopping broker

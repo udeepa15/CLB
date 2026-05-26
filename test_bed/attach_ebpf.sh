@@ -30,7 +30,7 @@ for cmd in clang tc; do
 done
 
 echo "Compiling eBPF program $SRC_FILE to $OBJ_FILE..."
-clang -O2 -target bpf -c "$SRC_FILE" -o "$OBJ_FILE"
+clang -g -O2 -target bpf -c "$SRC_FILE" -o "$OBJ_FILE"
 
 echo "Detaching any existing filters and cleaning up pinned maps..."
 tc qdisc del dev veth-vic-br clsact 2>/dev/null || true

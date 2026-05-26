@@ -1,0 +1,15 @@
+Running 5s test @ http://10.200.1.2:8080/
+  2 threads and 100 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency     1.40ms  467.16us   3.32ms   67.40%
+    Req/Sec       -nan      -nan   0.00      0.00%
+  1002 requests in 5.00s, 176.13KB read
+Requests/sec:    200.30
+Transfer/sec:     35.21KB
+Target QPS: 200
+Actual QPS: rate
+p50: 1406us
+p95: 2165us
+p99: 2521us
+p99.9: 3237us
+RESULT target_qps=200 actual_qps=rate p50_us=1406 p95_us=2165 p99_us=2521 p999_us=3237

@@ -1,0 +1,16 @@
+Running 1m test @ http://10.200.7.2:9090/
+  2 threads and 100 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency   699.77ms  580.52ms   2.03s    49.53%
+    Req/Sec       -nan      -nan   0.00      0.00%
+  2980 requests in 2.25s, 526.74KB read
+  Socket errors: connect 0, read 0, write 0, timeout 33
+Requests/sec:   1324.10
+Transfer/sec:    234.05KB
+Target QPS: 10000
+Actual QPS: rate
+p50: 861695us
+p95: 1672191us
+p99: 1944575us
+p99.9: 2024447us
+RESULT target_qps=10000 actual_qps=rate p50_us=861695 p95_us=1672191 p99_us=1944575 p999_us=2024447

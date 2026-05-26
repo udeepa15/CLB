@@ -60,6 +60,22 @@ runc delete attacker_container 2>/dev/null || true
 runc run --bundle victim_bundle -d victim_container
 runc run --bundle attacker_bundle -d attacker_container
 
+# Ensure the victim loopback interface is up after runc starts the namespace.
+ip netns exec ns_victim ip link set dev lo up
+
+echo "Waiting for Python HTTP server inside the container to bind to port 80..."
+for i in {1..40}; do
+    if ip netns exec ns_victim nc -z 127.0.0.1 80 2>/dev/null; then
+        echo "Python HTTP server is up!"
+        break
+    fi
+    if [ "$i" -eq 40 ]; then
+        echo "ERROR: Python HTTP server failed to start inside container." >&2
+        exit 1
+    fi
+    sleep 0.5
+done
+
 # Step 4: Start host dummy web server for Attacker to target
 echo "Step 4: Launching dummy server on host..."
 python3 -m http.server --bind 10.0.0.1 8000 &>/dev/null &
@@ -120,7 +136,7 @@ for rps in "${RPS_ARR[@]}"; do
             delete(@update_start[tid]);
         }
     }
-    kprobe:queued_spin_lock_slowpath {
+    kprobe:*queued_spin_lock_slowpath* {
         @spinlock_contention_count = count();
     }
     ' &> "$RESULTS_DIR/bpftrace_rps_${rps}.log" &

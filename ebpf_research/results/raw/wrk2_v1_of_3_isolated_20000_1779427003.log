@@ -1,0 +1,18 @@
+Running 1m test @ http://10.200.1.2:8080
+  2 threads and 100 connections
+  Thread calibration: mean lat.: 1.377ms, rate sampling interval: 10ms
+  Thread calibration: mean lat.: 593.748ms, rate sampling interval: 4110ms
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency     5.59ms    4.74ms  16.02ms   64.23%
+    Req/Sec   102.99    109.04   555.00     86.27%
+  11902 requests in 1.00m, 1.60MB read
+  Socket errors: connect 0, read 0, write 0, timeout 18
+Requests/sec:    198.36
+Transfer/sec:     27.31KB
+Target QPS: 200
+Actual QPS: rate
+p50: 3543us
+p95: 13103us
+p99: 14167us
+p99.9: 15399us
+RESULT target_qps=200 actual_qps=rate p50_us=3543 p95_us=13103 p99_us=14167 p999_us=15399

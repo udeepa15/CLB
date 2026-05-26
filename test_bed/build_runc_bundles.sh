@@ -104,6 +104,8 @@ fi
 
 echo "Generating and configuring OCI config.json for Victim..."
 cd "$VICTIM_DIR"
+# Remove existing config.json to allow runc spec to run cleanly
+rm -f config.json
 runc spec
 # Modify config.json using jq:
 # - Run python3 HTTP server on port 80
@@ -111,6 +113,7 @@ runc spec
 # - Restrict container to CPU 1 via cpuset cgroups v2
 # - Force join ns_victim netns
 jq '.process.args = ["sh", "-c", "exec python3 -m http.server 80 >/dev/null 2>&1"] |
+    .process.user.uid = 0 |
     .process.terminal = false |
     .linux.resources.cpu.cpus = "1" |
     (.linux.namespaces[] | select(.type == "network")) |= . + {"path": "/var/run/netns/ns_victim"}' config.json > config.json.tmp
@@ -119,6 +122,8 @@ cd ..
 
 echo "Generating and configuring OCI config.json for Attacker..."
 cd "$ATTACKER_DIR"
+# Remove existing config.json to allow runc spec to run cleanly
+rm -f config.json
 runc spec
 # Modify config.json using jq:
 # - Run a sleep infinity loop to keep the container daemon alive
@@ -126,6 +131,7 @@ runc spec
 # - Restrict container to CPU 2 via cpuset cgroups v2
 # - Force join ns_attacker netns
 jq '.process.args = ["sleep", "infinity"] |
+    .process.user.uid = 0 |
     .process.terminal = false |
     .linux.resources.cpu.cpus = "2" |
     (.linux.namespaces[] | select(.type == "network")) |= . + {"path": "/var/run/netns/ns_attacker"}' config.json > config.json.tmp
