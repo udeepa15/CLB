@@ -8,7 +8,7 @@ for arch in sidecar sidecarless; do
     LATEST_DIR=$(ls -td results/$arch/* 2>/dev/null | head -n 1)
     if [ -z "$LATEST_DIR" ]; then continue; fi
     
-    for rps in 0 10000 20000 30000; do
+    for rps in 0 10000 20000 30000 40000 50000; do
         JSON_FILE="$LATEST_DIR/fortio_rps_${rps}.json"
         LOG_FILE="$LATEST_DIR/bpftrace_rps_${rps}.log"
         
