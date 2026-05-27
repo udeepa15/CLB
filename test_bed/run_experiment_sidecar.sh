@@ -9,7 +9,7 @@
 
 set -euo pipefail
 
-CPU_CORE_SET="0"
+CPU_CORE_SET="0,1"
 FLOOD_ARR=(0 u100 u50 u10 u1)
 FORTIO_QPS=500
 FORTIO_CONNS=10

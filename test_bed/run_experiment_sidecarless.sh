@@ -15,7 +15,7 @@
 
 set -euo pipefail
 
-CPU_CORE_SET="0"
+CPU_CORE_SET="0,1"
 
 # hping3 --interval values controlling packet rate.
 # Sent from INSIDE ns_attacker so traffic traverses the eBPF-hooked bridge.
