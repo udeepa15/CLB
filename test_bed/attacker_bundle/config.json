@@ -131,7 +131,7 @@
         }
       ],
       "cpu": {
-        "cpus": "2"
+        "cpus": "1"
       }
     },
     "namespaces": [
