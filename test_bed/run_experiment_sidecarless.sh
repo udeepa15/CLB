@@ -81,9 +81,13 @@ for flood_arg in "${FLOOD_ARR[@]}"; do
         echo "  Starting hping3 flood from inside ns_attacker -> 10.0.0.10 (interval=${flood_arg})..."
         # Run hping3 INSIDE ns_attacker namespace so packets traverse:
         # veth-attacker -> veth-att-br [eBPF] -> br-mesh [eBPF] -> veth-vic-br [eBPF] -> ns_victim
-        taskset -c "$CPU_CORE_SET" ip netns exec ns_attacker \
-            hping3 --udp -p 9999 --interval "${flood_arg}" 10.0.0.10 &>/dev/null &
-        ATTACKER_PID=$!
+        taskset -c 1 ip netns exec ns_attacker hping3 --udp -p 9999 --interval "${flood_arg}" 10.0.0.10 &>/dev/null &
+        P1=$!
+        taskset -c 1 ip netns exec ns_attacker hping3 --udp -p 9999 --interval "${flood_arg}" 10.0.0.10 &>/dev/null &
+        P2=$!
+        taskset -c 1 ip netns exec ns_attacker hping3 --udp -p 9999 --interval "${flood_arg}" 10.0.0.10 &>/dev/null &
+        P3=$!
+        ATTACKER_PID="$P1 $P2 $P3" 
         sleep "$WARMUP_SEC"
     fi
 
@@ -115,7 +119,7 @@ for flood_arg in "${FLOOD_ARR[@]}"; do
     sleep 1
 
     echo "  Running fortio at ${FORTIO_QPS} QPS for ${DURATION_SEC}s..."
-    taskset -c "$CPU_CORE_SET" fortio load \
+    taskset -c 0 fortio load \
         -c "${FORTIO_CONNS}" -qps "${FORTIO_QPS}" -t "${DURATION_SEC}s" \
         -json "$RESULTS_DIR/fortio_load_${flood_arg}.json" \
         http://10.0.0.10:80/
@@ -124,9 +128,9 @@ for flood_arg in "${FLOOD_ARR[@]}"; do
     wait  "$BPFTRACE_PID"   2>/dev/null || true
 
     if [ -n "$ATTACKER_PID" ]; then
-        kill -9 "$ATTACKER_PID" 2>/dev/null || true
+        kill -9 $ATTACKER_PID 2>/dev/null || true
         pkill -9 -f 'hping3'    2>/dev/null || true
-        wait "$ATTACKER_PID"    2>/dev/null || true
+        wait $ATTACKER_PID    2>/dev/null || true
     fi
 
     conntrack -F 2>/dev/null || true
