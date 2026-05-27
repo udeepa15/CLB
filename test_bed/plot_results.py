@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
-plot_results.py — Latency comparison: Sidecar Proxy vs Sidecarless eBPF Mesh.
+plot_results.py — Isolation Deficit: Sidecar vs Sidecarless eBPF Mesh.
 
-Reads fortio_load_<LOAD>.json from the most-recent sidecar / sidecarless
-results directories and produces a multi-panel latency comparison figure.
+Reads fortio_load_<FLOOD_ARG>.json from the most-recent result directories.
+Load labels match FLOOD_ARR in the bash scripts: (0, u100, u50, u10, u1)
+which correspond to hping3 --interval values (~10k, ~20k, ~100k, ~1M pps).
 
 Usage (run from test_bed/):
     python3 plot_results.py
@@ -14,53 +15,56 @@ import glob
 import os
 import sys
 import matplotlib
-matplotlib.use("Agg")          # headless / WSL safe
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import numpy as np
 
-# ── Typography & style ──────────────────────────────────────────────────────
+# ── Style ─────────────────────────────────────────────────────────────────────
 try:
     plt.style.use("seaborn-v0_8-whitegrid")
 except OSError:
-    plt.style.use("seaborn-whitegrid" if "seaborn-whitegrid" in plt.style.available else "default")
+    try:
+        plt.style.use("seaborn-whitegrid")
+    except OSError:
+        pass
 
-FONT_FAMILY = "DejaVu Sans"
 plt.rcParams.update({
-    "font.family":        FONT_FAMILY,
-    "font.size":          11,
-    "axes.labelsize":     12,
-    "axes.titlesize":     13,
-    "xtick.labelsize":    10,
-    "ytick.labelsize":    10,
-    "figure.titlesize":   16,
-    "axes.spines.top":    False,
-    "axes.spines.right":  False,
-    "axes.linewidth":     1.2,
+    "font.family":       "DejaVu Sans",
+    "font.size":         11,
+    "axes.labelsize":    12,
+    "axes.titlesize":    13,
+    "xtick.labelsize":   10,
+    "ytick.labelsize":   10,
+    "axes.spines.top":   False,
+    "axes.spines.right": False,
+    "axes.linewidth":    1.2,
 })
 
-# ── Load levels (must match LOAD_ARR in the bash scripts) ───────────────────
-LOAD_LABELS = ["0", "1G", "2G", "4G", "8G"]
-X_LABELS    = ["No load", "1 Gb/s", "2 Gb/s", "4 Gb/s", "8 Gb/s"]
+# ── Load configuration (matches FLOOD_ARR in bash scripts) ───────────────────
+LOAD_KEYS   = ["0", "u100", "u50", "u10", "u1"]
+X_LABELS    = ["No load\n(baseline)", "~10k pps\n(u100)", "~20k pps\n(u50)",
+               "~100k pps\n(u10)", "~1M pps\n(u1)"]
 
-# ── Colour palette ────────────────────────────────────────────────────────────
-SC_COLOR   = "#2563EB"   # vivid blue  — Sidecar proxy
-SL_COLOR   = "#F97316"   # vivid amber — Sidecarless eBPF
+SC_COLOR = "#2563EB"   # blue  — Sidecar proxy
+SL_COLOR = "#F97316"   # amber — Sidecarless eBPF
 
 
-def get_latest_dir(arch: str) -> str | None:
+def get_latest_dir(arch: str):
     dirs = sorted(glob.glob(f"results/{arch}/*/"))
     return dirs[-1].rstrip("/") if dirs else None
 
 
 def parse_fortio(filepath: str) -> dict:
-    """Return dict with p50/p90/p99/p999 latencies in milliseconds."""
     with open(filepath) as f:
         data = json.load(f)
-    result = {"qps": data.get("ActualQPS", 0), "count": data["DurationHistogram"].get("Count", 0)}
+    result = {
+        "qps":   data.get("ActualQPS", 0),
+        "count": data["DurationHistogram"].get("Count", 0),
+    }
     for p in data["DurationHistogram"].get("Percentiles", []):
         pct = p["Percentile"]
-        val = p["Value"] * 1000.0          # seconds → milliseconds
+        val = p["Value"] * 1000.0      # s -> ms
         if   pct == 50:   result["p50"]  = val
         elif pct == 90:   result["p90"]  = val
         elif pct == 99:   result["p99"]  = val
@@ -69,10 +73,9 @@ def parse_fortio(filepath: str) -> dict:
 
 
 def load_series(result_dir: str) -> dict:
-    """Load all load-level fortio files for one architecture."""
-    series = {k: [] for k in ("p50", "p90", "p99", "p999", "qps", "count")}
-    for load in LOAD_LABELS:
-        path = os.path.join(result_dir, f"fortio_load_{load}.json")
+    series = {k: [] for k in ("p50", "p90", "p99", "p999", "qps")}
+    for key in LOAD_KEYS:
+        path = os.path.join(result_dir, f"fortio_load_{key}.json")
         if os.path.exists(path):
             r = parse_fortio(path)
             for k in series:
@@ -84,147 +87,120 @@ def load_series(result_dir: str) -> dict:
     return series
 
 
-def make_bar_group(ax, x, sc_vals, sl_vals, title, ylabel="Latency (ms)"):
-    """Render a grouped bar chart for one latency metric."""
+def bar_panel(ax, sc_vals, sl_vals, title, ylabel="Latency (ms)"):
     width = 0.35
-    xi    = np.arange(len(x))
+    xi = np.arange(len(X_LABELS))
 
-    bars_sc = ax.bar(xi - width / 2, sc_vals,  width, label="Sidecar Proxy",
-                     color=SC_COLOR, alpha=0.88, zorder=3,
-                     edgecolor="white", linewidth=0.8)
-    bars_sl = ax.bar(xi + width / 2, sl_vals, width, label="Sidecarless eBPF",
-                     color=SL_COLOR, alpha=0.88, zorder=3,
-                     edgecolor="white", linewidth=0.8)
+    b_sc = ax.bar(xi - width / 2, sc_vals, width, label="Sidecar Proxy",
+                  color=SC_COLOR, alpha=0.88, zorder=3, edgecolor="white", linewidth=0.8)
+    b_sl = ax.bar(xi + width / 2, sl_vals, width, label="Sidecarless eBPF",
+                  color=SL_COLOR, alpha=0.88, zorder=3, edgecolor="white", linewidth=0.8)
 
-    # Value labels on top of bars
-    for bar in list(bars_sc) + list(bars_sl):
+    for bar in list(b_sc) + list(b_sl):
         h = bar.get_height()
-        if np.isfinite(h):
-            ax.text(bar.get_x() + bar.get_width() / 2, h + 0.05,
-                    f"{h:.2f}", ha="center", va="bottom", fontsize=7.5,
-                    color="#374151", fontweight="bold")
+        if np.isfinite(h) and h > 0:
+            ax.text(bar.get_x() + bar.get_width() / 2, h + max(h * 0.01, 0.05),
+                    f"{h:.1f}", ha="center", va="bottom", fontsize=7, color="#374151",
+                    fontweight="bold")
 
     ax.set_title(title, fontweight="bold", pad=10)
     ax.set_ylabel(ylabel, labelpad=8)
-    ax.set_xlabel("Attacker Load (iperf3 UDP bandwidth)", labelpad=8)
+    ax.set_xlabel("Attacker Flood Rate (hping3 --interval)", labelpad=8)
     ax.set_xticks(xi)
-    ax.set_xticklabels(x, fontsize=9.5)
+    ax.set_xticklabels(X_LABELS, fontsize=8.5)
     ax.yaxis.set_minor_locator(ticker.AutoMinorLocator())
     ax.grid(axis="y", linestyle=":", alpha=0.55, zorder=0)
     ax.set_axisbelow(True)
-    return bars_sc, bars_sl
 
 
-def make_line_panel(ax, x, sc_vals, sl_vals, title, ylabel="Latency (ms)"):
-    """Render a line chart comparing both architectures over load levels."""
-    xi = np.arange(len(x))
+def line_panel(ax, sc_vals, sl_vals, title, ylabel="Latency (ms)"):
+    xi = np.arange(len(X_LABELS))
     ax.plot(xi, sc_vals, marker="s", linestyle="--", linewidth=2.2,
             markersize=8, color=SC_COLOR, label="Sidecar Proxy", zorder=4)
     ax.plot(xi, sl_vals, marker="o", linestyle="-",  linewidth=2.2,
             markersize=8, color=SL_COLOR, label="Sidecarless eBPF", zorder=4)
-
-    # Shaded area between curves
-    ax.fill_between(xi, sc_vals, sl_vals, alpha=0.12, color="#6366F1", zorder=2,
-                    label="_nolegend_")
+    ax.fill_between(xi, sc_vals, sl_vals, alpha=0.12, color="#6366F1", zorder=2)
 
     ax.set_title(title, fontweight="bold", pad=10)
     ax.set_ylabel(ylabel, labelpad=8)
-    ax.set_xlabel("Attacker Load (iperf3 UDP bandwidth)", labelpad=8)
+    ax.set_xlabel("Attacker Flood Rate (hping3 --interval)", labelpad=8)
     ax.set_xticks(xi)
-    ax.set_xticklabels(x, fontsize=9.5)
+    ax.set_xticklabels(X_LABELS, fontsize=8.5)
     ax.yaxis.set_minor_locator(ticker.AutoMinorLocator())
     ax.grid(axis="y", linestyle=":", alpha=0.55, zorder=0)
     ax.set_axisbelow(True)
 
 
 def main():
-    sidecar_dir    = get_latest_dir("sidecar")
-    sidecarless_dir = get_latest_dir("sidecarless")
+    sc_dir = get_latest_dir("sidecar")
+    sl_dir = get_latest_dir("sidecarless")
 
-    if not sidecar_dir or not sidecarless_dir:
-        print("ERROR: Missing results directory for sidecar or sidecarless.", file=sys.stderr)
+    if not sc_dir or not sl_dir:
+        print("ERROR: Missing results directory.", file=sys.stderr)
         sys.exit(1)
 
-    print(f"Reading results from:")
-    print(f"  Sidecar:     {sidecar_dir}")
-    print(f"  Sidecarless: {sidecarless_dir}")
+    print(f"Reading:\n  Sidecar:     {sc_dir}\n  Sidecarless: {sl_dir}\n")
+    sc = load_series(sc_dir)
+    sl = load_series(sl_dir)
 
-    sc = load_series(sidecar_dir)
-    sl = load_series(sidecarless_dir)
-
-    # ── Print data table ──────────────────────────────────────────────────────
-    print(f"\n{'Load':<6} {'SC p50':>8} {'SL p50':>8} {'SC p90':>8} {'SL p90':>8} {'SC p99':>8} {'SL p99':>8}")
-    print("-" * 56)
+    # Print table
+    print(f"{'Load':<14} {'SC p50':>8} {'SL p50':>8} {'SC p90':>8} {'SL p90':>8} "
+          f"{'SC p99':>8} {'SL p99':>8} {'SC QPS':>8} {'SL QPS':>8}")
+    print("-" * 78)
     for i, lbl in enumerate(X_LABELS):
-        print(f"{lbl:<6} {sc['p50'][i]:>8.3f} {sl['p50'][i]:>8.3f} "
-              f"{sc['p90'][i]:>8.3f} {sl['p90'][i]:>8.3f} "
-              f"{sc['p99'][i]:>8.3f} {sl['p99'][i]:>8.3f}")
+        lbl_short = LOAD_KEYS[i]
+        print(f"{lbl_short:<14} {sc['p50'][i]:>8.2f} {sl['p50'][i]:>8.2f} "
+              f"{sc['p90'][i]:>8.2f} {sl['p90'][i]:>8.2f} "
+              f"{sc['p99'][i]:>8.2f} {sl['p99'][i]:>8.2f} "
+              f"{sc['qps'][i]:>8.0f} {sl['qps'][i]:>8.0f}")
 
-    # ── Figure layout: 2 rows × 3 cols ───────────────────────────────────────
+    # ── Figure ────────────────────────────────────────────────────────────────
     fig = plt.figure(figsize=(18, 11))
     fig.patch.set_facecolor("#F8FAFC")
+    gs = fig.add_gridspec(2, 3, hspace=0.48, wspace=0.38,
+                          left=0.06, right=0.97, top=0.87, bottom=0.10)
 
-    gs = fig.add_gridspec(2, 3, hspace=0.42, wspace=0.35,
-                          left=0.06, right=0.97, top=0.88, bottom=0.10)
+    axes = [[fig.add_subplot(gs[r, c]) for c in range(3)] for r in range(2)]
+    for row in axes:
+        for ax in row:
+            ax.set_facecolor("#FFFFFF")
 
-    ax_p50_bar  = fig.add_subplot(gs[0, 0])
-    ax_p90_bar  = fig.add_subplot(gs[0, 1])
-    ax_p99_bar  = fig.add_subplot(gs[0, 2])
-    ax_p50_line = fig.add_subplot(gs[1, 0])
-    ax_p90_line = fig.add_subplot(gs[1, 1])
-    ax_p99_line = fig.add_subplot(gs[1, 2])
+    metrics = [
+        ("p50",  "Median (P50) Latency"),
+        ("p90",  "P90 Latency"),
+        ("p99",  "Tail (P99) Latency — Isolation Deficit"),
+    ]
 
-    for ax in (ax_p50_bar, ax_p90_bar, ax_p99_bar,
-               ax_p50_line, ax_p90_line, ax_p99_line):
-        ax.set_facecolor("#FFFFFF")
+    for col, (key, title) in enumerate(metrics):
+        bar_panel(axes[0][col], sc[key], sl[key], title)
+        line_panel(axes[1][col], sc[key], sl[key], title.replace(" — Isolation Deficit", "") + " — Load Trend")
 
-    # Row 1 — bar charts
-    bs_sc, bs_sl = make_bar_group(ax_p50_bar, X_LABELS, sc["p50"], sl["p50"],
-                                  "Median (P50) Latency")
-    make_bar_group(ax_p90_bar, X_LABELS, sc["p90"], sl["p90"],
-                   "P90 Latency")
-    make_bar_group(ax_p99_bar, X_LABELS, sc["p99"], sl["p99"],
-                   "Tail (P99) Latency")
-
-    # Row 2 — line charts
-    make_line_panel(ax_p50_line, X_LABELS, sc["p50"], sl["p50"],
-                    "Median (P50) — Load Trend")
-    make_line_panel(ax_p90_line, X_LABELS, sc["p90"], sl["p90"],
-                    "P90 — Load Trend")
-    make_line_panel(ax_p99_line, X_LABELS, sc["p99"], sl["p99"],
-                    "Tail (P99) — Load Trend")
-
-    # ── Row labels ────────────────────────────────────────────────────────────
     fig.text(0.005, 0.70, "Bar comparison", va="center", rotation="vertical",
              fontsize=10, color="#6B7280", style="italic")
-    fig.text(0.005, 0.30, "Load trend", va="center", rotation="vertical",
+    fig.text(0.005, 0.28, "Load trend", va="center", rotation="vertical",
              fontsize=10, color="#6B7280", style="italic")
 
-    # ── Shared legend ─────────────────────────────────────────────────────────
     legend_handles = [
         plt.Line2D([0], [0], color=SC_COLOR, marker="s", linestyle="--",
-                   linewidth=2, markersize=9, label="Sidecar Proxy (socat baseline)"),
+                   linewidth=2, markersize=9, label="Sidecar Proxy (socat — no eBPF spinlock)"),
         plt.Line2D([0], [0], color=SL_COLOR, marker="o", linestyle="-",
-                   linewidth=2, markersize=9, label="Sidecarless eBPF (shared-key contention)"),
+                   linewidth=2, markersize=9, label="Sidecarless eBPF (shared_global_key spinlock)"),
     ]
     fig.legend(handles=legend_handles, loc="upper center",
                bbox_to_anchor=(0.5, 0.955), ncol=2, frameon=True,
-               fontsize=12, framealpha=0.9, edgecolor="#D1D5DB",
-               fancybox=True)
+               fontsize=11.5, framealpha=0.9, edgecolor="#D1D5DB", fancybox=True)
 
-    # ── Main title & subtitle ─────────────────────────────────────────────────
     fig.suptitle("Isolation Deficit Analysis: Sidecar vs Sidecarless eBPF Mesh",
                  fontsize=16, fontweight="bold", y=0.98, color="#111827")
-    fig.text(0.5, 0.935,
-             "Victim (fortio) latency under increasing iperf3 UDP attacker flood  |  "
-             "eBPF map: shared key (single-bucket spinlock contention)",
-             ha="center", fontsize=10, color="#6B7280")
+    fig.text(0.5, 0.932,
+             "Victim (fortio 5k QPS) latency under increasing hping3 UDP flood on same veth-vic-br  |  "
+             "eBPF: shared_global_key forces single-bucket spinlock contention",
+             ha="center", fontsize=9.5, color="#6B7280")
 
-    # ── Save ──────────────────────────────────────────────────────────────────
     os.makedirs("results", exist_ok=True)
-    output_png = "results/latency_comparison.png"
-    plt.savefig(output_png, dpi=200, bbox_inches="tight", facecolor=fig.get_facecolor())
-    print(f"\nPlot saved to: {os.path.abspath(output_png)}")
+    out = "results/latency_comparison.png"
+    plt.savefig(out, dpi=200, bbox_inches="tight", facecolor=fig.get_facecolor())
+    print(f"\nPlot saved: {os.path.abspath(out)}")
 
 
 if __name__ == "__main__":
