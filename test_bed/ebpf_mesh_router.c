@@ -12,7 +12,7 @@
 # define SEC(NAME) __attribute__((section(NAME), used))
 #endif
 
-/* 
+/*
  * CONTENTION EXPERIMENT: Flow Stats structure.
  * Modifying these values concurrently under heavy multi-core loads
  * induces cache coherence traffic and lock contention.
@@ -50,7 +50,7 @@ static __u32 shared_global_key = 0;
 SEC("classifier")
 int mesh_router(struct __sk_buff *skb) {
     void *data_end = (void *)(long)skb->data_end;
-    void *data = (void *)(long)skb->data;
+    void *data     = (void *)(long)skb->data;
 
     // Check packet boundary for ethernet header
     struct ethhdr *eth = data;
@@ -67,7 +67,7 @@ int mesh_router(struct __sk_buff *skb) {
         return TC_ACT_OK;
 
     /*
-     * CONTENTION EXPERIMENT: Force all packets — attacker AND victim —
+     * CONTENTION EXPERIMENT: Force all packets -- attacker AND victim --
      * to use the identical shared_global_key (== 0).  Because every
      * packet maps to the same bucket in the BPF_MAP_TYPE_HASH table,
      * all CPUs must serialise on the *exact same* internal htab bucket
