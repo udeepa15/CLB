@@ -34,8 +34,8 @@ CPU_CORE_SET="0"
 FLOOD_ARR=(0 u100 u50 u10 u1)
 
 # Victim measurement QPS — must be high enough to reliably hit the spinlock
-FORTIO_QPS=5000
-FORTIO_CONNS=50
+FORTIO_QPS=500
+FORTIO_CONNS=10
 
 DURATION_SEC=30
 WARMUP_SEC=3

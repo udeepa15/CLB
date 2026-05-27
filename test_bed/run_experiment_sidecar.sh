@@ -15,8 +15,8 @@ set -euo pipefail
 # ── Tuning knobs (MUST match sidecarless for fair comparison) ─────────────────
 CPU_CORE_SET="0"
 FLOOD_ARR=(0 u100 u50 u10 u1)
-FORTIO_QPS=5000
-FORTIO_CONNS=50
+FORTIO_QPS=500
+FORTIO_CONNS=10
 DURATION_SEC=30
 WARMUP_SEC=3
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)

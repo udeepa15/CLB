@@ -193,7 +193,7 @@ def main():
     fig.suptitle("Isolation Deficit Analysis: Sidecar vs Sidecarless eBPF Mesh",
                  fontsize=16, fontweight="bold", y=0.98, color="#111827")
     fig.text(0.5, 0.932,
-             "Victim (fortio 5k QPS) latency under increasing hping3 UDP flood on same veth-vic-br  |  "
+             "Victim (fortio 500 QPS) latency under increasing hping3 UDP flood on same veth-vic-br  |  "
              "eBPF: shared_global_key forces single-bucket spinlock contention",
              ha="center", fontsize=9.5, color="#6B7280")
 
