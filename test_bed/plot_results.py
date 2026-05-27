@@ -42,9 +42,10 @@ plt.rcParams.update({
 })
 
 # ── Load configuration (matches FLOOD_ARR in bash scripts) ───────────────────
-LOAD_KEYS   = ["0", "u100", "u50", "u10", "u1"]
-X_LABELS    = ["No load\n(baseline)", "~10k pps\n(u100)", "~20k pps\n(u50)",
-               "~100k pps\n(u10)", "~1M pps\n(u1)"]
+LOAD_KEYS   = ["0", "u1000", "u500", "u200", "u100", "u50", "u20", "u10", "u5", "u2", "u1"]
+X_LABELS    = ["No load\n(0)", "1k pps\n(u1000)", "2k pps\n(u500)", "5k pps\n(u200)", 
+               "10k pps\n(u100)", "20k pps\n(u50)", "50k pps\n(u20)", "100k pps\n(u10)", 
+               "200k pps\n(u5)", "500k pps\n(u2)", "1M pps\n(u1)"]
 
 SC_COLOR = "#2563EB"   # blue  — Sidecar proxy
 SL_COLOR = "#F97316"   # amber — Sidecarless eBPF
@@ -107,7 +108,7 @@ def bar_panel(ax, sc_vals, sl_vals, title, ylabel="Latency (ms)"):
     ax.set_ylabel(ylabel, labelpad=8)
     ax.set_xlabel("Attacker Flood Rate (hping3 --interval)", labelpad=8)
     ax.set_xticks(xi)
-    ax.set_xticklabels(X_LABELS, fontsize=8.5)
+    ax.set_xticklabels(X_LABELS, fontsize=7.5, rotation=45, ha="right")
     ax.yaxis.set_minor_locator(ticker.AutoMinorLocator())
     ax.grid(axis="y", linestyle=":", alpha=0.55, zorder=0)
     ax.set_axisbelow(True)
@@ -125,7 +126,7 @@ def line_panel(ax, sc_vals, sl_vals, title, ylabel="Latency (ms)"):
     ax.set_ylabel(ylabel, labelpad=8)
     ax.set_xlabel("Attacker Flood Rate (hping3 --interval)", labelpad=8)
     ax.set_xticks(xi)
-    ax.set_xticklabels(X_LABELS, fontsize=8.5)
+    ax.set_xticklabels(X_LABELS, fontsize=7.5, rotation=45, ha="right")
     ax.yaxis.set_minor_locator(ticker.AutoMinorLocator())
     ax.grid(axis="y", linestyle=":", alpha=0.55, zorder=0)
     ax.set_axisbelow(True)

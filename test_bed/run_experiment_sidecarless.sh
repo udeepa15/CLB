@@ -21,7 +21,7 @@ CPU_CORE_SET="0,1"
 # Sent from INSIDE ns_attacker so traffic traverses the eBPF-hooked bridge.
 # 0 = baseline (no attacker), others are hping3 --interval args:
 #   u100 ~ 10,000 pps  |  u50 ~ 20,000 pps  |  u10 ~ 100,000 pps  |  u1 ~ 1,000,000 pps
-FLOOD_ARR=(0 u100 u50 u10 u1)
+FLOOD_ARR=(0 u1000 u500 u200 u100 u50 u20 u10 u5 u2 u1)
 
 FORTIO_QPS=500
 FORTIO_CONNS=10
