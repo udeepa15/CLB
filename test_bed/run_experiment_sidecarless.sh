@@ -3,11 +3,11 @@
 #
 # Experiment Flow:
 # 1. Kill any existing 'socat' proxy and flush NAT redirect tables inside 'ns_victim'.
-# 2. Compile and attach the eBPF map-contention program to host-side veths using attach_ebpf.sh.
+# 2. Compile and attach the eBPF map-contention (shared-key) program to host-side veths.
 # 3. Spawn Victim (Python HTTP) and Attacker (sleep daemon) runc containers inside pre-created netns.
-# 4. Start a dummy web server on the host (10.0.0.1:8000) for the Attacker to load test.
-# 5. For each Attacker RPS [0, 10000, 20000, 30000]:
-#    a. Exec 'wrk2' inside the Attacker container targeting the host's dummy server.
+# 4. Start an iperf3 server on the host (10.0.0.1:8000), CPU-pinned, as the Attacker target.
+# 5. For each Attacker load level [0, 1G, 2G, 4G, 8G]:
+#    a. Exec 'iperf3' UDP flood inside the Attacker container, CPU-pinned, targeting the host.
 #    b. Spin up background 'bpftrace' specifically monitoring eBPF map lookup/update
 #       execution latency and queued_spin_lock_slowpath calls.
 #    c. Measure Victim response time using 'fortio' against port 80 directly (bypassing proxies).
@@ -17,7 +17,13 @@
 set -euo pipefail
 
 # Experiment options
-RPS_ARR=(0 10000 20000 30000 40000 50000)
+# CPU_CORE_SET: pin all load-generating processes to these cores to force SoftIRQ saturation.
+# Use a single core (e.g. "0") for maximum contention; "0,1" for two-core pressure.
+CPU_CORE_SET="0,1"
+
+# LOAD_ARR: iperf3 -b target bandwidths that replace the old wrk2 RPS values.
+# 0 means no attacker load; non-zero strings are passed directly to iperf3 -b.
+LOAD_ARR=(0 1G 2G 4G 8G)
 DURATION_SEC=30
 WARMUP_SEC=2
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
@@ -29,7 +35,7 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 # Check for host requirements
-for cmd in runc fortio bpftrace clang tc conntrack; do
+for cmd in runc fortio bpftrace clang tc conntrack iperf3 taskset; do
     if ! command -v "$cmd" &>/dev/null; then
         echo "ERROR: Missing required host tool: '$cmd'." >&2
         exit 1
@@ -76,15 +82,19 @@ for i in {1..40}; do
     sleep 0.5
 done
 
-# Step 4: Start host dummy web server for Attacker to target
-echo "Step 4: Launching dummy server on host..."
-python3 -m http.server --bind 10.0.0.1 8000 &>/dev/null &
-DUMMY_PID=$!
+# Step 4: Start iperf3 server on the host for the Attacker to flood.
+# CPU-pinned to CPU_CORE_SET to force SoftIRQ processing onto those cores.
+echo "Step 4: Launching iperf3 server on host (CPU-pinned to cores ${CPU_CORE_SET})..."
+taskset -c "$CPU_CORE_SET" iperf3 -s -B 10.0.0.1 -p 8000 -D
+# iperf3 -D daemonises; capture its PID via pgrep so we can kill it later.
+sleep 0.5
+IPERF_SERVER_PID=$(pgrep -n -f 'iperf3 -s' || true)
 
 # Helper to clean up all background jobs on premature script exit
 cleanup_trap() {
     echo "Aborting! Cleaning up background jobs and containers..."
-    kill -9 "$DUMMY_PID" 2>/dev/null || true
+    [ -n "${IPERF_SERVER_PID:-}" ] && kill -9 "$IPERF_SERVER_PID" 2>/dev/null || true
+    pkill -9 -f 'iperf3 -s' 2>/dev/null || true
     runc kill victim_container KILL 2>/dev/null || true
     runc delete victim_container 2>/dev/null || true
     runc kill attacker_container KILL 2>/dev/null || true
@@ -97,23 +107,27 @@ trap cleanup_trap INT TERM
 
 # Step 5: Loop through the background load test matrix
 echo "Step 5: Executing test matrix..."
-for rps in "${RPS_ARR[@]}"; do
+for load in "${LOAD_ARR[@]}"; do
     echo "=========================================================="
-    echo "Running Sidecarless eBPF benchmark with Attacker Load: $rps RPS"
+    echo "Running Sidecarless eBPF benchmark with Attacker Load: ${load}"
     echo "=========================================================="
-    
-    WRK2_PID=""
-    
-    # 5a. Start Attacker Load if RPS > 0
-    if [ "$rps" -gt 0 ]; then
-        echo "Starting background attacker load ($rps RPS)..."
-        # Run slightly longer than the measurement duration to guarantee load throughout
+
+    ATTACKER_PID=""
+
+    # 5a. Start Attacker UDP flood if load > 0
+    # iperf3 is run CPU-pinned via taskset so SoftIRQs are processed on CPU_CORE_SET,
+    # preventing the CFS scheduler from offloading them to idle cores.
+    if [ "$load" != "0" ]; then
+        echo "Starting background iperf3 UDP flood (bandwidth: ${load}, CPUs: ${CPU_CORE_SET})..."
         WRK2_DUR=$((DURATION_SEC + 5))
-        runc exec attacker_container wrk2 -t2 -c100 -d"${WRK2_DUR}s" -R "$rps" http://10.0.0.1:8000/ &>/dev/null &
-        WRK2_PID=$!
+        # Run iperf3 client inside the attacker container; use taskset on the host wrapper
+        # so the runc exec process (and its SoftIRQ descendants) are locked to CPU_CORE_SET.
+        taskset -c "$CPU_CORE_SET" runc exec attacker_container \
+            iperf3 -c 10.0.0.1 -p 8000 -u -b "${load}" -t "${WRK2_DUR}" &>/dev/null &
+        ATTACKER_PID=$!
         sleep "$WARMUP_SEC"
     fi
-    
+
     # 5b. Launch bpftrace in the background to track eBPF hash map lookup/update execution latency
     # and queued_spin_lock_slowpath counts (indicating spinlock contention).
     echo "Starting background bpftrace eBPF map & lock contention tracker..."
@@ -139,24 +153,25 @@ for rps in "${RPS_ARR[@]}"; do
     kprobe:*queued_spin_lock_slowpath* {
         @spinlock_contention_count = count();
     }
-    ' &> "$RESULTS_DIR/bpftrace_rps_${rps}.log" &
+    ' &> "$RESULTS_DIR/bpftrace_load_${load}.log" &
     BPFTRACE_PID=$!
     sleep 1
-    
+
     # 5c. Run Fortio Measurement directly against the Victim container on port 80
     echo "Running fortio latency measurements for ${DURATION_SEC}s..."
-    fortio load -c 10 -qps 500 -t "${DURATION_SEC}s" -json "$RESULTS_DIR/fortio_rps_${rps}.json" http://10.0.0.10:80/
-    
+    taskset -c "$CPU_CORE_SET" fortio load -c 10 -qps 500 -t "${DURATION_SEC}s" \
+        -json "$RESULTS_DIR/fortio_load_${load}.json" http://10.0.0.10:80/
+
     # 5d. Tear down load and bpftrace for this iteration
     echo "Stopping measurements..."
     kill -2 "$BPFTRACE_PID" || true
     wait "$BPFTRACE_PID" 2>/dev/null || true
-    
-    if [ -n "$WRK2_PID" ]; then
-        kill "$WRK2_PID" 2>/dev/null || true
-        wait "$WRK2_PID" 2>/dev/null || true
+
+    if [ -n "$ATTACKER_PID" ]; then
+        kill "$ATTACKER_PID" 2>/dev/null || true
+        wait "$ATTACKER_PID" 2>/dev/null || true
     fi
-    
+
     # Reset network connections and tables to prevent pollution
     echo "Resetting conntrack state and resting..."
     conntrack -F 2>/dev/null || true
@@ -166,7 +181,8 @@ done
 # Step 6: Final clean up and detach eBPF
 echo "Step 6: Final cleanup and detaching eBPF..."
 trap - INT TERM
-kill -9 "$DUMMY_PID" 2>/dev/null || true
+[ -n "${IPERF_SERVER_PID:-}" ] && kill -9 "$IPERF_SERVER_PID" 2>/dev/null || true
+pkill -9 -f 'iperf3 -s' 2>/dev/null || true
 
 runc kill victim_container KILL 2>/dev/null || true
 runc delete victim_container 2>/dev/null || true

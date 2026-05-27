@@ -13,19 +13,7 @@
 #endif
 
 /* 
- * Flow Key definition to identify unique network paths.
- * Used as the hash map key to track connection/flow information.
- */
-struct flow_key {
-    __be32 src_ip;
-    __be32 dst_ip;
-    __be16 src_port;
-    __be16 dst_port;
-    __u8 proto;
-};
-
-/* 
- * Flow Stats structure containing statistics.
+ * CONTENTION EXPERIMENT: Flow Stats structure.
  * Modifying these values concurrently under heavy multi-core loads
  * induces cache coherence traffic and lock contention.
  */
@@ -34,17 +22,30 @@ struct flow_stats {
     __u64 bytes;
 };
 
-/* 
- * Shared eBPF Hash Map.
- * Pinned globally under the bpffs to allow shared usage across multiple interfaces.
+/*
+ * CONTENTION EXPERIMENT: Shared eBPF Hash Map.
+ * Key type changed from 5-tuple struct to plain __u32 so that the
+ * shared_global_key below (always == 0) forces EVERY packet to land
+ * on the identical hash bucket, serialising all CPUs on the same
+ * internal htab bucket spinlock.
+ * Pinned globally under the bpffs to allow shared usage across
+ * multiple interfaces.
  */
 struct {
     __uint(type, BPF_MAP_TYPE_HASH);
     __uint(max_entries, 65536);
-    __type(key, struct flow_key);
+    __type(key, __u32);
     __type(value, struct flow_stats);
     __uint(pinning, LIBBPF_PIN_BY_NAME);
 } flow_map SEC(".maps");
+
+/*
+ * CONTENTION EXPERIMENT: Static shared key.
+ * Every packet uses key == 0 regardless of its actual 5-tuple,
+ * guaranteeing all traffic hits the same bucket and contends on
+ * the exact same spinlock.
+ */
+static __u32 shared_global_key = 0;
 
 SEC("classifier")
 int mesh_router(struct __sk_buff *skb) {
@@ -65,48 +66,30 @@ int mesh_router(struct __sk_buff *skb) {
     if ((void *)(iph + 1) > data_end)
         return TC_ACT_OK;
 
-    // Extract basic layer 3 fields
-    struct flow_key key = {0};
-    key.src_ip = iph->saddr;
-    key.dst_ip = iph->daddr;
-    key.proto = iph->protocol;
-
-    // Parse layer 4 ports if available
-    if (iph->protocol == IPPROTO_TCP) {
-        struct tcphdr *tcph = (void *)(iph + 1);
-        if ((void *)(tcph + 1) <= data_end) {
-            key.src_port = tcph->source;
-            key.dst_port = tcph->dest;
-        }
-    } else if (iph->protocol == IPPROTO_UDP) {
-        struct udphdr *udph = (void *)(iph + 1);
-        if ((void *)(udph + 1) <= data_end) {
-            key.src_port = udph->source;
-            key.dst_port = udph->dest;
-        }
-    }
-
     /*
-     * FORCE MAP WRITE CONTENTION:
-     * To simulate high-churn state synchronization overhead, we perform a lookup.
-     * Regardless of whether the element exists, we force a bpf_map_update_elem 
-     * call on every single packet. This forces the kernel to repeatedly acquire 
-     * the internal htab bucket spinlocks in write-mode, inducing measurable 
-     * microsecond-level p99 tail latency spikes under high RPS.
+     * CONTENTION EXPERIMENT: Force all packets — attacker AND victim —
+     * to use the identical shared_global_key (== 0).  Because every
+     * packet maps to the same bucket in the BPF_MAP_TYPE_HASH table,
+     * all CPUs must serialise on the *exact same* internal htab bucket
+     * spinlock for every bpf_map_lookup_elem / bpf_map_update_elem
+     * call.  This deterministically produces measurable p99 tail-latency
+     * spikes proportional to the number of competing CPU cores and the
+     * aggregate packet rate, without relying on lucky hash collisions
+     * from the 5-tuple key path.
      */
-    struct flow_stats *stats = bpf_map_lookup_elem(&flow_map, &key);
+    struct flow_stats *stats = bpf_map_lookup_elem(&flow_map, &shared_global_key);
     struct flow_stats updated_stats = {0};
 
     if (stats) {
         updated_stats.packets = stats->packets + 1;
-        updated_stats.bytes = stats->bytes + skb->len;
+        updated_stats.bytes   = stats->bytes + skb->len;
     } else {
         updated_stats.packets = 1;
-        updated_stats.bytes = skb->len;
+        updated_stats.bytes   = skb->len;
     }
 
-    // Force write-lock acquisition
-    bpf_map_update_elem(&flow_map, &key, &updated_stats, BPF_ANY);
+    // Force write-lock acquisition on the shared bucket
+    bpf_map_update_elem(&flow_map, &shared_global_key, &updated_stats, BPF_ANY);
 
     return TC_ACT_OK;
 }
