@@ -9,7 +9,7 @@ import signal
 import sys
 from datetime import datetime
 
-N_REPS = 2
+N_REPS = 10
 DURATION = 10
 WARMUP = 2
 
