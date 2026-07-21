@@ -17,13 +17,7 @@ mkdir -p "$RESULTS_DIR"
 echo "Step 1: Attaching eBPF..."
 ./attach_ebpf.sh
 
-echo "Configuring RPS to force eBPF/network stack softirqs on CPU Core 1..."
-for dev in veth-att-br br-mesh veth-vic1-br veth-vic2-br veth-vic3-br; do
-    if [ -d "/sys/class/net/$dev/queues/rx-0" ]; then
-        echo "2" > "/sys/class/net/$dev/queues/rx-0/rps_cpus"
-        echo "  RPS configured for $dev"
-    fi
-done
+
 
 echo "Step 2: Spawning runc containers..."
 runc kill attacker_container KILL 2>/dev/null || true; runc delete attacker_container 2>/dev/null || true
@@ -35,6 +29,8 @@ for i in 1 2 3; do
     rm -rf "victim_bundle_$i"
     cp -r victim_bundle "victim_bundle_$i"
     sed -i "s/ns_victim/ns_victim$i/g" "victim_bundle_$i/config.json"
+    jq ".linux.resources.cpu.cpus = \"$i\"" "victim_bundle_$i/config.json" > "victim_bundle_$i/config.json.tmp"
+    mv "victim_bundle_$i/config.json.tmp" "victim_bundle_$i/config.json"
     runc run --bundle "victim_bundle_$i" -d "victim_container_$i"
 done
 
@@ -59,11 +55,11 @@ for flood_arg in "${FLOOD_ARR[@]}"; do
 
     if [ "$flood_arg" != "0" ]; then
         # Blast Victim 1 (10.0.0.10) to create lock contention
-        taskset -c 1 ip netns exec ns_attacker hping3 --udp -p 9999 --interval "${flood_arg}" 10.0.0.10 &>/dev/null &
+        taskset -c 4 ip netns exec ns_attacker hping3 --udp -p 9999 --interval "${flood_arg}" 10.0.0.10 &>/dev/null &
         P1=$!
-        taskset -c 1 ip netns exec ns_attacker hping3 --udp -p 9999 --interval "${flood_arg}" 10.0.0.10 &>/dev/null &
+        taskset -c 5 ip netns exec ns_attacker hping3 --udp -p 9999 --interval "${flood_arg}" 10.0.0.10 &>/dev/null &
         P2=$!
-        taskset -c 1 ip netns exec ns_attacker hping3 --udp -p 9999 --interval "${flood_arg}" 10.0.0.10 &>/dev/null &
+        taskset -c 6 ip netns exec ns_attacker hping3 --udp -p 9999 --interval "${flood_arg}" 10.0.0.10 &>/dev/null &
         P3=$!
         ATTACKER_PID="$P1 $P2 $P3"
         sleep "$WARMUP_SEC"

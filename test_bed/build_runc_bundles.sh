@@ -117,7 +117,6 @@ runc spec
 jq '.process.args = ["sh", "-c", "exec python3 -m http.server 80 >/dev/null 2>&1"] |
     .process.user.uid = 0 |
     .process.terminal = false |
-    .linux.resources.cpu.cpus = "1" |
     (.linux.namespaces[] | select(.type == "network")) |= . + {"path": "/var/run/netns/ns_victim"}' config.json > config.json.tmp
 mv config.json.tmp config.json
 cd ..
@@ -137,7 +136,6 @@ runc spec
 jq '.process.args = ["sleep", "infinity"] |
     .process.user.uid = 0 |
     .process.terminal = false |
-    .linux.resources.cpu.cpus = "1" |
     (.linux.namespaces[] | select(.type == "network")) |= . + {"path": "/var/run/netns/ns_attacker"}' config.json > config.json.tmp
 mv config.json.tmp config.json
 cd ..

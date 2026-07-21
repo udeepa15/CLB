@@ -28,6 +28,8 @@ for i in 1 2 3; do
     rm -rf "victim_bundle_$i"
     cp -r victim_bundle "victim_bundle_$i"
     sed -i "s/ns_victim/ns_victim$i/g" "victim_bundle_$i/config.json"
+    jq ".linux.resources.cpu.cpus = \"$i\"" "victim_bundle_$i/config.json" > "victim_bundle_$i/config.json.tmp"
+    mv "victim_bundle_$i/config.json.tmp" "victim_bundle_$i/config.json"
     runc run --bundle "victim_bundle_$i" -d "victim_container_$i"
 done
 sleep 2
@@ -58,11 +60,11 @@ for flood_arg in "${FLOOD_ARR[@]}"; do
     echo "=========================================================="
 
     if [ "$flood_arg" != "0" ]; then
-        taskset -c 1 ip netns exec ns_attacker hping3 --udp -p 9999 --interval "${flood_arg}" 10.0.0.10 &>/dev/null &
+        taskset -c 4 ip netns exec ns_attacker hping3 --udp -p 9999 --interval "${flood_arg}" 10.0.0.10 &>/dev/null &
         P1=$!
-        taskset -c 1 ip netns exec ns_attacker hping3 --udp -p 9999 --interval "${flood_arg}" 10.0.0.10 &>/dev/null &
+        taskset -c 5 ip netns exec ns_attacker hping3 --udp -p 9999 --interval "${flood_arg}" 10.0.0.10 &>/dev/null &
         P2=$!
-        taskset -c 1 ip netns exec ns_attacker hping3 --udp -p 9999 --interval "${flood_arg}" 10.0.0.10 &>/dev/null &
+        taskset -c 6 ip netns exec ns_attacker hping3 --udp -p 9999 --interval "${flood_arg}" 10.0.0.10 &>/dev/null &
         P3=$!
         ATTACKER_PID="$P1 $P2 $P3"
         sleep "$WARMUP_SEC"
