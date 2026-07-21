@@ -4,8 +4,8 @@
 set -euo pipefail
 
 FLOOD_ARR=(0 u200 u20 u2)
-FORTIO_QPS=500
-FORTIO_CONNS=10
+FORTIO_QPS=50
+FORTIO_CONNS=2
 DURATION_SEC=10
 WARMUP_SEC=2
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
@@ -39,7 +39,7 @@ for i in 1 2 3; do
 done
 
 echo "Waiting for HTTP servers to start..."
-sleep 5
+sleep 10
 
 cleanup_trap() {
     pkill -9 -f 'hping3' 2>/dev/null || true
