@@ -3,7 +3,7 @@
 
 set -euo pipefail
 
-FLOOD_ARR=(0 u1000 u500 u200 u100 u50 u20 u10 u5 u2 u1)
+FLOOD_ARR=(0 u1000 u500 u200 u100 u50 u20 u10 u5 u2 u1 flood)
 FORTIO_QPS=500
 FORTIO_CONNS=10
 DURATION_SEC=30
@@ -60,13 +60,18 @@ for flood_arg in "${FLOOD_ARR[@]}"; do
     echo "=========================================================="
 
     if [ "$flood_arg" != "0" ]; then
-        taskset -c 4 ip netns exec ns_attacker hping3 --udp -p 9999 --interval "${flood_arg}" 10.0.0.10 &>/dev/null &
+        if [ "$flood_arg" == "flood" ]; then
+            HPING_ARG="--flood"
+        else
+            HPING_ARG="--interval ${flood_arg}"
+        fi
+        taskset -c 4 ip netns exec ns_attacker hping3 --udp -p 9999 $HPING_ARG 10.0.0.10 &>/dev/null &
         P1=$!
-        taskset -c 5 ip netns exec ns_attacker hping3 --udp -p 9999 --interval "${flood_arg}" 10.0.0.10 &>/dev/null &
+        taskset -c 5 ip netns exec ns_attacker hping3 --udp -p 9999 $HPING_ARG 10.0.0.10 &>/dev/null &
         P2=$!
-        taskset -c 6 ip netns exec ns_attacker hping3 --udp -p 9999 --interval "${flood_arg}" 10.0.0.10 &>/dev/null &
+        taskset -c 6 ip netns exec ns_attacker hping3 --udp -p 9999 $HPING_ARG 10.0.0.10 &>/dev/null &
         P3=$!
-        taskset -c 7 ip netns exec ns_attacker hping3 --udp -p 9999 --interval "${flood_arg}" 10.0.0.10 &>/dev/null &
+        taskset -c 7 ip netns exec ns_attacker hping3 --udp -p 9999 $HPING_ARG 10.0.0.10 &>/dev/null &
         P4=$!
         ATTACKER_PID="$P1 $P2 $P3 $P4"
         sleep "$WARMUP_SEC"

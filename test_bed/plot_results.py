@@ -42,10 +42,10 @@ plt.rcParams.update({
 })
 
 # ── Load configuration (matches FLOOD_ARR in bash scripts) ───────────────────
-LOAD_KEYS   = ["0", "u1000", "u500", "u200", "u100", "u50", "u20", "u10", "u5", "u2", "u1"]
+LOAD_KEYS   = ["0", "u1000", "u500", "u200", "u100", "u50", "u20", "u10", "u5", "u2", "u1", "flood"]
 X_LABELS    = ["No load\n(0)", "1k pps\n(u1000)", "2k pps\n(u500)", "5k pps\n(u200)", 
                "10k pps\n(u100)", "20k pps\n(u50)", "50k pps\n(u20)", "100k pps\n(u10)", 
-               "200k pps\n(u5)", "500k pps\n(u2)", "1M pps\n(u1)"]
+               "200k pps\n(u5)", "500k pps\n(u2)", "1M pps\n(u1)", "Max\n(flood)"]
 
 SC_COLOR = "#2563EB"   # blue  — Sidecar proxy
 SL_COLOR = "#F97316"   # amber — Sidecarless eBPF
@@ -76,7 +76,7 @@ def parse_fortio(filepath: str) -> dict:
 def load_series(result_dir: str) -> dict:
     series = {k: [] for k in ("p50", "p90", "p99", "p999", "qps")}
     for key in LOAD_KEYS:
-        path = os.path.join(result_dir, f"fortio_load_{key}.json")
+        path = os.path.join(result_dir, f"fortio_vic2_{key}.json")
         if os.path.exists(path):
             r = parse_fortio(path)
             for k in series:
@@ -136,12 +136,9 @@ def main():
     sc_dir = get_latest_dir("sidecar")
     sl_dir = get_latest_dir("sidecarless")
 
-    if not sc_dir or not sl_dir:
-        print("ERROR: Missing results directory.", file=sys.stderr)
-        sys.exit(1)
-
-    print(f"Reading:\n  Sidecar:     {sc_dir}\n  Sidecarless: {sl_dir}\n")
-    sc = load_series(sc_dir)
+    print(f"Reading:\n  Sidecarless: {sl_dir}\n")
+    # Bypass sidecar
+    sc = {k: [np.nan] * len(LOAD_KEYS) for k in ("p50", "p90", "p99", "p999", "qps")}
     sl = load_series(sl_dir)
 
     # Print table
