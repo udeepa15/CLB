@@ -47,6 +47,29 @@ struct {
  */
 static __u32 shared_global_key = 0;
 
+/*
+ * CONTENTION EXPERIMENT: Lock latency histogram.
+ */
+struct {
+    __uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+    __uint(max_entries, 64);
+    __type(key, __u32);
+    __type(value, __u64);
+    __uint(pinning, LIBBPF_PIN_BY_NAME);
+} lock_latency_hist SEC(".maps");
+
+static __always_inline __u32 log2l(__u64 v)
+{
+    __u32 r = 0;
+    if (v >= 0x100000000ULL) { v >>= 32; r += 32; }
+    if (v >= 0x10000ULL) { v >>= 16; r += 16; }
+    if (v >= 0x100ULL) { v >>= 8; r += 8; }
+    if (v >= 0x10ULL) { v >>= 4; r += 4; }
+    if (v >= 0x4ULL) { v >>= 2; r += 2; }
+    if (v >= 0x2ULL) { r += 1; }
+    return r;
+}
+
 SEC("classifier")
 int mesh_router(struct __sk_buff *skb) {
     void *data_end = (void *)(long)skb->data_end;
@@ -88,8 +111,17 @@ int mesh_router(struct __sk_buff *skb) {
         updated_stats.bytes   = skb->len;
     }
 
-    // Force write-lock acquisition on the shared bucket
+    // Force write-lock acquisition on the shared bucket, measured
+    __u64 start = bpf_ktime_get_ns();
     bpf_map_update_elem(&flow_map, &shared_global_key, &updated_stats, BPF_ANY);
+    __u64 duration = bpf_ktime_get_ns() - start;
+
+    __u32 slot = log2l(duration);
+    if (slot >= 64) slot = 63;
+    __u64 *count = bpf_map_lookup_elem(&lock_latency_hist, &slot);
+    if (count) {
+        *count += 1;
+    }
 
     return TC_ACT_OK;
 }
