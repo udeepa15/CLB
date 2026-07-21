@@ -129,10 +129,7 @@
           "allow": false,
           "access": "rwm"
         }
-      ],
-      "cpu": {
-        "cpus": "1"
-      }
+      ]
     },
     "namespaces": [
       {
