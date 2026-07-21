@@ -132,7 +132,9 @@
         }
       ],
       "cpu": {
-        "cpus": "3"
+        "cpus": "3",
+        "quota": 99000,
+        "period": 100000
       }
     },
     "namespaces": [
