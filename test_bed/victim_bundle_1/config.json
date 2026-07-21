@@ -130,12 +130,7 @@
           "allow": false,
           "access": "rwm"
         }
-      ],
-      "cpu": {
-        "cpus": "1",
-        "quota": 99000,
-        "period": 100000
-      }
+      ]
     },
     "namespaces": [
       {

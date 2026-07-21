@@ -1,0 +1,5 @@
+collect_bpftrace_lock.bt:1-5: WARNING: htab_lock_bucket is not traceable (either non-existing, inlined, or marked as "notrace"); attaching to it will likely fail
+collect_bpftrace_lock.bt:8-10: WARNING: htab_lock_bucket is not traceable (either non-existing, inlined, or marked as "notrace"); attaching to it will likely fail
+Attaching 2 probes...
+cannot attach kprobe, probe entry may not exist
+ERROR: Error attaching probe: 'kretprobe:htab_lock_bucket'
