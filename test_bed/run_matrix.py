@@ -77,7 +77,7 @@ def run_experiment(run_id, cfg, out_dir):
     subprocess.run("sed -i 's/ns_victim/ns_victim1/g' victim_bundle_1/config.json", shell=True)
     subprocess.run("sudo runc run --bundle victim_bundle_1 -d victim_container_1", shell=True)
     
-    time.sleep(2) # let python server bind
+    time.sleep(10) # let python server bind
     
     cgroup_path = get_cgroup_path("victim_container_1")
     if not cgroup_path:
@@ -124,7 +124,7 @@ def run_experiment(run_id, cfg, out_dir):
         time.sleep(offset_sec)
         
     # Start Attacker
-    hping = subprocess.Popen("sudo ip netns exec ns_attacker hping3 --udp -p 9999 -i u20 10.0.0.10 &>/dev/null", shell=True, preexec_fn=os.setsid)
+    hping = subprocess.Popen("sudo ip netns exec ns_attacker hping3 --udp -p 9999 -i u20 10.0.0.10 > /dev/null 2>&1", shell=True, preexec_fn=os.setsid)
     
     # Wait for flood to hit
     time.sleep(1)
