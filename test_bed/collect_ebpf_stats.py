@@ -5,7 +5,7 @@ import subprocess
 import json
 
 def get_hist():
-    res = subprocess.run(['sudo', 'bpftool', 'map', 'dump', 'name', 'lock_latency_hist', '-j'], capture_output=True, text=True)
+    res = subprocess.run(['sudo', 'bpftool', 'map', 'dump', 'pinned', '/sys/fs/bpf/tc/globals/lock_latency_hist', '-j'], capture_output=True, text=True)
     if res.returncode != 0:
         return None
     try:

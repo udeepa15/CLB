@@ -29,7 +29,7 @@ EBPF_PID=$!
 # We'll spawn the victims first.
 sudo ./setup_topology.sh
 sudo ./build_runc_bundles.sh
-sudo ip netns exec vic1_ns runc run -d -b victim_bundle_1 vic1_1 
+sudo ip netns exec ns_victim1 runc run -d -b victim_bundle_1 vic1_1 
 sleep 2
 
 # Find the cgroup for vic1_1 (it might be under /sys/fs/cgroup/vic1_1 depending on runc config)
@@ -53,10 +53,10 @@ BPFTRACE_PID=$!
 sudo ./collect_network_stats.sh "$IFACE" "$RUN_DIR" "pre"
 
 echo "Starting 10s flood..."
-sudo ip netns exec att_ns hping3 -S -p 8080 -i u20 10.0.0.11 > /dev/null 2>&1 &
+sudo ip netns exec ns_attacker hping3 -S -p 8080 -i u20 10.0.0.11 > /dev/null 2>&1 &
 HPING_PID=$!
 
-sudo ip netns exec vic1_ns fortio load -c 10 -qps 50 -t 10s -json "${RUN_DIR}/fortio_raw.json" http://10.0.0.11:8080
+sudo ip netns exec ns_victim1 fortio load -c 10 -qps 50 -t 10s -json "${RUN_DIR}/fortio_raw.json" http://10.0.0.11:8080
 
 echo "Stopping flood and collectors..."
 sudo kill -9 $HPING_PID
