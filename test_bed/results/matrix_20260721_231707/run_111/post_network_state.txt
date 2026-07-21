@@ -1,0 +1,77 @@
+=== /proc/softirqs (NET_RX) ===
+      NET_RX:    9541909   10581750    9787545   10648824   14566502   14679994   14162498   13544466
+
+=== mpstat -P ALL ===
+Linux 5.15.0-185-generic (cloudnet-s05) 	07/22/2026 	_x86_64_	(8 CPU)
+
+12:13:36 AM  CPU    %usr   %nice    %sys %iowait    %irq   %soft  %steal  %guest  %gnice   %idle
+12:13:37 AM  all    0.00    0.00    0.13    0.00    0.00    0.00    0.00    0.00    0.00   99.87
+12:13:37 AM    0    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+12:13:37 AM    1    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+12:13:37 AM    2    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+12:13:37 AM    3    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+12:13:37 AM    4    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+12:13:37 AM    5    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+12:13:37 AM    6    0.00    0.00    0.99    0.00    0.00    0.00    0.00    0.00    0.00   99.01
+12:13:37 AM    7    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+
+Average:     CPU    %usr   %nice    %sys %iowait    %irq   %soft  %steal  %guest  %gnice   %idle
+Average:     all    0.00    0.00    0.13    0.00    0.00    0.00    0.00    0.00    0.00   99.87
+Average:       0    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+Average:       1    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+Average:       2    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+Average:       3    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+Average:       4    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+Average:       5    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+Average:       6    0.00    0.00    0.99    0.00    0.00    0.00    0.00    0.00    0.00   99.01
+Average:       7    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+
+=== ip -s -s link show eno6 ===
+7: eno6: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc mq state DOWN mode DEFAULT group default qlen 1000
+    link/ether a0:36:9f:4e:f5:c0 brd ff:ff:ff:ff:ff:ff
+    RX:  bytes packets errors dropped  missed   mcast           
+             0       0      0       0       0       0 
+    RX errors:  length    crc   frame    fifo overrun           
+                     0      0       0       0       0 
+    TX:  bytes packets errors dropped carrier collsns           
+             0       0      0       0       0       0 
+    TX errors: aborted   fifo  window heartbt transns
+                     0      0       0       0       1 
+    altname enp12s0f0
+
+=== nstat drops ===
+TcpExtLockDroppedIcmps          0                  0.0
+TcpExtListenDrops               0                  0.0
+TcpExtTCPBacklogCoalesce        35                 0.0
+TcpExtTCPBacklogDrop            0                  0.0
+TcpExtPFMemallocDrop            0                  0.0
+TcpExtTCPMinTTLDrop             0                  0.0
+TcpExtTCPDeferAcceptDrop        0                  0.0
+TcpExtTCPReqQFullDrop           0                  0.0
+TcpExtTCPOFODrop                0                  0.0
+TcpExtTCPZeroWindowDrop         0                  0.0
+TcpExtTCPRcvQDrop               0                  0.0
+MPTcpExtAddAddrDrop             0                  0.0
+MPTcpExtRmAddrDrop              0                  0.0
+
+=== ethtool -S eno6 ===
+     rx_errors: 0
+     tx_errors: 0
+     rx_dropped: 0
+     tx_dropped: 0
+     rx_over_errors: 0
+     rx_crc_errors: 0
+     rx_frame_errors: 0
+     rx_fifo_errors: 0
+     rx_missed_errors: 0
+     tx_aborted_errors: 0
+     tx_carrier_errors: 0
+     tx_fifo_errors: 0
+     tx_heartbeat_errors: 0
+     rx_length_errors: 0
+     rx_long_length_errors: 0
+     rx_short_length_errors: 0
+     rx_csum_offload_errors: 0
+     alloc_rx_page_failed: 0
+     alloc_rx_buff_failed: 0
+     rx_fcoe_dropped: 0
