@@ -108,8 +108,8 @@ def run_experiment(run_id, total_runs, cfg, out_dir):
                 subprocess.run(f"chrt -f -p 99 {pid} 2>/dev/null", shell=True)
                 
     # Start pollers
-    cgroup_poller = subprocess.Popen(["sudo", "./collect_cgroup_stats.py", cgroup_path, os.path.join(run_path, "cgroup.csv")])
-    ebpf_poller = subprocess.Popen(["sudo", "./collect_ebpf_stats.py", os.path.join(run_path, "ebpf.jsonl")])
+    cgroup_poller = subprocess.Popen(["./collect_cgroup_stats.py", cgroup_path, os.path.join(run_path, "cgroup.csv")])
+    ebpf_poller = subprocess.Popen(["./collect_ebpf_stats.py", os.path.join(run_path, "ebpf.jsonl")])
     
     # Network state pre
     subprocess.run(["sudo", "./collect_network_stats.sh", "eno6", run_path, "pre"])
@@ -134,9 +134,9 @@ def run_experiment(run_id, total_runs, cfg, out_dir):
     subprocess.run(fortio_cmd, shell=True)
     
     # Stop everything
-    subprocess.run("sudo pkill -9 -f 'hping3'", shell=True)
-    cgroup_poller.send_signal(signal.SIGINT)
-    ebpf_poller.send_signal(signal.SIGINT)
+    subprocess.run("pkill -9 -f 'hping3'", shell=True)
+    cgroup_poller.kill()
+    ebpf_poller.kill()
     
     # Network state post
     subprocess.run(["sudo", "./collect_network_stats.sh", "eno6", run_path, "post"])
