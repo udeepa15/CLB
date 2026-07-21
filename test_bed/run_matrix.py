@@ -58,8 +58,8 @@ def set_irq_affinity(iface, core_bitmask):
     except Exception as e:
         print(f"Error setting IRQ affinity: {e}")
 
-def run_experiment(run_id, cfg, out_dir):
-    print(f"\n--- RUN {run_id} ---")
+def run_experiment(run_id, total_runs, cfg, out_dir):
+    print(f"\n--- RUN {run_id + 1} / {total_runs} ---")
     print(f"Config: {cfg}")
     
     run_path = os.path.join(out_dir, f"run_{run_id}")
@@ -181,7 +181,7 @@ def main():
     success_count = 0
     try:
         for i, r in enumerate(runs):
-            valid = run_experiment(i, r, out_dir)
+            valid = run_experiment(i, len(runs), r, out_dir)
             
             # Update manifest
             status = 'SUCCESS' if valid else 'FAILED'
