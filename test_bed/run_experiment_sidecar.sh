@@ -66,7 +66,9 @@ for flood_arg in "${FLOOD_ARR[@]}"; do
         P2=$!
         taskset -c 6 ip netns exec ns_attacker hping3 --udp -p 9999 --interval "${flood_arg}" 10.0.0.10 &>/dev/null &
         P3=$!
-        ATTACKER_PID="$P1 $P2 $P3"
+        taskset -c 7 ip netns exec ns_attacker hping3 --udp -p 9999 --interval "${flood_arg}" 10.0.0.10 &>/dev/null &
+        P4=$!
+        ATTACKER_PID="$P1 $P2 $P3 $P4"
         sleep "$WARMUP_SEC"
     fi
 
