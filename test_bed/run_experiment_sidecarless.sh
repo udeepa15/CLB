@@ -3,11 +3,11 @@
 
 set -euo pipefail
 
-FLOOD_ARR=(0 u1000 u500 u200 u100 u50 u20 u10 u5 u2 u1)
+FLOOD_ARR=(0 u200 u20 u2)
 FORTIO_QPS=500
 FORTIO_CONNS=10
-DURATION_SEC=30
-WARMUP_SEC=3
+DURATION_SEC=10
+WARMUP_SEC=2
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 RESULTS_DIR="results/sidecarless/$TIMESTAMP"
 
@@ -16,6 +16,14 @@ mkdir -p "$RESULTS_DIR"
 
 echo "Step 1: Attaching eBPF..."
 ./attach_ebpf.sh
+
+echo "Configuring RPS to force eBPF/network stack softirqs on CPU Core 1..."
+for dev in veth-att-br br-mesh veth-vic1-br veth-vic2-br veth-vic3-br; do
+    if [ -d "/sys/class/net/$dev/queues/rx-0" ]; then
+        echo "2" > "/sys/class/net/$dev/queues/rx-0/rps_cpus"
+        echo "  RPS configured for $dev"
+    fi
+done
 
 echo "Step 2: Spawning runc containers..."
 runc kill attacker_container KILL 2>/dev/null || true; runc delete attacker_container 2>/dev/null || true
@@ -30,8 +38,8 @@ for i in 1 2 3; do
     runc run --bundle "victim_bundle_$i" -d "victim_container_$i"
 done
 
-echo "Waiting for HTTP servers..."
-sleep 2
+echo "Waiting for HTTP servers to start..."
+sleep 5
 
 cleanup_trap() {
     pkill -9 -f 'hping3' 2>/dev/null || true
