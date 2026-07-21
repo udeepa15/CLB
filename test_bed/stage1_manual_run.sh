@@ -9,7 +9,7 @@ mkdir -p "$RUN_DIR"
 echo "=== Stage 1 Manual Run ==="
 echo "Output Directory: $RUN_DIR"
 
-# Ensure eBPF is compiled
+# Compile eBPF
 clang -O2 -target bpf -c ebpf_mesh_router.c -o ebpf_mesh_router.o
 if [ $? -ne 0 ]; then
     echo "eBPF compilation failed"
@@ -20,30 +20,33 @@ fi
 sudo ./attach_ebpf.sh
 sleep 1
 
+# Setup Topology & Base Bundles
+sudo ./setup_topology.sh
+sudo ./build_runc_bundles.sh
+
+# Start Attacker Container
+sudo runc kill attacker_container KILL 2>/dev/null || true; sudo runc delete attacker_container 2>/dev/null || true
+sudo runc run --bundle attacker_bundle -d attacker_container
+
+# Start Victim 1 Container
+sudo runc kill "victim_container_1" KILL 2>/dev/null || true; sudo runc delete "victim_container_1" 2>/dev/null || true
+rm -rf "victim_bundle_1"
+cp -r victim_bundle "victim_bundle_1"
+sed -i "s/ns_victim/ns_victim1/g" "victim_bundle_1/config.json"
+sudo runc run --bundle "victim_bundle_1" -d "victim_container_1"
+sleep 2
+
 # Start Collectors
 echo "Starting collectors..."
 sudo ./collect_ebpf_stats.py "${RUN_DIR}/ebpf_lock_hist.jsonl" &
 EBPF_PID=$!
 
-# For cgroup stats, we need the victim cgroup path.
-# We'll spawn the victims first.
-sudo ./setup_topology.sh
-sudo ./build_runc_bundles.sh
-sudo ip netns exec ns_victim1 runc run -d -b victim_bundle_1 vic1_1 
-sleep 2
-
-# Find the cgroup for vic1_1 (it might be under /sys/fs/cgroup/vic1_1 depending on runc config)
-CGROUP_PATH="/sys/fs/cgroup/vic1_1"
-if [ ! -d "$CGROUP_PATH" ]; then
-    # Fallback to searching
-    CGROUP_PATH=$(find /sys/fs/cgroup -name "*vic1_1*" -type d | head -n 1)
-fi
-
+CGROUP_PATH=$(find /sys/fs/cgroup -name "victim_container_1" -type d | head -n 1)
 if [ -n "$CGROUP_PATH" ]; then
     sudo ./collect_cgroup_stats.py "$CGROUP_PATH" "${RUN_DIR}/cgroup_stats.csv" &
     CGROUP_PID=$!
 else
-    echo "Warning: Could not find vic1_1 cgroup path for stats."
+    echo "Warning: Could not find victim_container_1 cgroup path for stats."
 fi
 
 sudo bpftrace collect_bpftrace_lock.bt > "${RUN_DIR}/bpftrace_lock_wait.txt" 2>&1 &
@@ -53,13 +56,17 @@ BPFTRACE_PID=$!
 sudo ./collect_network_stats.sh "$IFACE" "$RUN_DIR" "pre"
 
 echo "Starting 10s flood..."
-sudo ip netns exec ns_attacker hping3 -S -p 8080 -i u20 10.0.0.11 > /dev/null 2>&1 &
+sudo ip netns exec ns_attacker hping3 --udp -p 9999 -i u20 10.0.0.10 &>/dev/null &
 HPING_PID=$!
 
-sudo ip netns exec ns_victim1 fortio load -c 10 -qps 50 -t 10s -json "${RUN_DIR}/fortio_raw.json" http://10.0.0.11:8080
+# Wait a second for flood to stabilize
+sleep 1
+
+# Run Fortio against Victim 1 (10.0.0.10:80)
+fortio load -c 10 -qps 50 -t 10s -json "${RUN_DIR}/fortio_raw.json" http://10.0.0.10:80/
 
 echo "Stopping flood and collectors..."
-sudo kill -9 $HPING_PID
+sudo pkill -9 -f 'hping3'
 sudo kill -INT $EBPF_PID
 if [ -n "$CGROUP_PID" ]; then
     sudo kill -INT $CGROUP_PID
@@ -69,9 +76,10 @@ sudo kill -INT $BPFTRACE_PID
 # Post-run network stats
 sudo ./collect_network_stats.sh "$IFACE" "$RUN_DIR" "post"
 
-# Cleanup containers
-sudo runc delete -f vic1_1 || true
-sudo ./setup_topology.sh clean || true
+# Cleanup
+sudo runc kill "victim_container_1" KILL 2>/dev/null || true; sudo runc delete "victim_container_1" 2>/dev/null || true
+sudo runc kill attacker_container KILL 2>/dev/null || true; sudo runc delete attacker_container 2>/dev/null || true
+sudo ./setup_topology.sh clean > /dev/null
 
 echo "=== Run Complete ==="
 echo "Please verify the files in $RUN_DIR:"
