@@ -1,0 +1,7 @@
+Loaded 28 successful runs.
+
+--- Statistical Analysis ---
+Mann-Whitney U Test (cpuset_irq < cpu.max @ 90%)
+U-statistic: 8.0, p-value: 0.27473
+CONCLUSION: Not enough evidence to say cpuset+IRQ is better.
+Analysis complete. Plots saved to results/matrix_20260721_225653

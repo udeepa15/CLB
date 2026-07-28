@@ -3,11 +3,9 @@
 
 set -euo pipefail
 
-FLOOD_ARR=(0 u200 u20 u2 u1 flood)
-FORTIO_QPS=50
-FORTIO_CONNS=2
-DURATION_SEC=10
-WARMUP_SEC=2
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/config.sh"
+
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 RESULTS_DIR="results/sidecarless/$TIMESTAMP"
 
