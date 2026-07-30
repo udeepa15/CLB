@@ -1,0 +1,81 @@
+{
+  "RunType": "TCP",
+  "Labels": "tcp://10.0.0.11:8078 , cloudnet-s05",
+  "StartTime": "2026-07-30T09:02:53.824000544+05:30",
+  "RequestedQPS": "50",
+  "RequestedDuration": "10s",
+  "ActualQPS": 49.994003009364214,
+  "ActualDuration": 10001199542,
+  "NumThreads": 2,
+  "Version": "1.57.0",
+  "DurationHistogram": {
+    "Count": 500,
+    "Min": 0.000147553,
+    "Max": 0.001535433,
+    "Sum": 0.3240668809999999,
+    "Avg": 0.0006481337619999998,
+    "StdDev": 0.00022462930267373675,
+    "Data": [
+      {
+        "Start": 0.000147553,
+        "End": 0.001,
+        "Percent": 93,
+        "Count": 465
+      },
+      {
+        "Start": 0.001,
+        "End": 0.001535433,
+        "Percent": 100,
+        "Count": 35
+      }
+    ],
+    "Percentiles": [
+      {
+        "Percentile": 50,
+        "Value": 0.0006050083943965517
+      },
+      {
+        "Percentile": 75,
+        "Value": 0.000834654676724138
+      },
+      {
+        "Percentile": 90,
+        "Value": 0.0009724424461206897
+      },
+      {
+        "Percentile": 99,
+        "Value": 0.0014589425714285713
+      },
+      {
+        "Percentile": 99.9,
+        "Value": 0.0015277839571428576
+      }
+    ]
+  },
+  "ErrorsDurationHistogram": {
+    "Count": 0,
+    "Min": 0,
+    "Max": 0,
+    "Sum": 0,
+    "Avg": 0,
+    "StdDev": 0,
+    "Data": null
+  },
+  "Exactly": 0,
+  "Jitter": false,
+  "Uniform": false,
+  "NoCatchUp": false,
+  "RunID": 0,
+  "AccessLoggerInfo": "",
+  "ID": "2026-07-30-090253_tcp_10_0_0_11_8078_cloudnet_s05",
+  "Destination": "tcp://10.0.0.11:8078",
+  "Payload": null,
+  "UnixDomainSocket": "",
+  "ReqTimeout": 0,
+  "RetCodes": {
+    "OK": 500
+  },
+  "SocketCount": 2,
+  "BytesSent": 12048,
+  "BytesReceived": 12048
+}

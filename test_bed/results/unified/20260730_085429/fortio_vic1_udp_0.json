@@ -1,0 +1,80 @@
+{
+  "RunType": "UDP",
+  "Labels": "udp://10.0.0.10:8078 , cloudnet-s05",
+  "StartTime": "2026-07-30T09:03:45.933558891+05:30",
+  "RequestedQPS": "50",
+  "RequestedDuration": "10s",
+  "ActualQPS": 49.994178217941865,
+  "ActualDuration": 10001164492,
+  "NumThreads": 2,
+  "Version": "1.57.0",
+  "DurationHistogram": {
+    "Count": 500,
+    "Min": 0.00015696,
+    "Max": 0.001873915,
+    "Sum": 0.2940760039999998,
+    "Avg": 0.0005881520079999995,
+    "StdDev": 0.00030408338101005865,
+    "Data": [
+      {
+        "Start": 0.00015696,
+        "End": 0.001,
+        "Percent": 87.4,
+        "Count": 437
+      },
+      {
+        "Start": 0.001,
+        "End": 0.001873915,
+        "Percent": 100,
+        "Count": 63
+      }
+    ],
+    "Percentiles": [
+      {
+        "Percentile": 50,
+        "Value": 0.0006384209174311927
+      },
+      {
+        "Percentile": 75,
+        "Value": 0.0008801181651376146
+      },
+      {
+        "Percentile": 90,
+        "Value": 0.0011803316666666665
+      },
+      {
+        "Percentile": 99,
+        "Value": 0.0018045566666666667
+      },
+      {
+        "Percentile": 99.9,
+        "Value": 0.0018669791666666672
+      }
+    ]
+  },
+  "ErrorsDurationHistogram": {
+    "Count": 0,
+    "Min": 0,
+    "Max": 0,
+    "Sum": 0,
+    "Avg": 0,
+    "StdDev": 0,
+    "Data": null
+  },
+  "Exactly": 0,
+  "Jitter": false,
+  "Uniform": false,
+  "NoCatchUp": false,
+  "RunID": 0,
+  "AccessLoggerInfo": "",
+  "ID": "2026-07-30-090345_udp_10_0_0_10_8078_cloudnet_s05",
+  "Destination": "udp://10.0.0.10:8078",
+  "Payload": null,
+  "ReqTimeout": 0,
+  "RetCodes": {
+    "OK": 500
+  },
+  "SocketCount": 2,
+  "BytesSent": 12048,
+  "BytesReceived": 12048
+}

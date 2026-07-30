@@ -1,0 +1,105 @@
+{
+  "RunType": "TCP",
+  "Labels": "tcp://10.0.0.10:8078 , cloudnet-s05",
+  "StartTime": "2026-07-30T09:03:23.960391333+05:30",
+  "RequestedQPS": "50",
+  "RequestedDuration": "10s",
+  "ActualQPS": 49.963876681750904,
+  "ActualDuration": 10007229887,
+  "NumThreads": 2,
+  "Version": "1.57.0",
+  "DurationHistogram": {
+    "Count": 500,
+    "Min": 0.000254188,
+    "Max": 0.01178476,
+    "Sum": 0.4166094910000002,
+    "Avg": 0.0008332189820000005,
+    "StdDev": 0.0007979856360907286,
+    "Data": [
+      {
+        "Start": 0.000254188,
+        "End": 0.001,
+        "Percent": 78.6,
+        "Count": 393
+      },
+      {
+        "Start": 0.001,
+        "End": 0.002,
+        "Percent": 99,
+        "Count": 102
+      },
+      {
+        "Start": 0.003,
+        "End": 0.004,
+        "Percent": 99.2,
+        "Count": 1
+      },
+      {
+        "Start": 0.007,
+        "End": 0.008,
+        "Percent": 99.6,
+        "Count": 2
+      },
+      {
+        "Start": 0.008,
+        "End": 0.009000000000000001,
+        "Percent": 99.8,
+        "Count": 1
+      },
+      {
+        "Start": 0.011,
+        "End": 0.01178476,
+        "Percent": 100,
+        "Count": 1
+      }
+    ],
+    "Percentiles": [
+      {
+        "Percentile": 50,
+        "Value": 0.0007279308265306123
+      },
+      {
+        "Percentile": 75,
+        "Value": 0.000965753530612245
+      },
+      {
+        "Percentile": 90,
+        "Value": 0.0015588235294117648
+      },
+      {
+        "Percentile": 99,
+        "Value": 0.002
+      },
+      {
+        "Percentile": 99.9,
+        "Value": 0.011392380000000028
+      }
+    ]
+  },
+  "ErrorsDurationHistogram": {
+    "Count": 0,
+    "Min": 0,
+    "Max": 0,
+    "Sum": 0,
+    "Avg": 0,
+    "StdDev": 0,
+    "Data": null
+  },
+  "Exactly": 0,
+  "Jitter": false,
+  "Uniform": false,
+  "NoCatchUp": false,
+  "RunID": 0,
+  "AccessLoggerInfo": "",
+  "ID": "2026-07-30-090323_tcp_10_0_0_10_8078_cloudnet_s05",
+  "Destination": "tcp://10.0.0.10:8078",
+  "Payload": null,
+  "UnixDomainSocket": "",
+  "ReqTimeout": 0,
+  "RetCodes": {
+    "OK": 500
+  },
+  "SocketCount": 2,
+  "BytesSent": 12048,
+  "BytesReceived": 12048
+}
