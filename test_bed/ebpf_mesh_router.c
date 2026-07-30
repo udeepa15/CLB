@@ -111,9 +111,12 @@ int mesh_router(struct __sk_buff *skb) {
         updated_stats.bytes   = skb->len;
     }
 
-    // Force write-lock acquisition on the shared bucket, measured
+    // Force write-lock acquisition on the shared bucket across competing CPUs
     __u64 start = bpf_ktime_get_ns();
-    bpf_map_update_elem(&flow_map, &shared_global_key, &updated_stats, BPF_ANY);
+    #pragma unroll
+    for (int i = 0; i < 50; i++) {
+        bpf_map_update_elem(&flow_map, &shared_global_key, &updated_stats, BPF_ANY);
+    }
     __u64 duration = bpf_ktime_get_ns() - start;
 
     __u32 slot = log2l(duration);

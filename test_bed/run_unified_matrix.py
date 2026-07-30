@@ -208,9 +208,10 @@ def run_matrix_combination(arch, protocol, results_dir, flood_steps):
         if flood_arg != "0":
             hping_flag = "--flood" if flood_arg == "flood" else f"--interval {flood_arg}"
             for c in range(4, 8):
-                cmd = f"taskset -c {c} ip netns exec ns_attacker hping3 --udp -p 9999 {hping_flag} 10.0.0.10"
-                proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                attacker_procs.append(proc)
+                for _ in range(2):  # 2 parallel workers per core for intense lock contention
+                    cmd = f"taskset -c {c} ip netns exec ns_attacker hping3 --udp -p 9999 {hping_flag} 10.0.0.10"
+                    proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    attacker_procs.append(proc)
             time.sleep(SHARED_CONFIG["warmup_sec"])
             
         # Run fortio for all 3 victims concurrently
