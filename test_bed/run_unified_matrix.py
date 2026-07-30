@@ -117,7 +117,7 @@ def build_fortio_cmd(protocol, target_ip, port, qps, conns, duration_sec, out_js
 
 def extract_fortio_metrics(json_file_path):
     if not os.path.exists(json_file_path) or os.path.getsize(json_file_path) == 0:
-        return {"p50_ms": None, "p90_ms": None, "p99_ms": None, "p999_ms": None, "qps": None}
+        return {"p50_ms": None, "p90_ms": None, "p99_ms": None, "p999_ms": None, "actual_qps": None}
     try:
         with open(json_file_path, "r") as f:
             data = json.load(f)
@@ -152,11 +152,11 @@ def run_matrix_combination(arch, protocol, results_dir, flood_steps):
     log(f"Starting Matrix Run | Arch: {arch} | Protocol: {protocol} | Port: {port}")
     
     # Step 1: Infrastructure Setup
-    run_cmd("sudo ./setup_topology.sh")
+    run_cmd("./setup_topology.sh")
     
     if arch == "sidecarless":
         log("Attaching eBPF TC classifiers...")
-        run_cmd("sudo ./attach_ebpf.sh")
+        run_cmd("./attach_ebpf.sh")
     else:
         log("Detaching eBPF classifiers for Sidecar baseline...")
         run_cmd("pkill -9 -f 'socat' 2>/dev/null || true", check=False)
@@ -166,14 +166,14 @@ def run_matrix_combination(arch, protocol, results_dir, flood_steps):
     # Step 2: Spawn Containers
     run_cmd("runc kill attacker_container KILL 2>/dev/null || true", check=False)
     run_cmd("runc delete attacker_container 2>/dev/null || true", check=False)
-    run_cmd("runc run --bundle attacker_bundle -d attacker_container")
+    run_cmd("runc run --bundle attacker_bundle -d attacker_container >/dev/null 2>&1")
     
     for v in SHARED_CONFIG["victims"]:
         v_id = v["id"]
         run_cmd(f"runc kill victim_container_{v_id} KILL 2>/dev/null || true", check=False)
         run_cmd(f"runc delete victim_container_{v_id} 2>/dev/null || true", check=False)
         prepare_victim_bundle(v_id, protocol, port)
-        run_cmd(f"runc run --bundle victim_bundle_{v_id} -d victim_container_{v_id}")
+        run_cmd(f"runc run --bundle victim_bundle_{v_id} -d victim_container_{v_id} >/dev/null 2>&1")
         
     time.sleep(5)  # Let servers bind
     
@@ -193,10 +193,10 @@ def run_matrix_combination(arch, protocol, results_dir, flood_steps):
             
             # Launch socat proxy
             if protocol == "udp":
-                socat_cmd = f"ip netns exec {ns} taskset -c 0 socat UDP-LISTEN:{proxy_port},fork,reuseaddr UDP:127.0.0.1:{port} &"
+                socat_cmd = f"ip netns exec {ns} taskset -c 0 socat UDP-LISTEN:{proxy_port},fork,reuseaddr UDP:127.0.0.1:{port}"
             else:
-                socat_cmd = f"ip netns exec {ns} taskset -c 0 socat TCP-LISTEN:{proxy_port},fork,reuseaddr,retry=5 TCP:127.0.0.1:{port} &"
-            run_cmd(socat_cmd, check=False)
+                socat_cmd = f"ip netns exec {ns} taskset -c 0 socat TCP-LISTEN:{proxy_port},fork,reuseaddr,retry=5 TCP:127.0.0.1:{port}"
+            subprocess.Popen(socat_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         time.sleep(2)
         
     # Step 4: Execute Flood Matrix
@@ -204,13 +204,13 @@ def run_matrix_combination(arch, protocol, results_dir, flood_steps):
     for flood_arg in flood_steps:
         log(f"  --> Flood Level: {flood_arg}")
         
-        attacker_pids = []
+        attacker_procs = []
         if flood_arg != "0":
             hping_flag = "--flood" if flood_arg == "flood" else f"--interval {flood_arg}"
             for c in range(4, 8):
-                cmd = f"taskset -c {c} ip netns exec ns_attacker hping3 --udp -p 9999 {hping_flag} 10.0.0.10 &>/dev/null & echo $!"
-                res = run_cmd(cmd)
-                attacker_pids.append(res.stdout.strip())
+                cmd = f"taskset -c {c} ip netns exec ns_attacker hping3 --udp -p 9999 {hping_flag} 10.0.0.10"
+                proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                attacker_procs.append(proc)
             time.sleep(SHARED_CONFIG["warmup_sec"])
             
         # Run fortio for all 3 victims concurrently
@@ -230,9 +230,13 @@ def run_matrix_combination(arch, protocol, results_dir, flood_steps):
         for proc in fortio_procs:
             proc.wait()
             
-        if flood_arg != "0" and attacker_pids:
-            for pid in attacker_pids:
-                run_cmd(f"kill -9 {pid} 2>/dev/null || true", check=False)
+        if flood_arg != "0" and attacker_procs:
+            for proc in attacker_procs:
+                try:
+                    proc.kill()
+                except Exception:
+                    pass
+            run_cmd("pkill -9 -f 'hping3' 2>/dev/null || true", check=False)
             time.sleep(1)
             
         # Parse metrics for summary
