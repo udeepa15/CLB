@@ -13,7 +13,7 @@ clang -g -O2 -target bpf -c "$SRC_FILE" -o "$OBJ_FILE"
 
 echo "Detaching existing filters..."
 for dev in "${INTERFACES[@]}"; do tc qdisc del dev "$dev" clsact 2>/dev/null || true; done
-rm -f /sys/fs/bpf/tc/globals/flow_map /sys/fs/bpf/tc/globals/lock_latency_hist /sys/fs/bpf/ip/globals/flow_map /sys/fs/bpf/flow_map 2>/dev/null || true
+rm -f /sys/fs/bpf/tc/globals/flow_map /sys/fs/bpf/tc/globals/lock_latency_hist /sys/fs/bpf/tc/globals/update_counter_map /sys/fs/bpf/ip/globals/flow_map /sys/fs/bpf/flow_map 2>/dev/null || true
 
 echo "Attaching clsact qdiscs and eBPF filters..."
 for dev in "${INTERFACES[@]}"; do

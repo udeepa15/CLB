@@ -59,7 +59,8 @@ fi
 cp /etc/resolv.conf "$VICTIM_DIR/rootfs/etc/resolv.conf"
 cp /etc/resolv.conf "$ATTACKER_DIR/rootfs/etc/resolv.conf"
 
-echo "Setting up Victim rootfs (Python HTTP server)..."
+echo "Setting up Victim rootfs (Python HTTP server & Fortio gRPC)..."
+cp /usr/bin/fortio "$VICTIM_DIR/rootfs/usr/bin/fortio" 2>/dev/null || true
 if [ ! -f "$VICTIM_DIR/rootfs/usr/bin/python3" ]; then
     # Mount proc/dev inside rootfs to allow apk to run without warnings
     mount -t proc proc "$VICTIM_DIR/rootfs/proc"

@@ -12,7 +12,7 @@ WARMUP_SEC=2
 SUPPORTED_PROTOCOLS=("http" "grpc" "tcp" "udp")
 
 # Port Assignments per Protocol
-PORT_HTTP=80
+PORT_HTTP=8080
 PORT_GRPC=8079
 PORT_TCP=8078
 PORT_UDP=8078

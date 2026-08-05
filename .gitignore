@@ -3,3 +3,4 @@ test_bed/victim_bundle_*
 __pycache__/
 *.o
 *.pyc
+test_bed/victim_bundle/rootfs/usr/bin/fortio

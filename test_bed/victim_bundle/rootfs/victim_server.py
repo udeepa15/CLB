@@ -20,11 +20,21 @@ PORT = int(sys.argv[2]) if len(sys.argv) > 2 else (
 )
 
 def run_http(port):
-    class QuietHTTPHandler(http.server.SimpleHTTPRequestHandler):
+    class QuietHTTPHandler(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200)
+            self.send_header('Content-type', 'text/plain')
+            self.send_header('Content-Length', '2')
+            self.end_headers()
+            self.wfile.write(b"OK")
+
+        def do_POST(self):
+            self.do_GET()
+
         def log_message(self, format, *args):
             pass
 
-    server_address = ('', port)
+    server_address = ('0.0.0.0', port)
     httpd = http.server.HTTPServer(server_address, QuietHTTPHandler)
     print(f"[victim_server] Serving HTTP on port {port}...")
     httpd.serve_forever()

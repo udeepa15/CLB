@@ -30,7 +30,7 @@ SHARED_CONFIG = {
     "protocol_sequence": ["http", "tcp", "udp"],
     "supported_archs": ["sidecarless", "sidecar"],
     "ports": {
-        "http": 80,
+        "http": 8080,
         "grpc": 8079,
         "tcp": 8078,
         "udp": 8078,

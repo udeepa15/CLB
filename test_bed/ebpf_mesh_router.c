@@ -58,6 +58,19 @@ struct {
     __uint(pinning, LIBBPF_PIN_BY_NAME);
 } lock_latency_hist SEC(".maps");
 
+/*
+ * CONTENTION EXPERIMENT: Per-CPU map update counter map.
+ * Tracks total bpf_map_update_elem invocations on shared_global_key = 0.
+ * Independent of lock_latency_hist.
+ */
+struct {
+    __uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+    __uint(max_entries, 1);
+    __type(key, __u32);
+    __type(value, __u64);
+    __uint(pinning, LIBBPF_PIN_BY_NAME);
+} update_counter_map SEC(".maps");
+
 static __always_inline __u32 log2l(__u64 v)
 {
     __u32 r = 0;
@@ -118,6 +131,13 @@ int mesh_router(struct __sk_buff *skb) {
         bpf_map_update_elem(&flow_map, &shared_global_key, &updated_stats, BPF_ANY);
     }
     __u64 duration = bpf_ktime_get_ns() - start;
+
+    // Increment per-CPU map update counter map independently
+    __u32 zero_key = 0;
+    __u64 *update_cnt = bpf_map_lookup_elem(&update_counter_map, &zero_key);
+    if (update_cnt) {
+        *update_cnt += 50;
+    }
 
     __u32 slot = log2l(duration);
     if (slot >= 64) slot = 63;
