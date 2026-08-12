@@ -1,0 +1,17 @@
+#!/usr/bin/env bpftrace
+// collect_bpftrace_lock.bt
+// Captures the wait time to acquire the htab bucket lock.
+
+kprobe:htab_lock_bucket
+{
+    @wait_start[tid] = nsecs;
+}
+
+kretprobe:htab_lock_bucket
+/@wait_start[tid]/
+{
+    @lock_wait_hist = hist(nsecs - @wait_start[tid]);
+    delete(@wait_start[tid]);
+}
+
+// Just dump everything when the script exits (Ctrl+C from runner)

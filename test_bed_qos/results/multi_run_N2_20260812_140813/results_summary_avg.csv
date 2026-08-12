@@ -1,0 +1,13 @@
+arch,protocol,flood_level,reps_count,p50_ms,p90_ms,p99_ms,p999_ms,actual_qps
+sidecar,http,0,6,1.477,2.484,3.772,6.344,49.97
+sidecar,http,flood,6,1.702,2.916,4.158,6.998,49.98
+qos_tiered,http,0,6,1.562,2.485,3.923,9.672,49.97
+qos_dynamic,http,flood,6,1.64,2.665,3.887,7.068,49.97
+sidecarless,http,u20,6,6.109,9.472,11.122,12.509,49.96
+qos_dynamic,http,u20,6,1.785,2.758,3.86,5.114,49.98
+sidecarless,http,flood,6,6.871,10.526,12.275,13.057,49.94
+sidecar,http,u20,6,1.924,3.036,4.719,10.035,49.97
+sidecarless,http,0,6,2.208,3.691,4.851,5.414,49.97
+qos_dynamic,http,0,6,1.766,2.918,5.18,8.504,49.98
+qos_tiered,http,u20,6,1.611,2.665,4.644,8.47,49.97
+qos_tiered,http,flood,6,1.694,2.781,4.081,7.789,49.97

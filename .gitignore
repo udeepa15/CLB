@@ -1,6 +1,9 @@
 test_bed/victim_bundle_[0-9]*
 test_bed/victim_bundle_*
+test_bed_qos/victim_bundle_[0-9]*
+test_bed_qos/victim_bundle_*
 __pycache__/
 *.o
 *.pyc
 test_bed/victim_bundle/rootfs/usr/bin/fortio
+test_bed_qos/victim_bundle/rootfs/usr/bin/fortio
