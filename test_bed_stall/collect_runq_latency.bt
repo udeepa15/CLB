@@ -1,0 +1,28 @@
+#!/usr/bin/env bpftrace
+/*
+ * collect_runq_latency.bt — Netflix-Style CFS Runqueue Latency Tracer.
+ * Measures CFS runqueue latency (nanoseconds from sched_wakeup to sched_switch).
+ * Methodology: Netflix Engineering ("Noisy Neighbor Detection with eBPF").
+ */
+
+BEGIN {
+    printf("Tracing CFS runqueue latency... Hit Ctrl-C to stop.\n");
+}
+
+tracepoint:sched:sched_wakeup,
+tracepoint:sched:sched_wakeup_new {
+    @start[args->pid] = nsecs;
+}
+
+tracepoint:sched:sched_switch {
+    $pid = args->next_pid;
+    if (@start[$pid]) {
+        $delta = nsecs - @start[$pid];
+        @runq_ns = hist($delta);
+        delete(@start[$pid]);
+    }
+}
+
+END {
+    clear(@start);
+}

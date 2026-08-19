@@ -52,14 +52,15 @@ COLOR_SIDECARLESS = "#DC2626"  # Red
 COLOR_QOS_TIERED  = "#059669"  # Green
 COLOR_QOS_DYNAMIC = "#7C3AED"  # Purple
 
-FLOOD_ORDER = ["0", "u200", "u20", "u2", "u1", "flood"]
+FLOOD_ORDER = ["0", "u500", "u200", "u50", "u20", "u5", "u2"]
 FLOOD_LABELS = [
     "Baseline\n(0)",
+    "2k pps\n(u500)",
     "5k pps\n(u200)",
+    "20k pps\n(u50)",
     "50k pps\n(u20)",
-    "500k pps\n(u2)",
-    "1M pps\n(u1)",
-    "Max\n(flood)"
+    "200k pps\n(u5)",
+    "500k pps\n(u2)"
 ]
 
 

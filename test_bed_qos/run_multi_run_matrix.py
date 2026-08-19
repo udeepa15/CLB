@@ -34,7 +34,7 @@ SHARED_CONFIG = {
     "conns": 2,
     "duration_sec": 10,
     "warmup_sec": 2,
-    "flood_arr": ["0", "u200", "u20", "u2", "u1", "flood"],
+    "flood_arr": ["0", "u500", "u200", "u50", "u20", "u5", "u2", "flood"],
     "ports": {
         "http": 8080,
         "grpc": 8079,
