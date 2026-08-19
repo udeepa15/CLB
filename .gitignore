@@ -10,3 +10,6 @@ __pycache__/
 test_bed/victim_bundle/rootfs/usr/bin/fortio
 test_bed_qos/victim_bundle/rootfs/usr/bin/fortio
 test_bed_stall/victim_bundle/rootfs/usr/bin/fortio
+test_bed_qos/workloads/*/results/
+test_bed_qos/workloads/*/victim_bundle_*
+test_bed_qos/workloads/results/
