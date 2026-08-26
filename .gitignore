@@ -1,15 +1,37 @@
+# Python Cache & Bytecode
+__pycache__/
+*.pyc
+
+# Compiled eBPF Objects
+*.o
+*.bpf.o
+
+# Container Bundles & Runtime Locks
 test_bed/victim_bundle_[0-9]*
 test_bed/victim_bundle_*
+test_bed/attacker_bundle*
 test_bed_qos/victim_bundle_[0-9]*
 test_bed_qos/victim_bundle_*
+test_bed_qos/attacker_bundle*
 test_bed_stall/victim_bundle_[0-9]*
 test_bed_stall/victim_bundle_*
-__pycache__/
-*.o
-*.pyc
-test_bed/victim_bundle/rootfs/usr/bin/fortio
-test_bed_qos/victim_bundle/rootfs/usr/bin/fortio
-test_bed_stall/victim_bundle/rootfs/usr/bin/fortio
-test_bed_qos/workloads/*/results/
+test_bed_stall/attacker_bundle*
 test_bed_qos/workloads/*/victim_bundle_*
-test_bed_qos/workloads/results/
+
+# Raw Benchmark Results Data Directories
+test_bed/results/*/raw/
+test_bed_qos/results/*/raw/
+test_bed_qos/workloads/*/results/
+test_bed_stall/results/*/raw/
+
+# Logs & Temporary Files
+*.log
+*.pid
+
+# Archived Historical Data & Prototypes
+archive/
+
+# OS / Editor Cruft
+.DS_Store
+*.swp
+*~

@@ -194,27 +194,30 @@ class AdaptiveAttackerThread(threading.Thread):
 # --- METRICS & PARSING HELPERS ---
 
 def parse_fortio_json(json_file):
-    """Parses Fortio duration histogram and computes P50, P90, P99, P99.9 latency in ms."""
+    """Parses Fortio or retry_client duration histogram and computes P50, P90, P99, P99.9 latency in ms."""
     if not os.path.exists(json_file):
-        return {"p50_ms": 0.0, "p90_ms": 0.0, "p99_ms": 0.0, "p999_ms": 0.0, "actual_qps": 0.0}
+        return {"p50_ms": 0.0, "p90_ms": 0.0, "p99_ms": 0.0, "p999_ms": 0.0, "actual_qps": 0.0, "amplification_factor": 1.0}
     try:
         with open(json_file, "r") as f:
             data = json.load(f)
         dur_hist = data.get("DurationHistogram", {})
-        actual_qps = dur_hist.get("Avg", 0.0)
+        actual_qps = data.get("ActualQPS", dur_hist.get("Avg", 0.0))
+        amp_factor = data.get("AmplificationFactor", 1.0)
         percentiles = {}
         for p in dur_hist.get("Percentiles", []):
-            percentiles[p["Percentile"]] = p["Value"] * 1000.0  # Convert s to ms
+            percentiles[float(p["Percentile"])] = p["Value"] * 1000.0  # Convert s to ms
         return {
             "p50_ms": round(percentiles.get(50.0, 0.0), 3),
             "p90_ms": round(percentiles.get(90.0, 0.0), 3),
             "p99_ms": round(percentiles.get(99.0, 0.0), 3),
             "p999_ms": round(percentiles.get(99.9, 0.0), 3),
-            "actual_qps": round(actual_qps, 2)
+            "actual_qps": round(actual_qps, 2),
+            "amplification_factor": round(amp_factor, 2)
         }
     except Exception as e:
         log(f"Error parsing {json_file}: {e}")
-        return {"p50_ms": 0.0, "p90_ms": 0.0, "p99_ms": 0.0, "p999_ms": 0.0, "actual_qps": 0.0}
+        return {"p50_ms": 0.0, "p90_ms": 0.0, "p99_ms": 0.0, "p999_ms": 0.0, "actual_qps": 0.0, "amplification_factor": 1.0}
+
 
 def parse_controller_log(log_file):
     """Reads controller JSONL log records."""

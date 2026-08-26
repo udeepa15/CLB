@@ -1,3 +1,0 @@
-/home/udeepa/CLB/scripts/trace_redis_dict.bt:18:10-16: ERROR: syntax error, unexpected map, expecting ++ or --
-  delete @start[tid];
-         ~~~~~~

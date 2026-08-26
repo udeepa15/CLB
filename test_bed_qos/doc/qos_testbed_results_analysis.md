@@ -2,9 +2,17 @@
 
 > **Document Goal**: This document provides an exhaustive technical specification of the extended **4-Architecture Testbed** (`~/CLB/test_bed_qos/`) and analyzes the pilot benchmark results ([plots/p99_multi_run_avg.png](file:///home/udeepa/CLB/test_bed_qos/plots/p99_multi_run_avg.png)), detailing the precise architectural mechanisms and root causes behind the observed P99 tail latency behavior.
 
+> [!IMPORTANT]
+> **STATISTICAL DISCLAIMER (PILOT RUN ONLY)**:
+> The metrics and latency numbers reported in this document are derived from preliminary $N=2$ pilot runs intended **solely for pipeline-verification and infrastructure debugging**. They are **NOT** statistically validated findings and must not be cited as definitive benchmark conclusions until full $N=10$ matrix runs and Mann-Whitney U statistical validation are executed.
+
 ---
 
 ## 1. Executive Summary
+
+> [!NOTE]
+> *Preliminary $N=2$ Pilot Data — Subject to Revision after $N=10$ Matrix Runs.*
+
 
 | Architecture | Baseline P99 (`0`) | 50k pps P99 (`u20`) | Max Flood P99 (`flood`) | Net Latency Impact | Primary Architectural Mechanism |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -127,6 +135,11 @@ Results aggregated from 6-trial repetitions per cell ($N=2$ reps $\times$ 3 vict
 
 ## 5. Architectural Takeaways for Research Paper
 
+> [!IMPORTANT]
+> **PRELIMINARY HYPOTHESES (N=2 PILOT ONLY)**:
+> The takeaways listed below represent initial architectural hypotheses observed during pipeline testing ($N=2$). They must be re-verified against $N=10$ statistical runs before inclusion in any final paper.
+
 1. **Lock Contention in Shared eBPF Hash Maps is a Real Vulnerability**: Unmanaged shared key writes in eBPF TC classifiers induce up to **+153% tail latency degradation** under noisy neighbor conditions.
 2. **Per-CPU Sharding Beats Standard Hash Maps**: Sharding tenant rate-limiting state per-CPU (`BPF_MAP_TYPE_PERCPU_HASH`) per **Beeswax (SIGCOMM '26)** provides superior tail latency performance (**3.89 ms**) compared to standard hash maps by eliminating cross-core memory synchronization.
 3. **Dynamic Control Complementing Static Tiering**: Combining Terway-style priority tiering with Stackelberg dynamic control provides robust QoS protection for eBPF service meshes, matching or outperforming sidecar proxy baselines while retaining sidecarless kernel fast-path advantages.
+

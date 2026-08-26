@@ -1,1 +1,0 @@
-wrk2: src/hdr_histogram.c:54: counts_index: Assertion `bucket_index < h->bucket_count' failed.

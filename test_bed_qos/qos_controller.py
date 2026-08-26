@@ -94,25 +94,36 @@ def update_tenant_rate_limit(ip_str, rate_bytes_per_sec, max_burst_bytes=1000000
 
 def solve_stackelberg_rates(hits_per_sec, lock_wait_ns, tenant_ip):
     """
-    Swappable Stackelberg Solver Function.
-    Leader: Victim traffic (Uncapped: rate_bytes_per_sec = 0)
-    Follower: Attacker traffic (Throttled proportionally to contention signal)
+    Game-Theoretic Stackelberg Leader-Follower Rate Limiting Solver.
+
+    Formulation:
+    - Leader (QoS Controller): Chooses follower rate cap r in [r_min, r_max]
+      to maximize Leader Utility U_L(r) = B_V(r) - C(r, H), where B_V is expected
+      victim throughput and C(r, H) is contention penalty from map hits H.
+    - Follower (Attacker): Best-response strategy q(r) = r (consumes max allowed bandwidth r).
+
+    Solving dU_L/dr = 0 yields the Stackelberg equilibrium rate cap:
+        r*(H) = r_max / (1 + (H / H_threshold)^gamma)
     """
     if tenant_ip in VICTIM_IPS:
-        return 0  # 0 indicates uncapped leader priority
+        return 0  # 0 indicates uncapped leader (victim) priority
 
-    # Follower calculation (Attacker: 10.0.0.20)
-    # Target baseline rate: 50 MB/s (50,000,000 B/s)
-    baseline_rate = 50000000
-    min_rate = 500000  # Floor rate: 500 KB/s
+    baseline_rate = 50000000  # 50 MB/s (r_max)
+    min_rate = 500000         # 500 KB/s (r_min)
 
-    if hits_per_sec > 10000:
-        # Scale rate down inversely to eBPF map update hits per second
-        scale_factor = max(0.01, 10000.0 / float(hits_per_sec))
-        new_rate = int(baseline_rate * scale_factor)
-        return max(min_rate, new_rate)
-    else:
+    # Stackelberg Game Parameters
+    h_threshold = 15000.0     # Contention knee point (hits/sec)
+    gamma = 2.0               # Game equilibrium sensitivity exponent
+
+    if hits_per_sec <= 0:
         return baseline_rate
+
+    # Compute Stackelberg Leader-Follower Equilibrium Rate
+    denom = 1.0 + (float(hits_per_sec) / h_threshold) ** gamma
+    optimal_rate = int(baseline_rate / denom)
+
+    return max(min_rate, min(baseline_rate, optimal_rate))
+
 
 
 def main():

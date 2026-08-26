@@ -108,9 +108,10 @@ def run_single_trial(arch, rep, base_dir, raw_dir):
 
     time.sleep(WORKLOAD_CONFIG["warmup_sec"])
 
-    # 6. Execute Fortio Load with Retries
+    # 6. Execute Naive Zero-Backoff HTTP Retry Load Client
     fortio_json = os.path.join(raw_dir, f"fortio_{trial_id}.json")
-    f_cmd = f"taskset -c 0 fortio load -c {WORKLOAD_CONFIG['conns']} -qps {WORKLOAD_CONFIG['qps']} -t {WORKLOAD_CONFIG['duration_sec']}s -json {fortio_json} http://{WORKLOAD_CONFIG['victim1_ip']}:{WORKLOAD_CONFIG['port_http']}/"
+    retry_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "retry_client.py")
+    f_cmd = f"python3 {retry_script} http://{WORKLOAD_CONFIG['victim1_ip']}:{WORKLOAD_CONFIG['port_http']}/ --qps {WORKLOAD_CONFIG['qps']} --duration {WORKLOAD_CONFIG['duration_sec']} --conns {WORKLOAD_CONFIG['conns']} --out {fortio_json}"
     res = subprocess.run(f_cmd, shell=True, capture_output=True, text=True)
 
     # Cleanup
@@ -124,7 +125,7 @@ def run_single_trial(arch, rep, base_dir, raw_dir):
     run_cmd("runc delete victim_container_1 2>/dev/null || true", check=False)
 
     if res.returncode != 0:
-        log(f"CRITICAL ERROR: Fortio run failed for trial {trial_id}!")
+        log(f"CRITICAL ERROR: Retry load generator failed for trial {trial_id}!")
         sys.exit(1)
 
     time.sleep(1.0)
@@ -164,8 +165,7 @@ def main():
         log(f"\n[Trial {idx}/{len(trials)}] Arch: {t['arch']} | Rep: {t['rep']}")
         fortio_json = run_single_trial(t["arch"], t["rep"], base_dir, raw_dir)
         metrics = parse_fortio_json(fortio_json)
-        intended_calls = WORKLOAD_CONFIG["qps"] * WORKLOAD_CONFIG["duration_sec"]
-        amplification_factor = round(metrics["actual_qps"] * WORKLOAD_CONFIG["duration_sec"] / intended_calls, 2) if intended_calls > 0 else 1.0
+        amplification_factor = metrics.get("amplification_factor", 1.0)
         results_raw.append({
             "arch": t["arch"],
             "protocol": "http",

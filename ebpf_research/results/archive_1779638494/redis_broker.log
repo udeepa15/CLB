@@ -1,9 +1,0 @@
-473657:C 24 May 2026 18:46:19.348 # oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
-473657:C 24 May 2026 18:46:19.348 # Redis version=6.0.16, bits=64, commit=00000000, modified=0, pid=473657, just started
-473657:C 24 May 2026 18:46:19.349 # Configuration loaded
-473657:M 24 May 2026 18:46:19.350 * Increased maximum number of open files to 10032 (it was originally set to 1024).
-473657:M 24 May 2026 18:46:19.350 # Could not create server TCP listening socket 10.200.0.1:6379: bind: Address already in use
-471961:signal-handler (1779631007) Received SIGTERM scheduling shutdown...
-471961:M 24 May 2026 19:26:47.437 # User requested shutdown...
-471961:M 24 May 2026 19:26:47.437 * Removing the pid file.
-471961:M 24 May 2026 19:26:47.437 # Redis is now ready to exit, bye bye...
