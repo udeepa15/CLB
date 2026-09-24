@@ -17,12 +17,13 @@ test_bed_stall/victim_bundle_[0-9]*
 test_bed_stall/victim_bundle_*
 test_bed_stall/attacker_bundle*
 test_bed_qos/workloads/*/victim_bundle_*
+**/rootfs/usr/bin/fortio
 
 # Raw Benchmark Results Data Directories
-test_bed/results/*/raw/
-test_bed_qos/results/*/raw/
+test_bed/results/
+test_bed_qos/results/
 test_bed_qos/workloads/*/results/
-test_bed_stall/results/*/raw/
+test_bed_stall/results/
 
 # Logs & Temporary Files
 *.log

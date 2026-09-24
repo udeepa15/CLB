@@ -191,29 +191,36 @@ def plot_qos_dynamic_timeline(results_dir: str, output_dir: str):
     t0 = df_ctrl["timestamp"].min()
     df_ctrl["rel_time"] = df_ctrl["timestamp"] - t0
     df_ctrl["rate_mbps"] = df_ctrl["attacker_rate_limit_bps"] / 1000000.0
+    if "polling_interval_ms" not in df_ctrl.columns:
+        df_ctrl["polling_interval_ms"] = (df_ctrl["dt_sec"] * 1000).round().astype(int)
 
-    fig, ax1 = plt.subplots(figsize=(9, 4.5))
+    fig, ax1 = plt.subplots(figsize=(10, 4.8))
     ax1.set_facecolor("#FFFFFF")
     fig.patch.set_facecolor("#F8FAFC")
 
     # Plot eBPF Hit Rate Signal (Left Axis)
     line1 = ax1.plot(df_ctrl["rel_time"], df_ctrl["hits_per_sec"], color="#DC2626", linestyle="-", linewidth=2.0, label="eBPF Hit Rate (hits/sec)")
+    line2 = ax1.plot(df_ctrl["rel_time"], df_ctrl["rate_mbps"], color="#7C3AED", linestyle="--", linewidth=1.8, label="Attacker Rate Limit (MB/s)")
+
     ax1.set_xlabel("Trial Time (seconds)", labelpad=8)
-    ax1.set_ylabel("eBPF Update Hit Rate (hits/sec)", color="#DC2626", fontweight="bold")
-    ax1.tick_params(axis="y", labelcolor="#DC2626")
+    ax1.set_ylabel("eBPF Update Hit Rate (hits/sec) / Rate Limit (MB/s)", color="#1E293B", fontweight="bold")
+    ax1.tick_params(axis="y", labelcolor="#1E293B")
     ax1.grid(True, linestyle=":", alpha=0.6)
 
-    # Plot Controller Attacker Rate Limit (Right Axis)
+    # Plot Controller Polling Interval (Right Axis as step graph)
     ax2 = ax1.twinx()
-    line2 = ax2.plot(df_ctrl["rel_time"], df_ctrl["rate_mbps"], color="#7C3AED", linestyle="--", linewidth=2.2, label="Stackelberg Attacker Rate Limit (MB/s)")
-    ax2.set_ylabel("Attacker Rate Limit (MB/s)", color="#7C3AED", fontweight="bold")
-    ax2.tick_params(axis="y", labelcolor="#7C3AED")
+    line3 = ax2.plot(df_ctrl["rel_time"], df_ctrl["polling_interval_ms"], color="#2563EB", linestyle="-", linewidth=2.0, drawstyle="steps-post", label="Polling Interval (ms)")
+    ax2.set_ylabel("Polling Interval (ms)", color="#2563EB", fontweight="bold")
+    ax2.tick_params(axis="y", labelcolor="#2563EB")
+    ax2.set_yscale("log")
+    ax2.set_yticks([20, 200, 1000])
+    ax2.get_yaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
 
-    lines = line1 + line2
+    lines = line1 + line2 + line3
     labels = [l.get_label() for l in lines]
-    ax1.legend(lines, labels, loc="upper right", frameon=True, facecolor="#FFFFFF", edgecolor="#D1D5DB")
+    ax1.legend(lines, labels, loc="upper right", frameon=True, facecolor="#FFFFFF", edgecolor="#D1D5DB", fontsize=8.5)
 
-    plt.title("Stackelberg Controller Real-Time Reaction to eBPF Contention Signals", fontweight="bold", pad=12)
+    plt.title("Stackelberg Controller Adaptive Polling Interval vs Contention Signals", fontweight="bold", pad=12)
     plt.tight_layout()
 
     out_file = os.path.join(output_dir, "qos_dynamic_controller_timeline.png")

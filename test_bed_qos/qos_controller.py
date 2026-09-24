@@ -129,12 +129,17 @@ def solve_stackelberg_rates(hits_per_sec, lock_wait_ns, tenant_ip):
 def main():
     parser = argparse.ArgumentParser(description="Userspace Stackelberg Dynamic Rate Controller")
     parser.add_argument("--log-file", type=str, default="qos_controller_log.jsonl", help="Path to controller log file")
-    parser.add_argument("--interval", type=float, default=0.2, help="Control loop interval in seconds")
+    parser.add_argument("--interval", type=float, default=0.2, help="Baseline control loop interval in seconds")
+    parser.add_argument("--adaptive", action="store_true", default=True, help="Enable derivative-based adaptive polling interval")
+    parser.add_argument("--no-adaptive", action="store_false", dest="adaptive", help="Disable adaptive polling (use fixed interval)")
+    parser.add_argument("--spike-threshold", type=float, default=5000.0, help="Derivative threshold for 20ms spike polling (hits/sec^2)")
+    parser.add_argument("--flat-threshold", type=float, default=500.0, help="Derivative threshold for flat calm polling (hits/sec^2)")
+    parser.add_argument("--calm-cycles", type=int, default=5, help="Consecutive calm cycles required before relaxing to 1000ms")
     args = parser.parse_args()
 
     os.makedirs(os.path.dirname(os.path.abspath(args.log_file)), exist_ok=True)
 
-    print(f"[{datetime.now().strftime('%H:%M:%S')}] Starting Stackelberg QoS Controller (interval={args.interval}s, log={args.log_file})...")
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] Starting Stackelberg QoS Controller (baseline={args.interval}s, adaptive={args.adaptive}, log={args.log_file})...")
 
     # Initialize tenant limits
     for v_ip in VICTIM_IPS:
@@ -143,10 +148,14 @@ def main():
 
     last_hits = read_update_counter()
     last_time = time.time()
+    last_hits_per_sec = 0.0
+
+    current_interval = args.interval
+    calm_counter = 0
 
     with open(args.log_file, "a") as log_f:
         while True:
-            time.sleep(args.interval)
+            time.sleep(current_interval)
             now = time.time()
             dt = now - last_time
             if dt <= 0:
@@ -156,8 +165,32 @@ def main():
             delta_hits = current_hits - last_hits
             hits_per_sec = float(delta_hits) / dt
 
+            # Compute derivative of lock contention metric (dC/dt)
+            delta_c = hits_per_sec - last_hits_per_sec
+            derivative = delta_c / dt
+
             last_hits = current_hits
             last_time = now
+            last_hits_per_sec = hits_per_sec
+
+            # Adaptive Polling State Machine
+            if args.adaptive:
+                if derivative > args.spike_threshold or delta_c > args.spike_threshold:
+                    # Spike Condition: instantly drop sleep interval to 20ms (0.02s)
+                    current_interval = 0.02
+                    calm_counter = 0
+                elif abs(derivative) < args.flat_threshold:
+                    # Calm Condition: increment counter
+                    calm_counter += 1
+                    if calm_counter >= args.calm_cycles:
+                        # Relax interval to 1000ms (1.0s) after N calm cycles
+                        current_interval = 1.0
+                else:
+                    # Default/Recovery: Return to baseline 200ms (0.2s)
+                    calm_counter = 0
+                    current_interval = args.interval
+            else:
+                current_interval = args.interval
 
             # Compute Stackelberg rates
             attacker_rate = solve_stackelberg_rates(hits_per_sec, 0, ATTACKER_IP)
@@ -168,8 +201,10 @@ def main():
                 "dt_sec": round(dt, 4),
                 "hits_per_sec": round(hits_per_sec, 2),
                 "delta_hits": delta_hits,
+                "contention_derivative": round(derivative, 2),
                 "attacker_rate_limit_bps": attacker_rate,
-                "victim_rate_limit_bps": 0
+                "victim_rate_limit_bps": 0,
+                "polling_interval_ms": int(round(current_interval * 1000))
             }
 
             log_f.write(json.dumps(record) + "\n")
@@ -178,3 +213,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

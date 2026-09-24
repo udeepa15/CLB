@@ -33,8 +33,9 @@ def main():
     u_stat, p_val = compute_mann_whitney_u(tiered, dynamic)
     print(f"Mann-Whitney U Test: U={u_stat:.1f}, p={p_val:.4f}")
 
+    import shutil
     plt.figure(figsize=(7, 5))
-    sns.boxplot(data=df, x="arch", y="p99_ms", palette="Set2")
+    sns.boxplot(data=df, x="arch", y="p99_ms", hue="arch", palette="Set2", legend=False)
     plt.title("Workload 02: Bursty Oscillating Flood P99 Latency")
     plt.ylabel("Victim P99 Latency (ms)")
     plots_dir = os.path.join(latest_dir, "plots")
@@ -42,6 +43,10 @@ def main():
     out_plot = os.path.join(plots_dir, "bursty_p99_box.png")
     plt.savefig(out_plot, dpi=300, bbox_inches="tight")
     plt.close()
+
+    top_plots_dir = os.path.join(script_dir, "plots")
+    os.makedirs(top_plots_dir, exist_ok=True)
+    shutil.copy(out_plot, os.path.join(top_plots_dir, "bursty_p99_box.png"))
 
 if __name__ == "__main__":
     main()
