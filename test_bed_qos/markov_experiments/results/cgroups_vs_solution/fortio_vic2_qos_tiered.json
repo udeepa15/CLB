@@ -1,0 +1,207 @@
+{
+  "RunType": "HTTP",
+  "Labels": "10.0.0.11:8080/ , cloudnet-s05",
+  "StartTime": "2026-10-07T06:52:37.28556994+05:30",
+  "RequestedQPS": "50",
+  "RequestedDuration": "10s",
+  "ActualQPS": 49.960560723688126,
+  "ActualDuration": 10007894082,
+  "NumThreads": 2,
+  "Version": "1.57.0",
+  "DurationHistogram": {
+    "Count": 500,
+    "Min": 0.000634246,
+    "Max": 0.00701518,
+    "Sum": 0.4933049020000001,
+    "Avg": 0.000986609804,
+    "StdDev": 0.00045256467637332147,
+    "Data": [
+      {
+        "Start": 0.000634246,
+        "End": 0.001,
+        "Percent": 61.2,
+        "Count": 306
+      },
+      {
+        "Start": 0.001,
+        "End": 0.002,
+        "Percent": 99.6,
+        "Count": 192
+      },
+      {
+        "Start": 0.006,
+        "End": 0.007,
+        "Percent": 99.8,
+        "Count": 1
+      },
+      {
+        "Start": 0.007,
+        "End": 0.00701518,
+        "Percent": 100,
+        "Count": 1
+      }
+    ],
+    "Percentiles": [
+      {
+        "Percentile": 50,
+        "Value": 0.0009328451672131147
+      },
+      {
+        "Percentile": 75,
+        "Value": 0.001359375
+      },
+      {
+        "Percentile": 90,
+        "Value": 0.0017500000000000003
+      },
+      {
+        "Percentile": 99,
+        "Value": 0.001984375
+      },
+      {
+        "Percentile": 99.9,
+        "Value": 0.007007590000000001
+      }
+    ]
+  },
+  "ErrorsDurationHistogram": {
+    "Count": 0,
+    "Min": 0,
+    "Max": 0,
+    "Sum": 0,
+    "Avg": 0,
+    "StdDev": 0,
+    "Data": null
+  },
+  "Exactly": 0,
+  "Jitter": false,
+  "Uniform": false,
+  "NoCatchUp": false,
+  "RunID": 0,
+  "AccessLoggerInfo": "",
+  "ID": "2026-10-07-065237_10_0_0_11_8080_cloudnet_s05",
+  "RetCodes": {
+    "200": 500
+  },
+  "IPCountMap": {
+    "10.0.0.11:8080": 502
+  },
+  "Insecure": false,
+  "MTLS": false,
+  "CACert": "",
+  "Cert": "",
+  "Key": "",
+  "UnixDomainSocket": "",
+  "URL": "http://10.0.0.11:8080/",
+  "NumConnections": 1,
+  "Compression": false,
+  "DisableFastClient": false,
+  "HTTP10": false,
+  "H2": false,
+  "DisableKeepAlive": false,
+  "AllowHalfClose": false,
+  "FollowRedirects": false,
+  "Resolve": "",
+  "HTTPReqTimeOut": 3000000000,
+  "UserCredentials": "",
+  "ContentType": "",
+  "Payload": "",
+  "MethodOverride": "",
+  "LogErrors": true,
+  "SequentialWarmup": false,
+  "ConnReuseRange": [
+    0,
+    0
+  ],
+  "NoResolveEachConn": false,
+  "Offset": 0,
+  "Resolution": 0.001,
+  "Sizes": {
+    "Count": 500,
+    "Min": 140,
+    "Max": 140,
+    "Sum": 70000,
+    "Avg": 140,
+    "StdDev": 0,
+    "Data": [
+      {
+        "Start": 140,
+        "End": 140,
+        "Percent": 100,
+        "Count": 500
+      }
+    ]
+  },
+  "HeaderSizes": {
+    "Count": 500,
+    "Min": 138,
+    "Max": 138,
+    "Sum": 69000,
+    "Avg": 138,
+    "StdDev": 0,
+    "Data": [
+      {
+        "Start": 138,
+        "End": 138,
+        "Percent": 100,
+        "Count": 500
+      }
+    ]
+  },
+  "Sockets": [
+    251,
+    251
+  ],
+  "SocketCount": 502,
+  "ConnectionStats": {
+    "Count": 502,
+    "Min": 0.000089126,
+    "Max": 0.004896198,
+    "Sum": 0.13026865499999996,
+    "Avg": 0.0002594993127490039,
+    "StdDev": 0.00027732730926658414,
+    "Data": [
+      {
+        "Start": 0.000089126,
+        "End": 0.001,
+        "Percent": 99.20318725099601,
+        "Count": 498
+      },
+      {
+        "Start": 0.001,
+        "End": 0.002,
+        "Percent": 99.800796812749,
+        "Count": 3
+      },
+      {
+        "Start": 0.004,
+        "End": 0.004896198,
+        "Percent": 100,
+        "Count": 1
+      }
+    ],
+    "Percentiles": [
+      {
+        "Percentile": 50,
+        "Value": 0.0005473121167002013
+      },
+      {
+        "Percentile": 75,
+        "Value": 0.0007773215472837023
+      },
+      {
+        "Percentile": 90,
+        "Value": 0.0009153272056338028
+      },
+      {
+        "Percentile": 99,
+        "Value": 0.0009981306006438633
+      },
+      {
+        "Percentile": 99.9,
+        "Value": 0.004446306604000037
+      }
+    ]
+  },
+  "AbortOn": 0
+}

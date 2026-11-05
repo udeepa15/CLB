@@ -1,0 +1,116 @@
+{
+  "sidecarless_baseline": {
+    "arm": "sidecarless_baseline",
+    "vic1": {
+      "p50_ms": 1.885,
+      "p90_ms": 2.806,
+      "p99_ms": 4.8,
+      "p999_ms": 12.073,
+      "actual_qps": 49.98,
+      "amplification_factor": 1.0
+    },
+    "vic2": {
+      "p50_ms": 2.133,
+      "p90_ms": 3.515,
+      "p99_ms": 3.979,
+      "p999_ms": 8.006,
+      "actual_qps": 49.99,
+      "amplification_factor": 1.0
+    }
+  },
+  "cgroups_80": {
+    "arm": "cgroups_80",
+    "vic1": {
+      "p50_ms": 1.917,
+      "p90_ms": 2.813,
+      "p99_ms": 3.214,
+      "p999_ms": 3.454,
+      "actual_qps": 49.99,
+      "amplification_factor": 1.0
+    },
+    "vic2": {
+      "p50_ms": 1.704,
+      "p90_ms": 2.678,
+      "p99_ms": 2.993,
+      "p999_ms": 8.188,
+      "actual_qps": 49.98,
+      "amplification_factor": 1.0
+    }
+  },
+  "cgroups_50": {
+    "arm": "cgroups_50",
+    "vic1": {
+      "p50_ms": 1.466,
+      "p90_ms": 2.687,
+      "p99_ms": 3.778,
+      "p999_ms": 4.024,
+      "actual_qps": 49.99,
+      "amplification_factor": 1.0
+    },
+    "vic2": {
+      "p50_ms": 1.413,
+      "p90_ms": 2.197,
+      "p99_ms": 2.934,
+      "p999_ms": 3.342,
+      "actual_qps": 49.98,
+      "amplification_factor": 1.0
+    }
+  },
+  "qos_tiered": {
+    "arm": "qos_tiered",
+    "vic1": {
+      "p50_ms": 0.853,
+      "p90_ms": 1.471,
+      "p99_ms": 1.989,
+      "p999_ms": 9.369,
+      "actual_qps": 49.99,
+      "amplification_factor": 1.0
+    },
+    "vic2": {
+      "p50_ms": 0.933,
+      "p90_ms": 1.75,
+      "p99_ms": 1.984,
+      "p999_ms": 7.008,
+      "actual_qps": 49.96,
+      "amplification_factor": 1.0
+    }
+  },
+  "qos_dynamic": {
+    "arm": "qos_dynamic",
+    "vic1": {
+      "p50_ms": 0.894,
+      "p90_ms": 1.539,
+      "p99_ms": 1.783,
+      "p999_ms": 1.808,
+      "actual_qps": 49.99,
+      "amplification_factor": 1.0
+    },
+    "vic2": {
+      "p50_ms": 1.085,
+      "p90_ms": 1.823,
+      "p99_ms": 1.989,
+      "p999_ms": 2.26,
+      "actual_qps": 49.99,
+      "amplification_factor": 1.0
+    }
+  },
+  "qos_dtmc_predictive": {
+    "arm": "qos_dtmc_predictive",
+    "vic1": {
+      "p50_ms": 1.081,
+      "p90_ms": 1.819,
+      "p99_ms": 1.985,
+      "p999_ms": 2.073,
+      "actual_qps": 49.99,
+      "amplification_factor": 1.0
+    },
+    "vic2": {
+      "p50_ms": 0.847,
+      "p90_ms": 1.238,
+      "p99_ms": 1.952,
+      "p999_ms": 4.704,
+      "actual_qps": 49.99,
+      "amplification_factor": 1.0
+    }
+  }
+}

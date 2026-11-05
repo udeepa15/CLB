@@ -34,9 +34,12 @@ def run_http(port):
         def log_message(self, format, *args):
             pass  # Suppress request logging for low latency/overhead
 
+    class ThreadedHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
+        allow_reuse_address = True
+
     server_address = ('0.0.0.0', port)
-    httpd = http.server.HTTPServer(server_address, QuietHTTPHandler)
-    print(f"[victim_server] Serving HTTP on port {port}...")
+    httpd = ThreadedHTTPServer(server_address, QuietHTTPHandler)
+    print(f"[victim_server] Serving multi-threaded HTTP on port {port}...")
     httpd.serve_forever()
 
 def run_tcp(port):

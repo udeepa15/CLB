@@ -35,19 +35,10 @@ for dev in "${INTERFACES[@]}"; do
     echo "  Attached to $dev"
 done
 
-# Initialize BPF map entries for qos_tiered mode
+# Initialize BPF map entries for qos_tiered mode.
+# Uses an exact 56-byte struct layout and verifies by read-back; fails loudly.
+# Override the attacker cap with TIER_L2_RATE_BPS (bytes/s, default 5000000).
 if [ "$MODE" = "qos_tiered" ]; then
     sleep 1
-    MAP_PIN="/sys/fs/bpf/tc/globals/tenant_qos_map"
-    if [ -e "$MAP_PIN" ]; then
-        echo "Initializing tenant_qos_map entries via bpftool..."
-        # Helper to convert IP to hex key
-        # 10.0.0.10 -> hex 0x0a00000a (in network byte order: 10 + 0*256 + 0*65536 + 10*16777216)
-        # Victims (10.0.0.10, 10.0.0.11, 10.0.0.12) -> Tier 0 (L0 Uncapped)
-        bpftool map update pinned "$MAP_PIN" key 10 0 0 10 value 0 0 0 0  0 0 0 0 0 0 0 0  0 0 0 0 0 0 0 0  0 0 0 0 0 0 0 0  0 0 0 0 0 0 0 0  0 0 0 0 0 0 0 0  0 0 0 0 0 0 0 0 2>/dev/null || true
-        bpftool map update pinned "$MAP_PIN" key 11 0 0 10 value 0 0 0 0  0 0 0 0 0 0 0 0  0 0 0 0 0 0 0 0  0 0 0 0 0 0 0 0  0 0 0 0 0 0 0 0  0 0 0 0 0 0 0 0  0 0 0 0 0 0 0 0 2>/dev/null || true
-        bpftool map update pinned "$MAP_PIN" key 12 0 0 10 value 0 0 0 0  0 0 0 0 0 0 0 0  0 0 0 0 0 0 0 0  0 0 0 0 0 0 0 0  0 0 0 0 0 0 0 0  0 0 0 0 0 0 0 0  0 0 0 0 0 0 0 0 2>/dev/null || true
-        # Attacker (10.0.0.20) -> Tier 2 (L2 Capped)
-        bpftool map update pinned "$MAP_PIN" key 20 0 0 10 value 2 0 0 0  0 0 0 0 0 0 0 0  0 0 0 0 0 0 0 0  0 0 0 0 0 0 0 0  0 0 0 0 0 0 0 0  0 0 0 0 0 0 0 0  0 0 0 0 0 0 0 0 2>/dev/null || true
-    fi
+    python3 "$(dirname "$0")/seed_tiered_map.py" --l2-rate-bps "${TIER_L2_RATE_BPS:-5000000}"
 fi

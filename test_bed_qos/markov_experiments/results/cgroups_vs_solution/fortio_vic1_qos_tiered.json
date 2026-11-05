@@ -1,0 +1,201 @@
+{
+  "RunType": "HTTP",
+  "Labels": "10.0.0.10:8080/ , cloudnet-s05",
+  "StartTime": "2026-10-07T06:52:37.286157137+05:30",
+  "RequestedQPS": "50",
+  "RequestedDuration": "10s",
+  "ActualQPS": 49.9892203445206,
+  "ActualDuration": 10002156396,
+  "NumThreads": 2,
+  "Version": "1.57.0",
+  "DurationHistogram": {
+    "Count": 500,
+    "Min": 0.000621603,
+    "Max": 0.009738374,
+    "Sum": 0.4494528660000001,
+    "Avg": 0.0008989057320000002,
+    "StdDev": 0.0006099342051928947,
+    "Data": [
+      {
+        "Start": 0.000621603,
+        "End": 0.001,
+        "Percent": 81.8,
+        "Count": 409
+      },
+      {
+        "Start": 0.001,
+        "End": 0.002,
+        "Percent": 99.2,
+        "Count": 87
+      },
+      {
+        "Start": 0.004,
+        "End": 0.005,
+        "Percent": 99.4,
+        "Count": 1
+      },
+      {
+        "Start": 0.007,
+        "End": 0.008,
+        "Percent": 99.8,
+        "Count": 2
+      },
+      {
+        "Start": 0.009000000000000001,
+        "End": 0.009738374,
+        "Percent": 100,
+        "Count": 1
+      }
+    ],
+    "Percentiles": [
+      {
+        "Percentile": 50,
+        "Value": 0.0008525364632352942
+      },
+      {
+        "Percentile": 75,
+        "Value": 0.0009684669166666667
+      },
+      {
+        "Percentile": 90,
+        "Value": 0.001471264367816092
+      },
+      {
+        "Percentile": 99,
+        "Value": 0.001988505747126437
+      },
+      {
+        "Percentile": 99.9,
+        "Value": 0.009369187000000027
+      }
+    ]
+  },
+  "ErrorsDurationHistogram": {
+    "Count": 0,
+    "Min": 0,
+    "Max": 0,
+    "Sum": 0,
+    "Avg": 0,
+    "StdDev": 0,
+    "Data": null
+  },
+  "Exactly": 0,
+  "Jitter": false,
+  "Uniform": false,
+  "NoCatchUp": false,
+  "RunID": 0,
+  "AccessLoggerInfo": "",
+  "ID": "2026-10-07-065237_10_0_0_10_8080_cloudnet_s05",
+  "RetCodes": {
+    "200": 500
+  },
+  "IPCountMap": {
+    "10.0.0.10:8080": 502
+  },
+  "Insecure": false,
+  "MTLS": false,
+  "CACert": "",
+  "Cert": "",
+  "Key": "",
+  "UnixDomainSocket": "",
+  "URL": "http://10.0.0.10:8080/",
+  "NumConnections": 1,
+  "Compression": false,
+  "DisableFastClient": false,
+  "HTTP10": false,
+  "H2": false,
+  "DisableKeepAlive": false,
+  "AllowHalfClose": false,
+  "FollowRedirects": false,
+  "Resolve": "",
+  "HTTPReqTimeOut": 3000000000,
+  "UserCredentials": "",
+  "ContentType": "",
+  "Payload": "",
+  "MethodOverride": "",
+  "LogErrors": true,
+  "SequentialWarmup": false,
+  "ConnReuseRange": [
+    0,
+    0
+  ],
+  "NoResolveEachConn": false,
+  "Offset": 0,
+  "Resolution": 0.001,
+  "Sizes": {
+    "Count": 500,
+    "Min": 140,
+    "Max": 140,
+    "Sum": 70000,
+    "Avg": 140,
+    "StdDev": 0,
+    "Data": [
+      {
+        "Start": 140,
+        "End": 140,
+        "Percent": 100,
+        "Count": 500
+      }
+    ]
+  },
+  "HeaderSizes": {
+    "Count": 500,
+    "Min": 138,
+    "Max": 138,
+    "Sum": 69000,
+    "Avg": 138,
+    "StdDev": 0,
+    "Data": [
+      {
+        "Start": 138,
+        "End": 138,
+        "Percent": 100,
+        "Count": 500
+      }
+    ]
+  },
+  "Sockets": [
+    251,
+    251
+  ],
+  "SocketCount": 502,
+  "ConnectionStats": {
+    "Count": 502,
+    "Min": 0.000088243,
+    "Max": 0.000855137,
+    "Sum": 0.11767854200000002,
+    "Avg": 0.00023441940637450203,
+    "StdDev": 0.00013553464791394684,
+    "Data": [
+      {
+        "Start": 0.000088243,
+        "End": 0.000855137,
+        "Percent": 100,
+        "Count": 502
+      }
+    ],
+    "Percentiles": [
+      {
+        "Percentile": 50,
+        "Value": 0.00047092463672654693
+      },
+      {
+        "Percentile": 75,
+        "Value": 0.0006630308183632734
+      },
+      {
+        "Percentile": 90,
+        "Value": 0.0007782945273453094
+      },
+      {
+        "Percentile": 99,
+        "Value": 0.0008474527527345309
+      },
+      {
+        "Percentile": 99.9,
+        "Value": 0.0008543685752734531
+      }
+    ]
+  },
+  "AbortOn": 0
+}
