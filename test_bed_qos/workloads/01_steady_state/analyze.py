@@ -14,10 +14,11 @@ import seaborn as sns
 
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "shared"))
 from workload_lib import compute_mann_whitney_u
+import stats_common
 
 def main():
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    results_dirs = sorted(glob.glob(os.path.join(script_dir, "results", "multi_run_*")))
+    results_dirs = sorted(glob.glob(os.path.join(script_dir, "results", "multi_run_*")), key=os.path.getmtime)
     if not results_dirs:
         print("No results directory found in 01_steady_state.")
         return
@@ -32,18 +33,9 @@ def main():
     print("=== Workload 01: Steady-State Analysis ===")
     print(df.groupby(["arch", "flood_level"])[["p99_ms", "actual_qps"]].mean())
 
-    # Statistical Test
-    floods = df["flood_level"].unique()
-    alpha_adj = 0.05 / max(1, len(floods))
-    print(f"\nMann-Whitney U Test Results (Bonferroni adjusted alpha = {alpha_adj:.4f}):")
+    stats_common.report(df, metrics=['p99_ms'], group_cols=['flood_level'],
+                        out_csv=os.path.join(latest_dir, "stats"))
 
-    for fl in floods:
-        sub = df[df["flood_level"] == fl]
-        tiered = sub[sub["arch"] == "qos_tiered"]["p99_ms"].tolist()
-        dynamic = sub[sub["arch"] == "qos_dynamic"]["p99_ms"].tolist()
-        u_stat, p_val = compute_mann_whitney_u(tiered, dynamic)
-        sig = "Significant" if p_val < alpha_adj else "Non-Significant (Similar Performance)"
-        print(f"  Flood Level {fl}: U={u_stat:.1f}, p={p_val:.4f} -> {sig}")
 
     # Plot
     plt.figure(figsize=(8, 5))

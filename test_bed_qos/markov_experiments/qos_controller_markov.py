@@ -9,6 +9,8 @@ the hand-tuned hyperparameter threshold (default 60%).
 
 Note on Model Design:
 - Transition count matrix resets to zero at the start of each trial run (t=0) and learns online.
+- Optional forgetting (--forget-lambda exponential decay, or --window sliding window) lets the model
+  track regime changes; defaults (lambda=1, no window) reproduce the original never-forget behaviour.
 - Predict threshold (0.60) is a hand-selected hyperparameter constant.
 """
 
@@ -17,7 +19,9 @@ import sys
 import time
 import json
 import argparse
+import math
 import subprocess
+from collections import deque
 from datetime import datetime
 
 # Tenant IPs
@@ -70,27 +74,51 @@ def read_update_counter():
         return 0
 
 
+def _possible_cpus():
+    """Number of possible CPUs (what per-CPU map values are sized by), e.g. '0-7' -> 8."""
+    try:
+        total = 0
+        for part in open("/sys/devices/system/cpu/possible").read().strip().split(","):
+            lo, _, hi = part.partition("-")
+            total += (int(hi) if hi else int(lo)) - int(lo) + 1
+        return total
+    except Exception:
+        return os.cpu_count() or 8
+
+
+_WARNED = set()
+
+
 def update_tenant_rate_limit(ip_str, rate_bytes_per_sec, max_burst_bytes=10000000):
-    """Write dynamic rate limit into percpu_rate_limit_map via bpftool."""
+    """Write a rate limit for one tenant into percpu_rate_limit_map via bpftool.
+
+    struct rate_limit_entry = 6 x u64 = 48 bytes: rate, burst, tokens, last_update_ns, passed, dropped.
+    bpftool (v5.15.200 verified) takes ONE entry for a per-CPU map and replicates it to every CPU;
+    sending one entry per CPU is rejected ("expected key or value"), which made the old version of this
+    function fail silently. We try the single-entry form first and fall back to one entry per possible
+    CPU for bpftool builds that require it. Failures are reported on stderr (once per distinct error).
+    """
     if not os.path.exists(PERCPU_MAP_PIN):
         return False
 
     key_str = ip_to_bpftool_key(ip_str)
-    num_cpus = os.cpu_count() or 8
 
-    def u64_to_hex_bytes(val):
-        b = val.to_bytes(8, byteorder='little')
-        return " ".join([f"{x}" for x in b])
+    def u64(val):
+        return " ".join(str(x) for x in int(val).to_bytes(8, byteorder="little"))
 
-    rate_bytes = u64_to_hex_bytes(rate_bytes_per_sec)
-    burst_bytes = u64_to_hex_bytes(max_burst_bytes)
-    zero_bytes = "0 0 0 0 0 0 0 0"
+    zero = "0 0 0 0 0 0 0 0"
+    entry = f"{u64(rate_bytes_per_sec)} {u64(max_burst_bytes)} {u64(max_burst_bytes)} {zero} {zero} {zero}"
 
-    single_cpu_val = f"{rate_bytes} {burst_bytes} {burst_bytes} {zero_bytes} {zero_bytes} {zero_bytes}"
-    all_cpus_val = " ".join([single_cpu_val for _ in range(num_cpus)])
-
-    cmd = f"map update pinned {PERCPU_MAP_PIN} key {key_str} value {all_cpus_val}"
-    res = run_bpftool(cmd)
+    res = run_bpftool(f"map update pinned {PERCPU_MAP_PIN} key {key_str} value {entry}")
+    if res.returncode != 0:
+        res = run_bpftool(f"map update pinned {PERCPU_MAP_PIN} key {key_str} value " +
+                          " ".join([entry] * _possible_cpus()))
+    if res.returncode != 0:
+        err = res.stderr.strip()[:200]
+        if err not in _WARNED:
+            _WARNED.add(err)
+            print(f"[WARN] update_tenant_rate_limit({ip_str}, {rate_bytes_per_sec}) FAILED: {err}",
+                  file=sys.stderr, flush=True)
     return res.returncode == 0
 
 
@@ -129,16 +157,39 @@ def discretize_state(hits_per_sec):
 
 
 class DTMCPredictor:
-    """Discrete-Time Markov Chain predictor with Laplace smoothing."""
-    def __init__(self, alpha=0.1):
+    """Discrete-Time Markov Chain predictor with Laplace smoothing and optional forgetting.
+
+    forget_lambda: exponential forgetting; every observed transition first multiplies all
+        counts by lambda (0 < lambda <= 1). lambda=1.0 is the original never-forget model.
+        Effective memory is about 1/(1-lambda) transitions (0.95 -> ~20 ticks).
+    window: if set, only the last `window` transitions are kept (sliding window); counts are
+        integers and old transitions are subtracted as they leave. Mutually exclusive with
+        forget_lambda < 1.
+    """
+    def __init__(self, alpha=0.1, forget_lambda=1.0, window=None):
+        if not 0.0 < forget_lambda <= 1.0:
+            raise ValueError("forget_lambda must be in (0, 1]")
+        if window is not None and (window < 1 or forget_lambda != 1.0):
+            raise ValueError("window must be >= 1 and cannot be combined with forget_lambda < 1")
         self.alpha = alpha
-        # 4x4 transition count matrix N[i][j]
-        self.counts = [[0 for _ in range(4)] for _ in range(4)]
+        self.forget_lambda = forget_lambda
+        self.window = window
+        self.counts = [[0.0 for _ in range(4)] for _ in range(4)]
+        self.history = deque()  # (from, to) pairs, only used for the sliding window
         self.last_state = None
 
     def update(self, current_state):
         if self.last_state is not None:
-            self.counts[self.last_state][current_state] += 1
+            if self.forget_lambda < 1.0:
+                for row in self.counts:
+                    for j in range(4):
+                        row[j] *= self.forget_lambda
+            self.counts[self.last_state][current_state] += 1.0
+            if self.window is not None:
+                self.history.append((self.last_state, current_state))
+                if len(self.history) > self.window:
+                    i, j = self.history.popleft()
+                    self.counts[i][j] -= 1.0
         self.last_state = current_state
 
     def get_transition_matrix(self):
@@ -148,6 +199,14 @@ class DTMCPredictor:
             for j in range(4):
                 matrix[i][j] = (self.counts[i][j] + self.alpha) / row_sum
         return matrix
+
+    def effective_samples(self):
+        """Total (decayed) number of transitions currently supporting the model."""
+        return sum(sum(r) for r in self.counts)
+
+    def row_entropy(self, state):
+        """Shannon entropy (bits) of the predicted next-state distribution for `state`."""
+        return -sum(p * math.log2(p) for p in self.get_transition_matrix()[state] if p > 0)
 
     def predict_high_severe_prob(self, current_state):
         matrix = self.get_transition_matrix()
@@ -161,18 +220,22 @@ def main():
     parser.add_argument("--log-file", type=str, default="qos_controller_markov_log.jsonl", help="Path to controller log file")
     parser.add_argument("--interval", type=float, default=0.1, help="Control loop polling interval in seconds")
     parser.add_argument("--predict-threshold", type=float, default=0.60, help="Probability threshold to trigger pre-emptive rate cap")
+    parser.add_argument("--forget-lambda", type=float, default=1.0,
+                        help="Exponential forgetting factor in (0,1]; 1.0 = never forget (original behaviour)")
+    parser.add_argument("--window", type=int, default=None,
+                        help="Sliding window length in transitions (alternative to --forget-lambda)")
     args = parser.parse_args()
 
     os.makedirs(os.path.dirname(os.path.abspath(args.log_file)), exist_ok=True)
 
-    print(f"[{datetime.now().strftime('%H:%M:%S')}] Starting DTMC Predictive Stackelberg QoS Controller (interval={args.interval}s, predict_threshold={args.predict_threshold}, log={args.log_file})...")
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] Starting DTMC Predictive Stackelberg QoS Controller (interval={args.interval}s, predict_threshold={args.predict_threshold}, forget_lambda={args.forget_lambda}, window={args.window}, log={args.log_file})...")
 
     # Initialize tenant limits
     for v_ip in VICTIM_IPS:
         update_tenant_rate_limit(v_ip, rate_bytes_per_sec=0)
     update_tenant_rate_limit(ATTACKER_IP, rate_bytes_per_sec=50000000)
 
-    dtmc = DTMCPredictor()
+    dtmc = DTMCPredictor(forget_lambda=args.forget_lambda, window=args.window)
     last_hits = read_update_counter()
     last_time = time.time()
 
@@ -222,6 +285,10 @@ def main():
                 "is_preemptive_applied": is_preemptive,
                 "attacker_rate_limit_bps": attacker_rate,
                 "victim_rate_limit_bps": 0,
+                "effective_samples": round(dtmc.effective_samples(), 3),
+                "row_entropy_bits": round(dtmc.row_entropy(curr_state), 4),
+                "forget_lambda": args.forget_lambda,
+                "window": args.window,
                 "transition_matrix": [[round(x, 4) for x in row] for row in trans_matrix]
             }
 

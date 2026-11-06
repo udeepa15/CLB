@@ -12,10 +12,11 @@ import seaborn as sns
 
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "shared"))
 from workload_lib import compute_mann_whitney_u
+import stats_common
 
 def main():
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    results_dirs = sorted(glob.glob(os.path.join(script_dir, "results", "multi_run_*")))
+    results_dirs = sorted(glob.glob(os.path.join(script_dir, "results", "multi_run_*")), key=os.path.getmtime)
     if not results_dirs:
         return
 
@@ -27,6 +28,9 @@ def main():
     df = pd.read_csv(raw_csv)
     print("=== Workload 04: Flash Crowd Victim Surge Analysis ===")
     print(df.groupby("arch")[["phase1_p99_ms", "phase1_qps", "phase2_p99_ms", "phase2_qps"]].mean())
+
+    stats_common.report(df, metrics=['phase1_p99_ms', 'phase2_p99_ms'], group_cols=[],
+                        out_csv=os.path.join(latest_dir, "stats"))
 
     plt.figure(figsize=(8, 5))
     melted = df.melt(id_vars=["arch", "rep"], value_vars=["phase1_p99_ms", "phase2_p99_ms"], var_name="Phase", value_name="P99_ms")

@@ -2,6 +2,10 @@
 """
 run_markov_runner.py — Standalone Runner for qos_markov across Workloads 01..06.
 
+DEPRECATED: use workloads/0N_*/run_matrix.py with `--architectures qos_markov ...` instead.
+This runner re-implements the workloads separately from the other arms, so its results are
+NOT comparable with them (different harness = confound). Kept only to reproduce old runs.
+
 Executes Workloads 01 to 06 specifically for the qos_markov architectural arm.
 All result JSONs, CSV summaries, and controller JSONL logs are stored exclusively in
 ~/CLB/test_bed_qos/markov_experiments/results/.

@@ -12,10 +12,11 @@ import seaborn as sns
 
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "shared"))
 from workload_lib import compute_mann_whitney_u
+import stats_common
 
 def main():
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    results_dirs = sorted(glob.glob(os.path.join(script_dir, "results", "multi_run_*")))
+    results_dirs = sorted(glob.glob(os.path.join(script_dir, "results", "multi_run_*")), key=os.path.getmtime)
     if not results_dirs:
         return
 
@@ -28,10 +29,9 @@ def main():
     print("=== Workload 02: Bursty Oscillating Analysis ===")
     print(df.groupby("arch")[["p99_ms", "actual_qps"]].mean())
 
-    tiered = df[df["arch"] == "qos_tiered"]["p99_ms"].tolist()
-    dynamic = df[df["arch"] == "qos_dynamic"]["p99_ms"].tolist()
-    u_stat, p_val = compute_mann_whitney_u(tiered, dynamic)
-    print(f"Mann-Whitney U Test: U={u_stat:.1f}, p={p_val:.4f}")
+    stats_common.report(df, metrics=['p99_ms'], group_cols=[],
+                        out_csv=os.path.join(latest_dir, "stats"))
+
 
     import shutil
     plt.figure(figsize=(7, 5))

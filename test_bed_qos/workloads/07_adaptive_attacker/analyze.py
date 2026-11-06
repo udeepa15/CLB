@@ -15,7 +15,7 @@ from workload_lib import compute_mann_whitney_u
 
 def main():
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    results_dirs = sorted(glob.glob(os.path.join(script_dir, "results", "multi_run_*")))
+    results_dirs = sorted(glob.glob(os.path.join(script_dir, "results", "multi_run_*")), key=os.path.getmtime)
     if not results_dirs:
         return
 

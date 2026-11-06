@@ -78,9 +78,9 @@ class BurstyAttackerThread(threading.Thread):
         if level == "0":
             return None
         elif level == "flood":
-            cmd = f"ip netns exec ns_attacker hping3 --udp -p {self.target_port} --flood {self.target_ip}"
+            cmd = f"ip netns exec ns_attacker hping3 -n --udp -p {self.target_port} --flood {self.target_ip}"
         else:
-            cmd = f"ip netns exec ns_attacker hping3 --udp -p {self.target_port} -i {level} {self.target_ip}"
+            cmd = f"ip netns exec ns_attacker hping3 -n --udp -p {self.target_port} -i {level} {self.target_ip}"
         return subprocess.Popen(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     def run(self):
@@ -96,6 +96,50 @@ class BurstyAttackerThread(threading.Thread):
         if self.proc:
             self.proc.kill()
             subprocess.run("pkill -9 hping3 2>/dev/null || true", shell=True)
+
+class RegimeChangeAttackerThread(threading.Thread):
+    """Regime change: constant `level_a` for `phase_a_sec`, then a sawtooth alternating
+    `level_b1`/`level_b2` every `phase_b_interval_sec`. Tests whether an online predictor
+    re-learns after the attacker's behaviour changes."""
+    def __init__(self, target_ip, target_port, level_a="u200", phase_a_sec=30.0,
+                 level_b1="flood", level_b2="u200", phase_b_interval_sec=2.0):
+        super().__init__()
+        self.target_ip, self.target_port = target_ip, target_port
+        self.level_a, self.phase_a_sec = level_a, phase_a_sec
+        self.level_b1, self.level_b2, self.phase_b_interval_sec = level_b1, level_b2, phase_b_interval_sec
+        self.stop_event = threading.Event()
+        self.proc = None
+
+    def _start_hping(self, level):
+        if self.proc:
+            self.proc.kill()
+            subprocess.run("pkill -9 hping3 2>/dev/null || true", shell=True)
+        if level == "0":
+            return None
+        if level == "flood":
+            cmd = f"ip netns exec ns_attacker hping3 -n --udp -p {self.target_port} --flood {self.target_ip}"
+        else:
+            cmd = f"ip netns exec ns_attacker hping3 -n --udp -p {self.target_port} -i {level} {self.target_ip}"
+        return subprocess.Popen(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    def run(self):
+        self.proc = self._start_hping(self.level_a)
+        log(f"[RegimeAttacker] phase A: {self.level_a} for {self.phase_a_sec}s")
+        if self.stop_event.wait(self.phase_a_sec):
+            return
+        level = self.level_b1
+        log("[RegimeAttacker] REGIME CHANGE -> phase B sawtooth")
+        while not self.stop_event.is_set():
+            self.proc = self._start_hping(level)
+            self.stop_event.wait(self.phase_b_interval_sec)
+            level = self.level_b2 if level == self.level_b1 else self.level_b1
+
+    def stop(self):
+        self.stop_event.set()
+        if self.proc:
+            self.proc.kill()
+            subprocess.run("pkill -9 hping3 2>/dev/null || true", shell=True)
+
 
 class RampingAttackerThread(threading.Thread):
     """Monotonically escalates flood intensity over time through ramp_levels every step_sec."""
@@ -115,9 +159,9 @@ class RampingAttackerThread(threading.Thread):
         if level == "0":
             return None
         elif level == "flood":
-            cmd = f"ip netns exec ns_attacker hping3 --udp -p {self.target_port} --flood {self.target_ip}"
+            cmd = f"ip netns exec ns_attacker hping3 -n --udp -p {self.target_port} --flood {self.target_ip}"
         else:
-            cmd = f"ip netns exec ns_attacker hping3 --udp -p {self.target_port} -i {level} {self.target_ip}"
+            cmd = f"ip netns exec ns_attacker hping3 -n --udp -p {self.target_port} -i {level} {self.target_ip}"
         return subprocess.Popen(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     def run(self):
@@ -155,9 +199,9 @@ class AdaptiveAttackerThread(threading.Thread):
             self.proc.kill()
             subprocess.run("pkill -9 hping3 2>/dev/null || true", shell=True)
         if level == "flood":
-            cmd = f"ip netns exec ns_attacker hping3 --udp -p {self.target_port} --flood {self.target_ip}"
+            cmd = f"ip netns exec ns_attacker hping3 -n --udp -p {self.target_port} --flood {self.target_ip}"
         else:
-            cmd = f"ip netns exec ns_attacker hping3 --udp -p {self.target_port} -i {level} {self.target_ip}"
+            cmd = f"ip netns exec ns_attacker hping3 -n --udp -p {self.target_port} -i {level} {self.target_ip}"
         return subprocess.Popen(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     def run(self):
@@ -260,3 +304,37 @@ def compute_mann_whitney_u(x, y):
     z = (u - mu) / sigma
     pval = math.erfc(abs(z) / math.sqrt(2))
     return u, min(1.0, max(0.0, pval))
+
+
+def write_env_json(run_dir, arms_used=None):
+    """Record the experimental environment next to the results (reproducibility / report table)."""
+    import platform
+
+    def sh(cmd):
+        r = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        return (r.stdout or r.stderr).strip().splitlines()[0] if (r.stdout or r.stderr).strip() else ""
+
+    repo = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    env = {
+        "timestamp": datetime.now().isoformat(timespec="seconds"),
+        "kernel": platform.release(),
+        "cgroup_fs": sh("stat -fc %T /sys/fs/cgroup"),
+        "cpu_model": sh("grep -m1 'model name' /proc/cpuinfo | cut -d: -f2"),
+        "nproc": os.cpu_count(),
+        "governor": sh("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor"),
+        "runc": sh("runc --version"),
+        "clang": sh("clang --version"),
+        "bpftool": sh("/usr/sbin/bpftool version"),
+        "fortio": sh("fortio version"),
+        "hping3": sh("hping3 --version"),
+        "git_commit": sh(f"git -C {repo} rev-parse HEAD"),
+        "git_dirty": bool(sh(f"git -C {repo} status --porcelain --untracked-files=no")),
+        "python": platform.python_version(),
+    }
+    if arms_used:
+        sys.path.insert(0, os.path.join(repo, "test_bed_qos"))
+        import arms
+        env["arms"] = [arms.describe(a) for a in arms_used]
+    with open(os.path.join(run_dir, "env.json"), "w") as f:
+        json.dump(env, f, indent=2)
+    return env

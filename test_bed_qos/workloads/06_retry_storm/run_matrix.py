@@ -20,7 +20,9 @@ import subprocess
 from datetime import datetime
 
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "shared"))
-from workload_lib import SHARED_CONFIG, log, run_cmd, wait_for_port, parse_fortio_json
+from workload_lib import SHARED_CONFIG, log, run_cmd, wait_for_port, parse_fortio_json, write_env_json
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+import arms
 
 WORKLOAD_CONFIG = {
     **SHARED_CONFIG,
@@ -64,14 +66,10 @@ def run_single_trial(arch, rep, base_dir, raw_dir):
 
     # 1. Setup Topology & Attach eBPF
     run_cmd(f"{os.path.join(base_dir, 'setup_topology.sh')}", cwd=base_dir)
-    run_cmd(f"{os.path.join(base_dir, 'attach_ebpf.sh')} {arch}", cwd=base_dir)
+    arms.attach(arch, base_dir)
 
     # 2. Start Stackelberg Controller if qos_dynamic
-    controller_proc = None
-    if arch == "qos_dynamic":
-        controller_log = os.path.join(raw_dir, f"qos_controller_{trial_id}.jsonl")
-        controller_proc = subprocess.Popen(["python3", os.path.join(base_dir, "qos_controller.py"), "--log-file", controller_log, "--interval", "0.2"])
-        time.sleep(1)
+    controller_proc = arms.start_controller(arch, os.path.join(raw_dir, f"qos_controller_{trial_id}.jsonl"), base_dir)
 
     # 3. Start Modified Retry Victim Container
     run_cmd("runc kill victim_container_1 KILL 2>/dev/null || true", check=False)
@@ -91,7 +89,7 @@ def run_single_trial(arch, rep, base_dir, raw_dir):
         sys.exit(1)
 
     # 4. Start Constant Attacker Flood (u20)
-    cmd_att = f"ip netns exec ns_attacker hping3 --udp -p {WORKLOAD_CONFIG['port_http']} -i {WORKLOAD_CONFIG['constant_flood']} {WORKLOAD_CONFIG['victim1_ip']}"
+    cmd_att = f"ip netns exec ns_attacker hping3 -n --udp -p {WORKLOAD_CONFIG['port_http']} -i {WORKLOAD_CONFIG['constant_flood']} {WORKLOAD_CONFIG['victim1_ip']}"
     attacker_proc = subprocess.Popen(cmd_att, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     time.sleep(1.0)
 
@@ -134,7 +132,7 @@ def run_single_trial(arch, rep, base_dir, raw_dir):
 def main():
     parser = argparse.ArgumentParser(description="Workload 06: Retry Storm Runner")
     parser.add_argument("--reps", type=int, default=2, help="Repetitions per cell")
-    parser.add_argument("--architectures", nargs="+", default=["qos_tiered", "qos_dynamic"], help="Architectures to test")
+    parser.add_argument("--architectures", nargs="+", default=list(arms.DEFAULT_ARMS), help="Architectures to test")
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
     args = parser.parse_args()
 
@@ -149,6 +147,7 @@ def main():
     run_dir = os.path.join(script_dir, "results", f"multi_run_N{args.reps}_{ts_str}")
     raw_dir = os.path.join(run_dir, "raw")
     os.makedirs(raw_dir, exist_ok=True)
+    write_env_json(run_dir, args.architectures)
 
     trials = []
     for arch in args.architectures:

@@ -12,10 +12,11 @@ import seaborn as sns
 
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "shared"))
 from workload_lib import compute_mann_whitney_u
+import stats_common
 
 def main():
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    results_dirs = sorted(glob.glob(os.path.join(script_dir, "results", "multi_run_*")))
+    results_dirs = sorted(glob.glob(os.path.join(script_dir, "results", "multi_run_*")), key=os.path.getmtime)
     if not results_dirs:
         return
 
@@ -27,6 +28,9 @@ def main():
     df = pd.read_csv(raw_csv)
     print("=== Workload 03: Ramping Escalation Analysis ===")
     print(df.groupby("arch")[["p99_ms", "actual_qps"]].mean())
+
+    stats_common.report(df, metrics=['p99_ms'], group_cols=[],
+                        out_csv=os.path.join(latest_dir, "stats"))
 
     plt.figure(figsize=(7, 5))
     sns.barplot(data=df, x="arch", y="p99_ms", palette="Set2")

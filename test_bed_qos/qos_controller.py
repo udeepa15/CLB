@@ -62,33 +62,51 @@ def read_update_counter():
         return 0
 
 
+def _possible_cpus():
+    """Number of possible CPUs (what per-CPU map values are sized by), e.g. '0-7' -> 8."""
+    try:
+        total = 0
+        for part in open("/sys/devices/system/cpu/possible").read().strip().split(","):
+            lo, _, hi = part.partition("-")
+            total += (int(hi) if hi else int(lo)) - int(lo) + 1
+        return total
+    except Exception:
+        return os.cpu_count() or 8
+
+
+_WARNED = set()
+
+
 def update_tenant_rate_limit(ip_str, rate_bytes_per_sec, max_burst_bytes=10000000):
-    """Write dynamic rate limit into percpu_rate_limit_map via bpftool."""
+    """Write a rate limit for one tenant into percpu_rate_limit_map via bpftool.
+
+    struct rate_limit_entry = 6 x u64 = 48 bytes: rate, burst, tokens, last_update_ns, passed, dropped.
+    bpftool (v5.15.200 verified) takes ONE entry for a per-CPU map and replicates it to every CPU;
+    sending one entry per CPU is rejected ("expected key or value"), which made the old version of this
+    function fail silently. We try the single-entry form first and fall back to one entry per possible
+    CPU for bpftool builds that require it. Failures are reported on stderr (once per distinct error).
+    """
     if not os.path.exists(PERCPU_MAP_PIN):
         return False
 
     key_str = ip_to_bpftool_key(ip_str)
 
-    # Convert values to 64-bit hex bytes for struct rate_limit_entry:
-    # __u64 rate_bytes_per_sec, __u64 max_burst_bytes, __u64 tokens, __u64 last_update_ns, __u64 packets_passed, __u64 packets_dropped
-    # Number of CPUs on host (e.g. 8)
-    num_cpus = os.cpu_count() or 8
+    def u64(val):
+        return " ".join(str(x) for x in int(val).to_bytes(8, byteorder="little"))
 
-    # Build per-CPU hex value string
-    # rate_bytes_per_sec (8 bytes), max_burst_bytes (8 bytes), tokens (8 bytes), last_update (8 bytes), passed (8 bytes), dropped (8 bytes) = 48 bytes
-    def u64_to_hex_bytes(val):
-        b = val.to_bytes(8, byteorder='little')
-        return " ".join([f"{x}" for x in b])
+    zero = "0 0 0 0 0 0 0 0"
+    entry = f"{u64(rate_bytes_per_sec)} {u64(max_burst_bytes)} {u64(max_burst_bytes)} {zero} {zero} {zero}"
 
-    rate_bytes = u64_to_hex_bytes(rate_bytes_per_sec)
-    burst_bytes = u64_to_hex_bytes(max_burst_bytes)
-    zero_bytes = "0 0 0 0 0 0 0 0"
-
-    single_cpu_val = f"{rate_bytes} {burst_bytes} {burst_bytes} {zero_bytes} {zero_bytes} {zero_bytes}"
-    all_cpus_val = " ".join([single_cpu_val for _ in range(num_cpus)])
-
-    cmd = f"map update pinned {PERCPU_MAP_PIN} key {key_str} value {all_cpus_val}"
-    res = run_bpftool(cmd)
+    res = run_bpftool(f"map update pinned {PERCPU_MAP_PIN} key {key_str} value {entry}")
+    if res.returncode != 0:
+        res = run_bpftool(f"map update pinned {PERCPU_MAP_PIN} key {key_str} value " +
+                          " ".join([entry] * _possible_cpus()))
+    if res.returncode != 0:
+        err = res.stderr.strip()[:200]
+        if err not in _WARNED:
+            _WARNED.add(err)
+            print(f"[WARN] update_tenant_rate_limit({ip_str}, {rate_bytes_per_sec}) FAILED: {err}",
+                  file=sys.stderr, flush=True)
     return res.returncode == 0
 
 

@@ -39,13 +39,19 @@ def update(ip, tier, rate, burst):
 
 
 def verify(ip, tier, rate):
+    """Read the entry back. bpftool prints raw hex bytes without BTF, or a 'formatted'
+    field dict with BTF (our maps are BTF-defined), so accept both."""
     key = [str(b) for b in socket.inet_aton(ip)]
     out = bpftool("map", "lookup", "pinned", MAP_PIN, "key", *key, "-j")
-    value = json.loads(out).get("value")
-    if not isinstance(value, list) or len(value) != STRUCT.size:
-        sys.exit(f"verify failed for {ip}: unexpected value {out!r}")
-    raw = bytes(int(x, 16) for x in value)
-    got_tier, _, _, got_rate, *_ = STRUCT.unpack(raw)
+    j = json.loads(out)
+    if isinstance(j.get("formatted", {}).get("value"), dict):
+        v = j["formatted"]["value"]
+        got_tier, got_rate = int(v["tier"]), int(v["rate_bytes_per_sec"])
+    elif isinstance(j.get("value"), list) and len(j["value"]) == STRUCT.size:
+        raw = bytes(int(x, 16) for x in j["value"])
+        got_tier, _, _, got_rate, *_ = STRUCT.unpack(raw)
+    else:
+        sys.exit(f"verify failed for {ip}: unrecognised bpftool output {out!r}")
     if got_tier != tier or got_rate != rate:
         sys.exit(f"verify failed for {ip}: tier={got_tier} rate={got_rate}")
 
