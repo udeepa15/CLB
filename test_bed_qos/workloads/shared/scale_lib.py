@@ -195,3 +195,99 @@ class CpuSampler:
             dt = max(1, tot - t0)
             res[cpu] = {"busy": round(1 - (idle - i0) / dt, 4), "softirq": round((sirq - s0) / dt, 4)}
         return res
+
+
+# ---------------------------------------------------------------- time-varying attacks
+import threading  # noqa: E402
+
+
+def expected_pps(args):
+    """Nominal hping3 rate for '-i uN' (1e6/N pps); None for --flood."""
+    for tok in args.split():
+        if tok.startswith("u") and tok[1:].isdigit():
+            return 1e6 / int(tok[1:])
+    return None
+
+
+class PatternDriver(threading.Thread):
+    """Drive every attacker through the same schedule of hping3 rates, in sync.
+
+    schedule: [(seconds, hping3 args)]; repeated until stop() if repeat, else run once and hold the last
+    step. lead_s extends the first step (warm-up before the measurement starts).
+    Each step kills ONLY this driver's attackers' hping3 (by namespace; the old single-attacker threads
+    ran `pkill hping3`, which kills every attacker) and relaunches them with the new rate. The offered
+    rate of every attacker in every step is measured on its host-side veth (first 0.3 s skipped), so a
+    flood that crashed or never started is detected: steps = [{t, args, pps: {ns: pps}, ok}]."""
+
+    def __init__(self, specs, schedule, raw_dir, tag, cpus=None, port=8080, repeat=False, lead_s=0.0, log=print):
+        super().__init__(daemon=True)
+        self.specs, self.schedule, self.repeat, self.lead_s = specs, schedule, repeat, lead_s
+        self.raw_dir, self.tag, self.cpus, self.port, self.log = raw_dir, tag, cpus, port, log
+        self.stop_event = threading.Event()
+        self.procs, self.steps, self.t_start = {}, [], None
+        self.logs = {s["ns"]: open(os.path.join(raw_dir, f"hping_{tag}_{s['ns']}.log"), "a") for s in specs}
+
+    def _kill(self):
+        for p in self.procs.values():
+            p.kill()
+        for s in self.specs:
+            subprocess.run(f"ip netns pids {s['ns']} | xargs -r kill -9", shell=True)
+        for p in self.procs.values():
+            try:
+                p.wait(1)
+            except subprocess.TimeoutExpired:
+                pass
+        self.procs = {}
+
+    def _launch_all(self, args):
+        pin = f"taskset -c {self.cpus} " if self.cpus else ""
+        for s in self.specs:
+            cmd = f"exec ip netns exec {s['ns']} {pin}hping3 -n --udp -p {self.port} {args} {s['target']}"
+            self.procs[s["ns"]] = subprocess.Popen(cmd, shell=True, stdout=self.logs[s["ns"]], stderr=subprocess.STDOUT)
+
+    def _step(self, secs, args):
+        self._kill()
+        t0 = time.time()
+        self._launch_all(args)
+        if self.stop_event.wait(min(0.3, secs)):
+            return False
+        for s in self.specs:                                   # one relaunch if it died at start-up
+            if self.procs[s["ns"]].poll() is not None:
+                pin = f"taskset -c {self.cpus} " if self.cpus else ""
+                self.procs[s["ns"]] = subprocess.Popen(
+                    f"exec ip netns exec {s['ns']} {pin}hping3 -n --udp -p {self.port} {args} {s['target']}",
+                    shell=True, stdout=self.logs[s["ns"]], stderr=subprocess.STDOUT)
+        r0 = {s["ns"]: rx_packets(s["dev"]) for s in self.specs}
+        ta = time.time()
+        stopped = self.stop_event.wait(max(0.0, secs - (ta - t0)))
+        dt = max(1e-3, time.time() - ta)
+        pps = {s["ns"]: round((rx_packets(s["dev"]) - r0[s["ns"]]) / dt) for s in self.specs}
+        exp = expected_pps(args)
+        need = 300 if exp is None else min(300, 0.3 * exp)
+        self.steps.append({"t": round(t0, 3), "secs": round(time.time() - t0, 3), "args": args, "pps": pps,
+                           "ok": dt < 0.2 or all(v >= need for v in pps.values())})   # too short to judge -> ok
+        return not stopped
+
+    def run(self):
+        self.t_start = time.time()
+        first = True
+        while not self.stop_event.is_set():
+            for i, (secs, args) in enumerate(self.schedule):
+                extra = self.lead_s if first and i == 0 else 0.0
+                last = (i == len(self.schedule) - 1) and not self.repeat
+                if not self._step(1e9 if last else secs + extra, args):
+                    return
+            first = False
+            if not self.repeat:
+                return
+
+    def stop(self):
+        self.stop_event.set()
+        self.join(5)
+        self._kill()
+        for f in self.logs.values():
+            f.close()
+
+    @property
+    def ok(self):
+        return bool(self.steps) and all(s["ok"] for s in self.steps)
