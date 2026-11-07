@@ -28,13 +28,14 @@ import time
 from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import qos_controller as qc                      # reuse bpftool helpers + Hill function (parity with other arms)
+import bpfmap                                     # bpf syscall map I/O (no bpftool fork per call)
+import qos_controller as qc                      # Hill function + default_burst (parity with other arms)
 from fairshare import FairShareClassifier
 
 PIN = "/sys/fs/bpf/tc/globals/"
-MAPS = {
-    "ip": {"stats": PIN + "ip_stats", "limit": PIN + "percpu_rate_limit_map"},
-    "port": {"stats": PIN + "port_stats", "limit": PIN + "port_rate_limit_map"},
+MAPS = {   # stats: per-CPU accounting; cfg: controller-owned (rate, burst) config, see qos_limiter.h
+    "ip": {"stats": PIN + "ip_stats", "cfg": PIN + "rate_cfg_map"},
+    "port": {"stats": PIN + "port_stats", "cfg": PIN + "port_cfg_map"},
 }
 
 
@@ -86,36 +87,37 @@ def bridge_ports(bridge="br-mesh"):
 
 # ---------------------------------------------------------------- kernel I/O
 def read_stats(key_mode):
-    res = qc.run_bpftool(f"map dump pinned {MAPS[key_mode]['stats']} -j")
-    if res.returncode != 0:
-        return None
-    return parse_stats_dump(res.stdout)
+    """{key_int: cumulative packets summed over CPUs}, or None if the map is not there yet.
+    Uses the bpf syscall (batch lookup); falls back to bpftool JSON if that fails."""
+    try:
+        m = bpfmap.open_pinned(MAPS[key_mode]["stats"])
+        return {struct.unpack("=I", k)[0]: bpfmap.sum_u64(v, 0) for k, v in m.items()}
+    except OSError:
+        res = qc.run_bpftool(f"map dump pinned {MAPS[key_mode]['stats']} -j")
+        if res.returncode != 0:
+            return None
+        return parse_stats_dump(res.stdout)
 
 
 _WARNED = set()
 
 
-def write_limit(key_mode, key_int, rate_bytes_per_sec, max_burst_bytes=10_000_000):
-    """Write a per-CPU rate_limit_entry for either key space (ip / port ifindex).
+def write_limit(key_mode, key_int, rate_bytes_per_sec, max_burst_bytes=None):
+    """Set the cap of one tenant (ip or port ifindex key); rate 0 = uncapped. Returns True on success.
 
-    One 48-byte entry is replicated to all CPUs by bpftool v5.15 (one entry per CPU is rejected);
-    fall back to one per possible CPU for builds that need it. Returns True on success; failures
-    are warned once on stderr and counted by the caller (a silent failure here once hid that no
-    cap was ever applied)."""
-    u64 = lambda v: " ".join(str(b) for b in int(v).to_bytes(8, "little"))   # noqa: E731
-    zero = "0 0 0 0 0 0 0 0"
-    entry = f"{u64(rate_bytes_per_sec)} {u64(max_burst_bytes)} {u64(max_burst_bytes)} {zero} {zero} {zero}"
-    key = " ".join(str(b) for b in int(key_int).to_bytes(4, "little"))
-    pin = MAPS[key_mode]["limit"]
-    res = qc.run_bpftool(f"map update pinned {pin} key {key} value {entry}")
-    if res.returncode != 0:
-        res = qc.run_bpftool(f"map update pinned {pin} key {key} value " + " ".join([entry] * qc._possible_cpus()))
-    if res.returncode != 0:
-        err = res.stderr.strip()[:200]
-        if err not in _WARNED:
-            _WARNED.add(err)
-            print(f"[WARN] write_limit({key_mode}, {key_int}, {rate_bytes_per_sec}) FAILED: {err}", file=sys.stderr, flush=True)
-    return res.returncode == 0
+    Writes configuration only (rate, burst); the kernel owns the bucket state, so refreshing the cap
+    every tick does not refill the bucket. Burst defaults to the same rule as every other arm."""
+    rate = int(rate_bytes_per_sec)
+    burst = qc.default_burst(rate) if max_burst_bytes is None else int(max_burst_bytes)
+    try:
+        bpfmap.open_pinned(MAPS[key_mode]["cfg"]).update(bpfmap.u32_key(key_int), struct.pack("=QQ", rate, burst))
+        return True
+    except (OSError, ValueError) as e:
+        msg = f"write_limit({key_mode}, {key_int}, {rate}) FAILED: {e}"
+        if msg not in _WARNED:
+            _WARNED.add(msg)
+            print(f"[WARN] {msg}", file=sys.stderr, flush=True)
+        return False
 
 
 # ---------------------------------------------------------------- main loop
@@ -147,6 +149,7 @@ def main():
         while True:
             time.sleep(args.interval)
             now = time.time()
+            t_work = time.perf_counter()
             dt = now - last_time
             if dt <= 0:
                 continue
@@ -181,6 +184,7 @@ def main():
                 "top_rates_pps": {label(k): round(r, 1) for k, r in top},
                 "heavy_cap_bps": cap if d.heavy else None,
                 "write_failures": write_fail,
+                "tick_ms": round((time.perf_counter() - t_work) * 1000, 3),   # work per tick, excl. sleep
             }) + "\n")
             log_f.flush()
 

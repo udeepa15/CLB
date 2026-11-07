@@ -1,0 +1,219 @@
+{
+  "name": "density_v20",
+  "bridge": "br-mesh",
+  "gateway": "10.0.0.1",
+  "prefix": 16,
+  "tenants": [
+    {
+      "name": "victim1",
+      "ns": "ns_victim1",
+      "ip": "10.0.1.1",
+      "br_veth": "veth-vic1-br",
+      "ns_veth": "veth-victim1",
+      "role": "victim",
+      "server": true,
+      "cpus": "1-5"
+    },
+    {
+      "name": "victim2",
+      "ns": "ns_victim2",
+      "ip": "10.0.1.2",
+      "br_veth": "veth-vic2-br",
+      "ns_veth": "veth-victim2",
+      "role": "victim",
+      "server": true,
+      "cpus": "1-5"
+    },
+    {
+      "name": "victim3",
+      "ns": "ns_victim3",
+      "ip": "10.0.1.3",
+      "br_veth": "veth-vic3-br",
+      "ns_veth": "veth-victim3",
+      "role": "victim",
+      "server": true,
+      "cpus": "1-5"
+    },
+    {
+      "name": "victim4",
+      "ns": "ns_victim4",
+      "ip": "10.0.1.4",
+      "br_veth": "veth-vic4-br",
+      "ns_veth": "veth-victim4",
+      "role": "victim",
+      "server": true,
+      "cpus": "1-5"
+    },
+    {
+      "name": "victim5",
+      "ns": "ns_victim5",
+      "ip": "10.0.1.5",
+      "br_veth": "veth-vic5-br",
+      "ns_veth": "veth-victim5",
+      "role": "victim",
+      "server": true,
+      "cpus": "1-5"
+    },
+    {
+      "name": "victim6",
+      "ns": "ns_victim6",
+      "ip": "10.0.1.6",
+      "br_veth": "veth-vic6-br",
+      "ns_veth": "veth-victim6",
+      "role": "victim",
+      "server": true,
+      "cpus": "1-5"
+    },
+    {
+      "name": "victim7",
+      "ns": "ns_victim7",
+      "ip": "10.0.1.7",
+      "br_veth": "veth-vic7-br",
+      "ns_veth": "veth-victim7",
+      "role": "victim",
+      "server": true,
+      "cpus": "1-5"
+    },
+    {
+      "name": "victim8",
+      "ns": "ns_victim8",
+      "ip": "10.0.1.8",
+      "br_veth": "veth-vic8-br",
+      "ns_veth": "veth-victim8",
+      "role": "victim",
+      "server": true,
+      "cpus": "1-5"
+    },
+    {
+      "name": "victim9",
+      "ns": "ns_victim9",
+      "ip": "10.0.1.9",
+      "br_veth": "veth-vic9-br",
+      "ns_veth": "veth-victim9",
+      "role": "victim",
+      "server": true,
+      "cpus": "1-5"
+    },
+    {
+      "name": "victim10",
+      "ns": "ns_victim10",
+      "ip": "10.0.1.10",
+      "br_veth": "veth-vic10-br",
+      "ns_veth": "veth-victim10",
+      "role": "victim",
+      "server": true,
+      "cpus": "1-5"
+    },
+    {
+      "name": "victim11",
+      "ns": "ns_victim11",
+      "ip": "10.0.1.11",
+      "br_veth": "veth-vic11-br",
+      "ns_veth": "veth-victim11",
+      "role": "victim",
+      "server": true,
+      "cpus": "1-5"
+    },
+    {
+      "name": "victim12",
+      "ns": "ns_victim12",
+      "ip": "10.0.1.12",
+      "br_veth": "veth-vic12-br",
+      "ns_veth": "veth-victim12",
+      "role": "victim",
+      "server": true,
+      "cpus": "1-5"
+    },
+    {
+      "name": "victim13",
+      "ns": "ns_victim13",
+      "ip": "10.0.1.13",
+      "br_veth": "veth-vic13-br",
+      "ns_veth": "veth-victim13",
+      "role": "victim",
+      "server": true,
+      "cpus": "1-5"
+    },
+    {
+      "name": "victim14",
+      "ns": "ns_victim14",
+      "ip": "10.0.1.14",
+      "br_veth": "veth-vic14-br",
+      "ns_veth": "veth-victim14",
+      "role": "victim",
+      "server": true,
+      "cpus": "1-5"
+    },
+    {
+      "name": "victim15",
+      "ns": "ns_victim15",
+      "ip": "10.0.1.15",
+      "br_veth": "veth-vic15-br",
+      "ns_veth": "veth-victim15",
+      "role": "victim",
+      "server": true,
+      "cpus": "1-5"
+    },
+    {
+      "name": "victim16",
+      "ns": "ns_victim16",
+      "ip": "10.0.1.16",
+      "br_veth": "veth-vic16-br",
+      "ns_veth": "veth-victim16",
+      "role": "victim",
+      "server": true,
+      "cpus": "1-5"
+    },
+    {
+      "name": "victim17",
+      "ns": "ns_victim17",
+      "ip": "10.0.1.17",
+      "br_veth": "veth-vic17-br",
+      "ns_veth": "veth-victim17",
+      "role": "victim",
+      "server": true,
+      "cpus": "1-5"
+    },
+    {
+      "name": "victim18",
+      "ns": "ns_victim18",
+      "ip": "10.0.1.18",
+      "br_veth": "veth-vic18-br",
+      "ns_veth": "veth-victim18",
+      "role": "victim",
+      "server": true,
+      "cpus": "1-5"
+    },
+    {
+      "name": "victim19",
+      "ns": "ns_victim19",
+      "ip": "10.0.1.19",
+      "br_veth": "veth-vic19-br",
+      "ns_veth": "veth-victim19",
+      "role": "victim",
+      "server": true,
+      "cpus": "1-5"
+    },
+    {
+      "name": "victim20",
+      "ns": "ns_victim20",
+      "ip": "10.0.1.20",
+      "br_veth": "veth-vic20-br",
+      "ns_veth": "veth-victim20",
+      "role": "victim",
+      "server": true,
+      "cpus": "1-5"
+    },
+    {
+      "name": "attacker1",
+      "ns": "ns_attacker",
+      "ip": "10.0.128.1",
+      "br_veth": "veth-att-br",
+      "ns_veth": "veth-attacker",
+      "role": "attacker",
+      "server": false,
+      "cpus": "1-5"
+    }
+  ],
+  "server_port": 8080
+}

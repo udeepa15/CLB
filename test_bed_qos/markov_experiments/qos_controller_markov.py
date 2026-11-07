@@ -25,101 +25,25 @@ from collections import deque
 from datetime import datetime
 
 # Tenant IPs
-VICTIM_IPS = ["10.0.0.10", "10.0.0.11", "10.0.0.12"]  # Leader Tenants (Uncapped)
-ATTACKER_IP = "10.0.0.20"                            # Follower Tenant (Rate Limiting Target)
 
-PERCPU_MAP_PIN = "/sys/fs/bpf/tc/globals/percpu_rate_limit_map"
 COUNTER_MAP_PIN = "/sys/fs/bpf/tc/globals/update_counter_map"
 LATENCY_MAP_PIN = "/sys/fs/bpf/tc/globals/lock_latency_hist"
 
 # DTMC State Definitions
-STATE_LOW = 0       # Hits/sec < 5,000
-STATE_MODERATE = 1  # 5,000 <= Hits/sec < 15,000
-STATE_HIGH = 2      # 15,000 <= Hits/sec < 30,000
-STATE_SEVERE = 3    # Hits/sec >= 30,000
+# State boundaries are multiples of the calibrated knee H0 (H0/3, H0, 2*H0); with the uncalibrated
+# default H0 = 15000 they are the original 5,000 / 15,000 / 30,000 hits/s.
+STATE_LOW = 0       # Hits/sec < H0/3
+STATE_MODERATE = 1  # H0/3 <= Hits/sec < H0
+STATE_HIGH = 2      # H0 <= Hits/sec < 2*H0
+STATE_SEVERE = 3    # Hits/sec >= 2*H0
 STATE_NAMES = ["LOW", "MODERATE", "HIGH", "SEVERE"]
 
 
-def run_bpftool(cmd_str):
-    prefix = "sudo /usr/sbin/bpftool" if os.geteuid() != 0 else "/usr/sbin/bpftool"
-    res = subprocess.run(f"{prefix} {cmd_str}", shell=True, capture_output=True, text=True)
-    return res
-
-
-def ip_to_bpftool_key(ip_str):
-    """Convert IPv4 string to bpftool key bytes (little-endian uint32)."""
-    octets = [int(x) for x in ip_str.split('.')]
-    return f"{octets[0]} {octets[1]} {octets[2]} {octets[3]}"
-
-
-def read_update_counter():
-    """Read total cumulative BPF map update hits from update_counter_map."""
-    if not os.path.exists(COUNTER_MAP_PIN):
-        return 0
-    res = run_bpftool(f"map dump pinned {COUNTER_MAP_PIN} -j")
-    if res.returncode != 0 or not res.stdout.strip():
-        return 0
-    try:
-        data = json.loads(res.stdout)
-        total = 0
-        for entry in data:
-            values = entry.get("formatted", {}).get("values", []) or entry.get("values", [])
-            for v in values:
-                try:
-                    total += int(v.get("value", 0))
-                except Exception:
-                    pass
-        return total
-    except Exception:
-        return 0
-
-
-def _possible_cpus():
-    """Number of possible CPUs (what per-CPU map values are sized by), e.g. '0-7' -> 8."""
-    try:
-        total = 0
-        for part in open("/sys/devices/system/cpu/possible").read().strip().split(","):
-            lo, _, hi = part.partition("-")
-            total += (int(hi) if hi else int(lo)) - int(lo) + 1
-        return total
-    except Exception:
-        return os.cpu_count() or 8
-
-
-_WARNED = set()
-
-
-def update_tenant_rate_limit(ip_str, rate_bytes_per_sec, max_burst_bytes=10000000):
-    """Write a rate limit for one tenant into percpu_rate_limit_map via bpftool.
-
-    struct rate_limit_entry = 6 x u64 = 48 bytes: rate, burst, tokens, last_update_ns, passed, dropped.
-    bpftool (v5.15.200 verified) takes ONE entry for a per-CPU map and replicates it to every CPU;
-    sending one entry per CPU is rejected ("expected key or value"), which made the old version of this
-    function fail silently. We try the single-entry form first and fall back to one entry per possible
-    CPU for bpftool builds that require it. Failures are reported on stderr (once per distinct error).
-    """
-    if not os.path.exists(PERCPU_MAP_PIN):
-        return False
-
-    key_str = ip_to_bpftool_key(ip_str)
-
-    def u64(val):
-        return " ".join(str(x) for x in int(val).to_bytes(8, byteorder="little"))
-
-    zero = "0 0 0 0 0 0 0 0"
-    entry = f"{u64(rate_bytes_per_sec)} {u64(max_burst_bytes)} {u64(max_burst_bytes)} {zero} {zero} {zero}"
-
-    res = run_bpftool(f"map update pinned {PERCPU_MAP_PIN} key {key_str} value {entry}")
-    if res.returncode != 0:
-        res = run_bpftool(f"map update pinned {PERCPU_MAP_PIN} key {key_str} value " +
-                          " ".join([entry] * _possible_cpus()))
-    if res.returncode != 0:
-        err = res.stderr.strip()[:200]
-        if err not in _WARNED:
-            _WARNED.add(err)
-            print(f"[WARN] update_tenant_rate_limit({ip_str}, {rate_bytes_per_sec}) FAILED: {err}",
-                  file=sys.stderr, flush=True)
-    return res.returncode == 0
+# Map I/O is shared with qos_controller.py (bpf syscall via bpfmap.py; config-only writes, see
+# qos_limiter.h). Private copies used to drift apart; one implementation now serves every controller.
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')))
+from qos_controller import read_update_counter, update_tenant_rate_limit  # noqa: E402
+from qos_controller import VICTIM_IPS, ATTACKER_IPS, H0  # noqa: E402  (roles + calibrated knee)
 
 
 def compute_preemptive_rate_limit(hits_per_sec, tenant_ip):
@@ -132,7 +56,7 @@ def compute_preemptive_rate_limit(hits_per_sec, tenant_ip):
     baseline_rate = 50000000  # 50 MB/s (r_max)
     min_rate = 500000         # 500 KB/s (r_min)
 
-    h_threshold = 15000.0     # Contention knee point (hits/sec)
+    h_threshold = H0          # Contention knee point (hits/sec), calibrated
     gamma = 2.0               # Sigmoid sensitivity exponent
 
     if hits_per_sec <= 0:
@@ -146,11 +70,11 @@ def compute_preemptive_rate_limit(hits_per_sec, tenant_ip):
 
 def discretize_state(hits_per_sec):
     """Map raw packet update hits/sec to DTMC discrete state."""
-    if hits_per_sec < 5000.0:
+    if hits_per_sec < H0 / 3.0:
         return STATE_LOW
-    elif hits_per_sec < 15000.0:
+    elif hits_per_sec < H0:
         return STATE_MODERATE
-    elif hits_per_sec < 30000.0:
+    elif hits_per_sec < 2.0 * H0:
         return STATE_HIGH
     else:
         return STATE_SEVERE
@@ -233,7 +157,8 @@ def main():
     # Initialize tenant limits
     for v_ip in VICTIM_IPS:
         update_tenant_rate_limit(v_ip, rate_bytes_per_sec=0)
-    update_tenant_rate_limit(ATTACKER_IP, rate_bytes_per_sec=50000000)
+    for a_ip in ATTACKER_IPS:
+        update_tenant_rate_limit(a_ip, rate_bytes_per_sec=50000000)
 
     dtmc = DTMCPredictor(forget_lambda=args.forget_lambda, window=args.window)
     last_hits = read_update_counter()
@@ -243,6 +168,7 @@ def main():
         while True:
             time.sleep(args.interval)
             now = time.time()
+            t_work = time.perf_counter()
             dt = now - last_time
             if dt <= 0:
                 continue
@@ -264,13 +190,14 @@ def main():
 
             if is_preemptive:
                 # Pre-emptive action: assume severe contention (e.g. 35,000 hits/sec) to calculate target rate
-                effective_hits = max(hits_per_sec, 35000.0)
-                attacker_rate = compute_preemptive_rate_limit(effective_hits, ATTACKER_IP)
+                effective_hits = max(hits_per_sec, H0 * 7.0 / 3.0)   # 35,000 at the default H0
+                attacker_rate = compute_preemptive_rate_limit(effective_hits, "attacker")
             else:
                 # Reactive action: standard rate for current hits
-                attacker_rate = compute_preemptive_rate_limit(hits_per_sec, ATTACKER_IP)
+                attacker_rate = compute_preemptive_rate_limit(hits_per_sec, "attacker")
 
-            update_tenant_rate_limit(ATTACKER_IP, attacker_rate)
+            for a_ip in ATTACKER_IPS:          # every attacker gets the same cap
+                update_tenant_rate_limit(a_ip, attacker_rate)
 
             trans_matrix = dtmc.get_transition_matrix()
 
@@ -289,7 +216,8 @@ def main():
                 "row_entropy_bits": round(dtmc.row_entropy(curr_state), 4),
                 "forget_lambda": args.forget_lambda,
                 "window": args.window,
-                "transition_matrix": [[round(x, 4) for x in row] for row in trans_matrix]
+                "transition_matrix": [[round(x, 4) for x in row] for row in trans_matrix],
+                "tick_ms": round((time.perf_counter() - t_work) * 1000, 3)  # work per tick, excl. sleep
             }
 
             log_f.write(json.dumps(record) + "\n")

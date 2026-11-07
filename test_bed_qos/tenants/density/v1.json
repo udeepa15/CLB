@@ -1,0 +1,39 @@
+{
+  "name": "density_v1",
+  "bridge": "br-mesh",
+  "gateway": "10.0.0.1",
+  "prefix": 16,
+  "tenants": [
+    {
+      "name": "victim1",
+      "ns": "ns_victim1",
+      "ip": "10.0.1.1",
+      "br_veth": "veth-vic1-br",
+      "ns_veth": "veth-victim1",
+      "role": "victim",
+      "server": true,
+      "cpus": "1-5"
+    },
+    {
+      "name": "client1",
+      "ns": "ns_client1",
+      "ip": "10.0.64.1",
+      "br_veth": "veth-cli1-br",
+      "ns_veth": "veth-client1",
+      "role": "victim",
+      "server": false,
+      "cpus": "1-5"
+    },
+    {
+      "name": "attacker1",
+      "ns": "ns_attacker",
+      "ip": "10.0.128.1",
+      "br_veth": "veth-att-br",
+      "ns_veth": "veth-attacker",
+      "role": "attacker",
+      "server": false,
+      "cpus": "1-5"
+    }
+  ],
+  "server_port": 8080
+}

@@ -26,12 +26,13 @@ def classification_metrics(log_path, truth_labels, start_epoch):
                 if first_tp is None and heavy & truth:
                     first_tp = rec["timestamp"] - start_epoch
     except FileNotFoundError:
-        return {k: math.nan for k in ("precision", "recall", "time_to_classify_s", "fp_ticks", "ticks", "max_sources")}
+        return {k: math.nan for k in ("precision", "recall", "time_to_classify_s", "fp_ticks", "fp_tenants", "ticks",
+                                      "max_sources")}
     tp = len(flagged_ever & truth)
     fp = len(flagged_ever - truth)
     return {
         "precision": tp / (tp + fp) if (tp + fp) else math.nan,   # nan: nothing was ever flagged
         "recall": tp / len(truth) if truth else math.nan,         # nan: no attacker exists
         "time_to_classify_s": first_tp if first_tp is not None else math.nan,
-        "fp_ticks": fp_ticks, "ticks": ticks, "max_sources": max_sources,
+        "fp_ticks": fp_ticks, "fp_tenants": fp, "ticks": ticks, "max_sources": max_sources,
     }

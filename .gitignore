@@ -17,6 +17,8 @@ test_bed_stall/victim_bundle_[0-9]*
 test_bed_stall/victim_bundle_*
 test_bed_stall/attacker_bundle*
 test_bed_qos/workloads/*/victim_bundle_*
+# per-container bundle configs written by containers.py
+test_bed_qos/run/
 **/rootfs/usr/bin/fortio
 
 # Raw Benchmark Results Data Directories

@@ -4,7 +4,7 @@ qos_controller.py — Userspace Stackelberg Dynamic Rate Controller.
 
 Periodically reads eBPF contention signals (`update_counter_map` hits/sec and `lock_latency_hist`)
 directly from pinned BPF maps, computes dynamic Stackelberg leader-follower rate limits,
-and writes updated limits to `/sys/fs/bpf/tc/globals/percpu_rate_limit_map` via bpftool.
+and writes updated limits to `/sys/fs/bpf/tc/globals/rate_cfg_map` (bpf syscall via bpfmap.py).
 Logs control loop actions to qos_controller_log.jsonl.
 
 Usage:
@@ -16,98 +16,91 @@ import sys
 import time
 import json
 import argparse
+import struct
 import subprocess
 from datetime import datetime
 
-# Tenant IPs
-VICTIM_IPS = ["10.0.0.10", "10.0.0.11", "10.0.0.12"]  # Leader Tenants (Uncapped)
-ATTACKER_IP = "10.0.0.20"                            # Follower Tenant (Rate Limiting Target)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import bpfmap  # noqa: E402
 
-PERCPU_MAP_PIN = "/sys/fs/bpf/tc/globals/percpu_rate_limit_map"
-COUNTER_MAP_PIN = "/sys/fs/bpf/tc/globals/update_counter_map"
-LATENCY_MAP_PIN = "/sys/fs/bpf/tc/globals/lock_latency_hist"
+# Tenant roles come from the tenants file (tenants.py; $TENANTS_FILE, default tenants/default.json).
+# This is ORACLE knowledge: these controllers are told who the attackers are. The automatic arm
+# (qos_controller_auto.py) does not use it.
+import tenants as _tenants  # noqa: E402
+_TOPO = _tenants.load()
+VICTIM_IPS = _TOPO.ips("victim")       # Leader tenants (uncapped)
+ATTACKER_IPS = _TOPO.ips("attacker")   # Follower tenants (rate-limit targets)
+ATTACKER_IP = ATTACKER_IPS[0] if ATTACKER_IPS else None   # backwards-compatible single-attacker name
+
+# Hill knee H0 (hits/s): calibrated per tenants file (calibrate.py), else the original 15000.
+import calibration as _calibration  # noqa: E402
+CALIBRATION = _calibration.load()
+H0 = float(CALIBRATION["h0_hits_per_sec"])
+
+PIN = "/sys/fs/bpf/tc/globals/"
+CFG_MAP_PIN = PIN + "rate_cfg_map"          # controller-owned config (rate, burst) - see qos_limiter.h
+CNT_MAP_PIN = PIN + "rate_cnt_map"          # kernel-owned per-CPU passed/dropped counters
+COUNTER_MAP_PIN = PIN + "update_counter_map"
+LATENCY_MAP_PIN = PIN + "lock_latency_hist"
 
 
 def run_bpftool(cmd_str):
+    """Kept for diagnostics/fallbacks only; the control loop uses bpfmap (no fork per call)."""
     prefix = "sudo /usr/sbin/bpftool" if os.geteuid() != 0 else "/usr/sbin/bpftool"
-    res = subprocess.run(f"{prefix} {cmd_str}", shell=True, capture_output=True, text=True)
-    return res
+    return subprocess.run(f"{prefix} {cmd_str}", shell=True, capture_output=True, text=True)
 
 
-def ip_to_bpftool_key(ip_str):
-    """Convert IPv4 string to bpftool key bytes (little-endian uint32)."""
-    octets = [int(x) for x in ip_str.split('.')]
-    return f"{octets[0]} {octets[1]} {octets[2]} {octets[3]}"
+def default_burst(rate_bytes_per_sec):
+    """Bucket depth used by EVERY arm (static seeds and controllers): 100 ms of the cap, at least
+    128 KiB so one 64 KiB GSO super-packet always fits. Arms therefore differ only in the rate."""
+    rate = int(rate_bytes_per_sec)
+    return max(rate // 10, 131072) if rate > 0 else 0
 
 
-def read_update_counter():
-    """Read total cumulative BPF map update hits from update_counter_map."""
-    if not os.path.exists(COUNTER_MAP_PIN):
-        return 0
-    res = run_bpftool(f"map dump pinned {COUNTER_MAP_PIN} -j")
-    if res.returncode != 0 or not res.stdout.strip():
-        return 0
-    try:
-        data = json.loads(res.stdout)
-        total = 0
-        for entry in data:
-            values = entry.get("formatted", {}).get("values", []) or entry.get("values", [])
-            for v in values:
-                try:
-                    total += int(v.get("value", 0))
-                except Exception:
-                    pass
-        return total
-    except Exception:
-        return 0
-
-
-def _possible_cpus():
-    """Number of possible CPUs (what per-CPU map values are sized by), e.g. '0-7' -> 8."""
-    try:
-        total = 0
-        for part in open("/sys/devices/system/cpu/possible").read().strip().split(","):
-            lo, _, hi = part.partition("-")
-            total += (int(hi) if hi else int(lo)) - int(lo) + 1
-        return total
-    except Exception:
-        return os.cpu_count() or 8
-
-
+_possible_cpus = bpfmap.possible_cpus      # backwards-compatible name
 _WARNED = set()
 
 
-def update_tenant_rate_limit(ip_str, rate_bytes_per_sec, max_burst_bytes=10000000):
-    """Write a rate limit for one tenant into percpu_rate_limit_map via bpftool.
+def _warn_once(msg):
+    if msg not in _WARNED:
+        _WARNED.add(msg)
+        print(f"[WARN] {msg}", file=sys.stderr, flush=True)
 
-    struct rate_limit_entry = 6 x u64 = 48 bytes: rate, burst, tokens, last_update_ns, passed, dropped.
-    bpftool (v5.15.200 verified) takes ONE entry for a per-CPU map and replicates it to every CPU;
-    sending one entry per CPU is rejected ("expected key or value"), which made the old version of this
-    function fail silently. We try the single-entry form first and fall back to one entry per possible
-    CPU for bpftool builds that require it. Failures are reported on stderr (once per distinct error).
-    """
-    if not os.path.exists(PERCPU_MAP_PIN):
+
+def read_update_counter():
+    """Cumulative packets seen by the QoS program at all hooks (sum over CPUs); 0 if not attached."""
+    try:
+        v = bpfmap.open_pinned(COUNTER_MAP_PIN).lookup(bpfmap.u32_key(0))
+        return bpfmap.sum_u64(v) if v else 0
+    except OSError as e:
+        _warn_once(f"read_update_counter: {e}")
+        return 0
+
+
+def update_tenant_rate_limit(ip_str, rate_bytes_per_sec, max_burst_bytes=None):
+    """Set one tenant's cap (rate 0 = uncapped) in rate_cfg_map. Returns True on success.
+
+    Writes CONFIGURATION ONLY (struct rate_cfg: rate, burst). The token-bucket state is owned by
+    the kernel, so calling this every tick no longer refills the bucket. (The old version rewrote
+    the whole per-CPU entry with tokens = 10 MB each tick, so the cap leaked burst/interval.)
+    Failures are warned once per distinct error on stderr instead of being silent."""
+    rate = int(rate_bytes_per_sec)
+    burst = default_burst(rate) if max_burst_bytes is None else int(max_burst_bytes)
+    try:
+        bpfmap.open_pinned(CFG_MAP_PIN).update(bpfmap.ip_key(ip_str), struct.pack("=QQ", rate, burst))
+        return True
+    except (OSError, ValueError) as e:
+        _warn_once(f"update_tenant_rate_limit({ip_str}, {rate}) FAILED: {e}")
         return False
 
-    key_str = ip_to_bpftool_key(ip_str)
 
-    def u64(val):
-        return " ".join(str(x) for x in int(val).to_bytes(8, byteorder="little"))
-
-    zero = "0 0 0 0 0 0 0 0"
-    entry = f"{u64(rate_bytes_per_sec)} {u64(max_burst_bytes)} {u64(max_burst_bytes)} {zero} {zero} {zero}"
-
-    res = run_bpftool(f"map update pinned {PERCPU_MAP_PIN} key {key_str} value {entry}")
-    if res.returncode != 0:
-        res = run_bpftool(f"map update pinned {PERCPU_MAP_PIN} key {key_str} value " +
-                          " ".join([entry] * _possible_cpus()))
-    if res.returncode != 0:
-        err = res.stderr.strip()[:200]
-        if err not in _WARNED:
-            _WARNED.add(err)
-            print(f"[WARN] update_tenant_rate_limit({ip_str}, {rate_bytes_per_sec}) FAILED: {err}",
-                  file=sys.stderr, flush=True)
-    return res.returncode == 0
+def read_tenant_counters(ip_str):
+    """(packets_passed, packets_dropped, bytes_passed, bytes_dropped) summed over CPUs, or None."""
+    try:
+        v = bpfmap.open_pinned(CNT_MAP_PIN).lookup(bpfmap.ip_key(ip_str))
+    except OSError:
+        return None
+    return None if v is None else tuple(bpfmap.sum_u64(v, off) for off in (0, 8, 16, 24))
 
 
 def solve_stackelberg_rates(hits_per_sec, lock_wait_ns, tenant_ip):
@@ -130,7 +123,7 @@ def solve_stackelberg_rates(hits_per_sec, lock_wait_ns, tenant_ip):
     min_rate = 500000         # 500 KB/s (r_min)
 
     # Stackelberg Game Parameters
-    h_threshold = 15000.0     # Contention knee point (hits/sec)
+    h_threshold = H0          # Contention knee point (hits/sec), calibrated (calibration.py)
     gamma = 2.0               # Game equilibrium sensitivity exponent
 
     if hits_per_sec <= 0:
@@ -162,7 +155,8 @@ def main():
     # Initialize tenant limits
     for v_ip in VICTIM_IPS:
         update_tenant_rate_limit(v_ip, rate_bytes_per_sec=0)
-    update_tenant_rate_limit(ATTACKER_IP, rate_bytes_per_sec=50000000)
+    for a_ip in ATTACKER_IPS:
+        update_tenant_rate_limit(a_ip, rate_bytes_per_sec=50000000)
 
     last_hits = read_update_counter()
     last_time = time.time()
@@ -175,6 +169,7 @@ def main():
         while True:
             time.sleep(current_interval)
             now = time.time()
+            t_work = time.perf_counter()
             dt = now - last_time
             if dt <= 0:
                 continue
@@ -211,8 +206,9 @@ def main():
                 current_interval = args.interval
 
             # Compute Stackelberg rates
-            attacker_rate = solve_stackelberg_rates(hits_per_sec, 0, ATTACKER_IP)
-            update_tenant_rate_limit(ATTACKER_IP, attacker_rate)
+            attacker_rate = solve_stackelberg_rates(hits_per_sec, 0, "attacker")
+            for a_ip in ATTACKER_IPS:          # every attacker gets the same Hill cap
+                update_tenant_rate_limit(a_ip, attacker_rate)
 
             record = {
                 "timestamp": now,
@@ -222,7 +218,8 @@ def main():
                 "contention_derivative": round(derivative, 2),
                 "attacker_rate_limit_bps": attacker_rate,
                 "victim_rate_limit_bps": 0,
-                "polling_interval_ms": int(round(current_interval * 1000))
+                "polling_interval_ms": int(round(current_interval * 1000)),
+                "tick_ms": round((time.perf_counter() - t_work) * 1000, 3)  # work per tick, excl. sleep
             }
 
             log_f.write(json.dumps(record) + "\n")

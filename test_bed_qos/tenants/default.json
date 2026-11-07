@@ -1,0 +1,13 @@
+{
+  "name": "default",
+  "bridge": "br-mesh",
+  "gateway": "10.0.0.1",
+  "prefix": 24,
+  "server_port": 8080,
+  "tenants": [
+    {"name": "victim1", "ns": "ns_victim1", "ip": "10.0.0.10", "br_veth": "veth-vic1-br", "ns_veth": "veth-victim1", "role": "victim", "server": true, "cpus": "1"},
+    {"name": "victim2", "ns": "ns_victim2", "ip": "10.0.0.11", "br_veth": "veth-vic2-br", "ns_veth": "veth-victim2", "role": "victim", "server": true, "cpus": "2"},
+    {"name": "victim3", "ns": "ns_victim3", "ip": "10.0.0.12", "br_veth": "veth-vic3-br", "ns_veth": "veth-victim3", "role": "victim", "server": true, "cpus": "3"},
+    {"name": "attacker", "ns": "ns_attacker", "ip": "10.0.0.20", "br_veth": "veth-att-br", "ns_veth": "veth-attacker", "role": "attacker", "server": false, "cpus": ""}
+  ]
+}

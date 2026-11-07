@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """smoke_test.py - verify every arm actually enforces before burning hours on a matrix.
 
-For each arm: build topology, attach, start controller, flood from ns_attacker for a few
+For each arm: build topology, attach, start controller, flood from the first attacker for a few
 seconds with large UDP packets (so the 5 MB/s cap is clearly exceeded), then assert
   * the attacker was rate limited (packets_dropped > 0, or tc police/tbf counters > 0)
-  * victim-to-victim traffic still passes (ping from ns_victim2 to 10.0.0.10)
+  * victim-to-victim traffic still passes (ping from the second victim to the first)
+Tenants come from the tenants file ($TENANTS_FILE, default tenants/default.json).
   * the controller (if any) is still alive
 
 Usage:  sudo python3 smoke_test.py [--arms qos_tiered qos_dynamic_fixed ...] [--flood-sec 4]
@@ -14,6 +15,7 @@ Exit code is non-zero if any arm fails, so it can gate a matrix run:
 import argparse
 import json
 import os
+import struct
 import subprocess
 import sys
 import tempfile
@@ -22,44 +24,38 @@ import time
 BASE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BASE)
 import arms  # noqa: E402
+import bpfmap  # noqa: E402
 
-BPFTOOL = "/usr/sbin/bpftool"
-ATT = "10.0.0.20"
-OFFSET = {"qos_tiered": 48, "qos_dynamic": 40}  # byte offset of packets_dropped in the value struct
+import tenants  # noqa: E402
+TOPO = tenants.load()                      # $TENANTS_FILE or tenants/default.json
+ATT_T = TOPO.attackers()[0]                # the smoke test floods from the first attacker only
+VIC1, VIC2 = TOPO.victims()[0], TOPO.victims()[1]
+ATT = ATT_T.ip
 
 
 def sh(cmd, **kw):
     return subprocess.run(cmd, shell=True, capture_output=True, text=True, **kw)
 
 
-def _ip_key(k):
-    if isinstance(k, list):
-        return ".".join(str(int(x, 16)) for x in k)
-    if isinstance(k, int):
-        return ".".join(str(b) for b in k.to_bytes(4, "little"))
-    return None
+def _sum_dropped(map_name, key=None):
+    """packets_dropped summed over CPUs from a kernel-owned rate_counters map (cumulative: the
+    controller never resets it). key=None sums every entry."""
+    m = bpfmap.BPFMap("/sys/fs/bpf/tc/globals/" + map_name)
+    if key is not None:
+        v = m.lookup(key)
+        return 0 if v is None else bpfmap.sum_u64(v, 8)
+    return sum(bpfmap.sum_u64(v, 8) for _, v in m.items())
 
 
 def auto_drops(spec):
-    """Auto arms: sum packets_dropped over every entry of the arm's limiter map (who was capped is
-    checked separately from the controller log)."""
-    pin = "/sys/fs/bpf/tc/globals/" + ("port_rate_limit_map" if spec["auto_key"] == "port" else "percpu_rate_limit_map")
-    out = subprocess.run([BPFTOOL, "map", "dump", "pinned", pin, "-j"], capture_output=True, text=True)
-    if out.returncode != 0:
-        raise RuntimeError(out.stderr)
-    total = 0
-    for e in json.loads(out.stdout or "[]"):
-        f = e.get("formatted", e)
-        for v in (f.get("values") or []):
-            v = v["value"]
-            total += int(v["packets_dropped"]) if isinstance(v, dict) else int.from_bytes(
-                bytes(int(x, 16) for x in v[40:48]), "little")
-    return total
+    """Auto arms: drops over every entry of the arm's counter map (who was capped is checked
+    separately from the controller log)."""
+    return _sum_dropped("port_cnt_map" if spec["auto_key"] == "port" else "rate_cnt_map")
 
 
 def check_auto_log(spec, log_path):
     """Controller log must show the attacker (and only the attacker) flagged heavy."""
-    att = "veth-att-br" if spec["auto_key"] == "port" else ATT
+    att = ATT_T.br_veth if spec["auto_key"] == "port" else ATT
     flagged = set()
     try:
         for line in open(log_path):
@@ -81,30 +77,15 @@ def attacker_drops(arm):
     if spec.get("auto_key"):
         return auto_drops(spec)
     if spec.get("tc"):
-        out = sh("tc -s filter show dev veth-att-br ingress; ip netns exec ns_attacker tc -s qdisc show dev veth-attacker").stdout
+        out = sh(f"tc -s filter show dev {ATT_T.br_veth} ingress; ip netns exec {ATT_T.ns} tc -s qdisc show dev {ATT_T.ns_veth}").stdout
         import re
         # tc police drops; tbf throttles via backpressure and reports overlimits, not drops
         return sum(int(x) for x in re.findall(r"dropped (\d+)", out)) + \
                sum(int(x) for x in re.findall(r"overlimits (\d+)", out))
-    tiered = spec["attach"] == "qos_tiered"
-    pin = "/sys/fs/bpf/tc/globals/" + ("tenant_qos_map" if tiered else "percpu_rate_limit_map")
-    out = subprocess.run([BPFTOOL, "map", "dump", "pinned", pin, "-j"], capture_output=True, text=True)
-    if out.returncode != 0:
-        raise RuntimeError(out.stderr)
-    off = OFFSET["qos_tiered" if tiered else "qos_dynamic"]
-    total = 0
-    for e in json.loads(out.stdout or "[]"):
-        f = e.get("formatted", e)
-        if _ip_key(e.get("key", f.get("key"))) != ATT:
-            continue
-        vals = f.get("values") or [{"value": f.get("value")}]
-        for v in vals:
-            v = v["value"]
-            if isinstance(v, dict):
-                total += int(v["packets_dropped"])
-            else:
-                total += int.from_bytes(bytes(int(x, 16) for x in v[off:off + 8]), "little")
-    return total
+    if spec["attach"] == "qos_tiered":
+        v = bpfmap.BPFMap("/sys/fs/bpf/tc/globals/tenant_qos_map").lookup(bpfmap.ip_key(ATT))
+        return 0 if v is None else struct.unpack_from("=Q", v, 48)[0]   # packets_dropped @48 (56 B struct)
+    return _sum_dropped("rate_cnt_map", bpfmap.ip_key(ATT))
 
 
 def run_arm(arm, flood_sec):
@@ -120,16 +101,16 @@ def run_arm(arm, flood_sec):
             ctrl_log = os.path.join(td, "ctrl.jsonl")
             ctrl = arms.start_controller(arm, ctrl_log, BASE)
             # a UDP sink in victim1 so the flood is not just ICMP-unreachable noise
-            sink = subprocess.Popen(["ip", "netns", "exec", "ns_victim1", "python3", "-c",
+            sink = subprocess.Popen(["ip", "netns", "exec", VIC1.ns, "python3", "-c",
                 "import socket;s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM);s.bind(('0.0.0.0',8080))\n"
                 "while True: s.recvfrom(2048)"])
             time.sleep(0.5)
-            fl = subprocess.Popen(f"ip netns exec ns_attacker hping3 --udp -p 8080 -d 1000 --flood 10.0.0.10",
+            fl = subprocess.Popen(f"ip netns exec {ATT_T.ns} hping3 -n --udp -p 8080 -d 1000 --flood {VIC1.ip}",
                                   shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             time.sleep(flood_sec)
-            ping = sh("ip netns exec ns_victim2 ping -c 3 -W 2 10.0.0.10")  # during flood
-            # Controllers rewrite entries every tick (which zeroes packets_dropped), so read the counter
-            # WHILE the flood is still running and take the max of several samples.
+            ping = sh(f"ip netns exec {VIC2.ns} ping -c 3 -W 2 {VIC1.ip}")  # during flood
+            # Counters are cumulative now (kernel-owned), but tc counters can still be reset by a re-attach;
+            # read WHILE the flood is still running and keep the max of several samples.
             drops = 0
             for _ in range(6):
                 if arms.ARMS[arms.resolve(arm)].get("no_limit"):

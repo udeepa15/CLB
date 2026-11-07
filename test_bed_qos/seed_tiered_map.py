@@ -5,55 +5,41 @@ struct tenant_qos_state (ebpf_qos_tiered.c), 56 bytes with natural alignment:
     u32 tier; [4 B padding]; u64 tokens, last_update_ns, rate_bytes_per_sec,
     u64 max_burst_bytes, packets_passed, packets_dropped
 
-Unlike the old inline bpftool calls this fails loudly (no `|| true`) and
-verifies the entries by reading them back.
+Fails loudly and verifies every entry by reading it back. Tenants and roles come from the
+tenants file (tenants.py): victims are L0 (uncapped), attackers L2 (capped).
 
 Usage: sudo python3 seed_tiered_map.py [--l2-rate-bps N] [--burst-bytes N]
 """
 import argparse
-import json
-import socket
+import os
 import struct
-import subprocess
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import bpfmap    # noqa: E402  bpf syscall (no bpftool fork per tenant: 100 tenants = 200 calls)
+import tenants   # noqa: E402
+
 MAP_PIN = "/sys/fs/bpf/tc/globals/tenant_qos_map"
-BPFTOOL = "/usr/sbin/bpftool"
-STRUCT = struct.Struct("<I4xQQQQQQ")  # 56 bytes
+STRUCT = struct.Struct("=I4xQQQQQQ")  # 56 bytes
 assert STRUCT.size == 56
 
-VICTIMS = ["10.0.0.10", "10.0.0.11", "10.0.0.12"]  # L0, uncapped
-ATTACKER = "10.0.0.20"                             # L2, capped
+_TOPO = tenants.load()                 # $TENANTS_FILE or tenants/default.json
+VICTIMS = _TOPO.ips("victim")          # L0, uncapped
+ATTACKERS = _TOPO.ips("attacker")      # L2, capped
 
 
-def bpftool(*args):
-    return subprocess.run([BPFTOOL, *args], check=True, capture_output=True, text=True).stdout
+def update(m, ip, tier, rate, burst):
+    # tier, tokens(=burst: bucket starts full), last_update_ns(0 = "freshly seeded"), rate, burst, passed, dropped
+    m.update(bpfmap.ip_key(ip), STRUCT.pack(tier, burst, 0, rate, burst, 0, 0))
 
 
-def update(ip, tier, rate, burst):
-    # tokens start full so the first packets are not dropped before the first refill
-    value = STRUCT.pack(tier, burst, 0, rate, burst, 0, 0)
-    key = [str(b) for b in socket.inet_aton(ip)]
-    bpftool("map", "update", "pinned", MAP_PIN, "key", *key,
-            "value", *[str(b) for b in value])
-
-
-def verify(ip, tier, rate):
-    """Read the entry back. bpftool prints raw hex bytes without BTF, or a 'formatted'
-    field dict with BTF (our maps are BTF-defined), so accept both."""
-    key = [str(b) for b in socket.inet_aton(ip)]
-    out = bpftool("map", "lookup", "pinned", MAP_PIN, "key", *key, "-j")
-    j = json.loads(out)
-    if isinstance(j.get("formatted", {}).get("value"), dict):
-        v = j["formatted"]["value"]
-        got_tier, got_rate = int(v["tier"]), int(v["rate_bytes_per_sec"])
-    elif isinstance(j.get("value"), list) and len(j["value"]) == STRUCT.size:
-        raw = bytes(int(x, 16) for x in j["value"])
-        got_tier, _, _, got_rate, *_ = STRUCT.unpack(raw)
-    else:
-        sys.exit(f"verify failed for {ip}: unrecognised bpftool output {out!r}")
-    if got_tier != tier or got_rate != rate:
-        sys.exit(f"verify failed for {ip}: tier={got_tier} rate={got_rate}")
+def verify(m, ip, tier, rate):
+    v = m.lookup(bpfmap.ip_key(ip))
+    if v is None:
+        raise SystemExit(f"verify failed: {ip} missing from tenant_qos_map")
+    got_tier, _, _, got_rate, *_ = STRUCT.unpack(v)
+    if (got_tier, got_rate) != (tier, rate):
+        raise SystemExit(f"verify failed for {ip}: tier={got_tier} rate={got_rate}, wanted tier={tier} rate={rate}")
 
 
 def main():
@@ -61,18 +47,20 @@ def main():
     ap.add_argument("--l2-rate-bps", type=int, default=5_000_000,
                     help="attacker (L2) cap in bytes/s (default 5 MB/s)")
     ap.add_argument("--burst-bytes", type=int, default=0,
-                    help="attacker burst; default = max(rate/10, 65536)")
+                    help="attacker burst; default = max(rate/10, 131072), the rule every arm uses (qos_controller.default_burst)")
     a = ap.parse_args()
     if a.l2_rate_bps <= 0:
         sys.exit("--l2-rate-bps must be > 0 (rate 0 never refills tokens => 100% drop)")
-    burst = a.burst_bytes or max(a.l2_rate_bps // 10, 65536)
+    burst = a.burst_bytes or max(a.l2_rate_bps // 10, 131072)
 
+    m = bpfmap.BPFMap(MAP_PIN)
     for ip in VICTIMS:
-        update(ip, 0, 0, 0)
-        verify(ip, 0, 0)
-    update(ATTACKER, 2, a.l2_rate_bps, burst)
-    verify(ATTACKER, 2, a.l2_rate_bps)
-    print(f"tenant_qos_map seeded: victims L0 uncapped, {ATTACKER} L2 "
+        update(m, ip, 0, 0, 0)
+        verify(m, ip, 0, 0)
+    for ip in ATTACKERS:
+        update(m, ip, 2, a.l2_rate_bps, burst)
+        verify(m, ip, 2, a.l2_rate_bps)
+    print(f"tenant_qos_map seeded: {len(VICTIMS)} victims L0 uncapped, {len(ATTACKERS)} attackers L2 "
           f"rate={a.l2_rate_bps} B/s burst={burst} B")
 
 

@@ -12,6 +12,8 @@
 # define SEC(NAME) __attribute__((section(NAME), used))
 #endif
 
+#include "qos_limiter.h"   /* parse_ip, log2l, qos_telemetry (this program keeps its own limiter) */
+
 /*
  * Terway-QoS Priority Tier Definitions:
  * L0: High-Priority Victim Traffic (Uncapped, reclaims full bandwidth)
@@ -69,91 +71,81 @@ struct {
     __uint(pinning, LIBBPF_PIN_BY_NAME);
 } update_counter_map SEC(".maps");
 
-static __always_inline __u32 log2l(__u64 v)
+/*
+ * Attachment (attach_ebpf.sh), same as the other QoS programs:
+ *   classifier_ingress   : tenant-facing bridge ports, ingress -> every packet charged once, at source
+ *   classifier_telemetry : every other hook -> telemetry only
+ *
+ * The limiter is the original "tiered" design: ONE shared HASH entry per tenant, read-modify-written
+ * by every packet without a lock (so concurrent CPUs can lose updates). It is kept as the static
+ * baseline from the interim report; only two arithmetic bugs were fixed:
+ *   - a freshly seeded entry (last_update_ns == 0) multiplied the whole uptime by the rate (u64 overflow);
+ *   - "tokens += elapsed*rate/1e9; last = now" discarded the fractional byte every packet, which at
+ *     small caps and high packet rates under-refilled the bucket. last_update now advances only by the
+ *     time actually credited.
+ */
+SEC("classifier_ingress")
+int tenant_ingress(struct __sk_buff *skb)
 {
-    __u32 r = 0;
-    if (v >= 0x100000000ULL) { v >>= 32; r += 32; }
-    if (v >= 0x10000ULL) { v >>= 16; r += 16; }
-    if (v >= 0x100ULL) { v >>= 8; r += 8; }
-    if (v >= 0x10ULL) { v >>= 4; r += 4; }
-    if (v >= 0x4ULL) { v >>= 2; r += 2; }
-    if (v >= 0x2ULL) { r += 1; }
-    return r;
-}
-
-SEC("classifier")
-int mesh_router(struct __sk_buff *skb) {
-    void *data_end = (void *)(long)skb->data_end;
-    void *data     = (void *)(long)skb->data;
-
-    struct ethhdr *eth = data;
-    if ((void *)(eth + 1) > data_end)
-        return TC_ACT_OK;
-
-    if (bpf_ntohs(eth->h_proto) != ETH_P_IP)
-        return TC_ACT_OK;
-
-    struct iphdr *iph = (void *)(eth + 1);
-    if ((void *)(iph + 1) > data_end)
+    struct iphdr *iph = parse_ip(skb);
+    if (!iph)
         return TC_ACT_OK;
 
     __u64 start_ns = bpf_ktime_get_ns();
     __u32 src_ip = iph->saddr;
     __u32 pkt_len = skb->len;
-
-    struct tenant_qos_state *state = bpf_map_lookup_elem(&tenant_qos_map, &src_ip);
     int action = TC_ACT_OK;
 
+    struct tenant_qos_state *state = bpf_map_lookup_elem(&tenant_qos_map, &src_ip);
     if (state) {
         if (state->tier == TIER_L0) {
             // L0 (Victim / Legitimate): Uncapped, reclaims full bandwidth
             state->packets_passed += 1;
-            action = TC_ACT_OK;
         } else {
             // L1 / L2: Token-bucket rate enforcement
             __u64 now_ns = start_ns;
-            __u64 elapsed_ns = now_ns - state->last_update_ns;
-
-            if (elapsed_ns > 0 && state->rate_bytes_per_sec > 0) {
-                __u64 new_tokens = (elapsed_ns * state->rate_bytes_per_sec) / 1000000000ULL;
-                state->tokens += new_tokens;
+            __u64 rate = state->rate_bytes_per_sec;
+            if (state->last_update_ns == 0) {
+                state->last_update_ns = now_ns;              /* freshly seeded: bucket starts full */
+            } else if (rate > 0 && now_ns > state->last_update_ns) {
+                __u64 elapsed_ns = now_ns - state->last_update_ns;
+                if (elapsed_ns >= NSEC_PER_SEC) {            /* idle >= 1 s: refill to full */
+                    state->tokens = state->max_burst_bytes;
+                    state->last_update_ns = now_ns;
+                } else {
+                    __u64 credit = (elapsed_ns * rate) / NSEC_PER_SEC;   /* elapsed < 1e9: no overflow */
+                    if (credit) {
+                        state->tokens += credit;
+                        state->last_update_ns += (credit * NSEC_PER_SEC) / rate;  /* keep the remainder */
+                    }
+                }
                 if (state->tokens > state->max_burst_bytes)
                     state->tokens = state->max_burst_bytes;
-                state->last_update_ns = now_ns;
             }
 
             if (state->tokens >= pkt_len) {
                 state->tokens -= pkt_len;
                 state->packets_passed += 1;
-                action = TC_ACT_OK;
             } else {
                 state->packets_dropped += 1;
                 action = TC_ACT_SHOT; // Drop packet
             }
         }
         bpf_map_update_elem(&tenant_qos_map, &src_ip, state, BPF_EXIST);
-    } else {
-        // Default unclassified traffic passes
-        action = TC_ACT_OK;
     }
 
-    __u64 duration = bpf_ktime_get_ns() - start_ns;
-
-    // Track BPF update hits & duration for collectors
-    __u32 zero_key = 0;
-    __u64 *update_cnt = bpf_map_lookup_elem(&update_counter_map, &zero_key);
-    if (update_cnt) {
-        *update_cnt += 1;
-    }
-
-    __u32 slot = log2l(duration);
-    if (slot >= 64) slot = 63;
-    __u64 *count = bpf_map_lookup_elem(&lock_latency_hist, &slot);
-    if (count) {
-        *count += 1;
-    }
-
+    qos_telemetry(&update_counter_map, &lock_latency_hist, start_ns);
     return action;
+}
+
+SEC("classifier_telemetry")
+int telemetry_only(struct __sk_buff *skb)
+{
+    if (!parse_ip(skb))
+        return TC_ACT_OK;
+    __u64 start_ns = bpf_ktime_get_ns();
+    qos_telemetry(&update_counter_map, &lock_latency_hist, start_ns);
+    return TC_ACT_OK;
 }
 
 char _license[] SEC("license") = "GPL";

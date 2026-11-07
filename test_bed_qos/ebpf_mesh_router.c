@@ -12,6 +12,12 @@
 # define SEC(NAME) __attribute__((section(NAME), used))
 #endif
 
+/* Shared-key map updates per packet (contention amplification of this baseline). The original
+ * experiments used 50; attach_ebpf.sh passes -DMESH_UPDATES=N (env MESH_UPDATES) for the sweep. */
+#ifndef MESH_UPDATES
+#define MESH_UPDATES 50
+#endif
+
 /*
  * CONTENTION EXPERIMENT: Flow Stats structure.
  * Modifying these values concurrently under heavy multi-core loads
@@ -127,7 +133,7 @@ int mesh_router(struct __sk_buff *skb) {
     // Force write-lock acquisition on the shared bucket across competing CPUs
     __u64 start = bpf_ktime_get_ns();
     #pragma unroll
-    for (int i = 0; i < 50; i++) {
+    for (int i = 0; i < MESH_UPDATES; i++) {
         bpf_map_update_elem(&flow_map, &shared_global_key, &updated_stats, BPF_ANY);
     }
     __u64 duration = bpf_ktime_get_ns() - start;
@@ -136,7 +142,7 @@ int mesh_router(struct __sk_buff *skb) {
     __u32 zero_key = 0;
     __u64 *update_cnt = bpf_map_lookup_elem(&update_counter_map, &zero_key);
     if (update_cnt) {
-        *update_cnt += 50;
+        *update_cnt += MESH_UPDATES;
     }
 
     __u32 slot = log2l(duration);
