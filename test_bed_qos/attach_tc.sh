@@ -4,11 +4,13 @@
 #            point where the eBPF arms enforce)
 #   tbf    : token-bucket shaper on each attacker's own egress inside its namespace (queues, then
 #            drops; the Kubernetes "bandwidth" CNI plugin style)
+#   none   : remove every eBPF program, tc filter and shaper and attach nothing: the plain Linux bridge,
+#            i.e. the "no mesh" baseline that vendor benchmarks (Istio, Linkerd, Cilium) report overhead against
 # Attackers come from the tenants file ($TENANTS_FILE, default tenants/default.json).
 # Cap: TIER_L2_RATE_BPS bytes/s (default 5000000), identical to qos_tiered / qos_static, with the same
 # burst rule as every other arm: max(rate/10, 128 KiB).
 set -euo pipefail
-MODE="${1:?usage: attach_tc.sh police|tbf}"
+MODE="${1:?usage: attach_tc.sh police|tbf|none}"
 BRIDGE="${BRIDGE:-br-mesh}"
 cd "$(dirname "$0")"
 RATE_BPS="${TIER_L2_RATE_BPS:-5000000}"
@@ -34,6 +36,7 @@ for m in flow_map lock_latency_hist update_counter_map tenant_qos_map percpu_rat
     rm -f "$G/$m"
 done
 
+if [ "$MODE" = "none" ]; then echo "attach_tc.sh: mode=none (plain bridge, nothing attached)"; exit 0; fi
 for a in "${ATTACKERS[@]}"; do
     read -r ns ns_veth br_veth ip <<< "$a"
     case "$MODE" in

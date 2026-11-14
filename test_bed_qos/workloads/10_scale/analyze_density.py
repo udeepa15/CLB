@@ -215,7 +215,8 @@ def line_plot(summ, metric, scenario, path, title, exclude=()):
     plt.close(fig)
 
 
-def damage_plot(dmg, path):
+def damage_plot(dmg, path, exclude=()):
+    dmg = dmg[~dmg.arm.isin(exclude)]
     scen = sorted(dmg.scenario.unique())
     if not scen:
         return
@@ -237,8 +238,9 @@ def damage_plot(dmg, path):
     plt.close(fig)
 
 
-def overhead_plot(summ, path):
+def overhead_plot(summ, path, exclude=()):
     """Small multiples (one axis each, never a dual axis): controller tick, eBPF cost, CPU, attach time."""
+    summ = summ[~summ.arm.isin(exclude)]
     panels = [m for m in ("ctrl_tick_ms_p99", "prog_ns_mean", "cpu_busy_tenants", "attach_s")
               if not summ[(summ.metric == m) & (summ.scenario == "none")].empty]
     if not panels:
@@ -253,7 +255,13 @@ def overhead_plot(summ, path):
                     markeredgecolor=SURFACE, markeredgewidth=0.8)
         _axes_style(ax, LABELS.get(m, m))
         ax.set_title(f"{LABELS.get(m, m)} (no attack)", color=INK, fontsize=9, loc="left")
-    axes[0][0].legend(frameon=False, fontsize=7, labelcolor=INK)
+    handles = {}
+    for ax in axes[0]:                       # legend from every panel: not all panels show every arm
+        for h, l in zip(*ax.get_legend_handles_labels()):
+            handles.setdefault(l, h)
+    order = [a for a in ARM_ORDER if a in handles]
+    busiest = max(axes[0], key=lambda ax: len(ax.get_lines()))
+    busiest.legend([handles[a] for a in order], order, frameon=False, fontsize=7, labelcolor=INK)
     fig.tight_layout()
     fig.savefig(path, dpi=200, facecolor=SURFACE)
     plt.close(fig)
@@ -315,7 +323,9 @@ def main():
             line_plot(summ, m, sc, os.path.join(out, f"{m}_{sc}_qos_arms.png"),
                       f"{LABELS[m]} vs density, {sc} (without sidecarless)", exclude=("sidecarless",))
     damage_plot(dmg, os.path.join(out, "damage.png"))
+    damage_plot(dmg, os.path.join(out, "damage_qos_arms.png"), exclude=("sidecarless",))
     overhead_plot(summ, os.path.join(out, "overheads.png"))
+    overhead_plot(summ, os.path.join(out, "overheads_qos_arms.png"), exclude=("sidecarless",))
     print(f"\nplots: {out}")
 
 

@@ -73,6 +73,65 @@ def identification(run_dir, df):
     return pd.DataFrame(rows)
 
 
+STYLE = {"sidecarless": ("#2a78d6", "o"), "qos_open": ("#eb6834", "s"), "qos_static": ("#1baf7a", "^"),
+         "qos_dynamic_fixed": ("#eda100", "D"), "qos_dynamic_adaptive": ("#eda100", "o"), "qos_auto_port": ("#e87ba4", "v"),
+         "qos_markov": ("#008300", "P"), "qos_markov_200ms": ("#008300", "h"), "qos_markov_l95": ("#008300", "*"),
+         "qos_tc_police": ("#6250d6", "X"), "qos_tiered": ("#e34948", "p")}
+DOT_ORDER = ["qos_open", "qos_tiered", "qos_static", "qos_tc_police", "qos_dynamic_fixed", "qos_dynamic_adaptive",
+             "qos_markov", "qos_markov_200ms", "qos_markov_l95", "qos_auto_port"]
+SURFACE, INK, INK2 = "#fcfcfb", "#1f1e1d", "#52514e"
+
+
+def dot_plot(run_dir, metric, label, exclude=("sidecarless",)):
+    """One panel per scenario, one row per arm: median and 95% bootstrap CI, each panel on its own scale.
+    '*' after an arm = significantly different from qos_open (primary family). sidecarless is left out because
+    it is two orders of magnitude slower and would flatten every other arm; its value goes in the caption."""
+    summ = pd.read_csv(os.path.join(run_dir, "stats_summary.csv"))
+    summ = summ[(summ.metric == metric) & ~summ.arm.isin(exclude)]
+    prim_path = os.path.join(run_dir, "stats_primary.csv")
+    prim = pd.read_csv(prim_path) if os.path.exists(prim_path) else pd.DataFrame()
+    scen = [s for s in ("none", "a1_flood", "a5_flood", "a5_small") if s in set(summ.scenario)] or sorted(summ.scenario.unique())
+    arms_ = [a for a in DOT_ORDER if a in set(summ.arm)]
+    ypos = {a: i for i, a in enumerate(reversed(arms_))}
+    fig, axes = plt.subplots(1, len(scen), figsize=(3.4 * len(scen), 0.42 * len(arms_) + 1.6), sharey=True,
+                             facecolor=SURFACE, squeeze=False)
+    for ax, sc in zip(axes[0], scen):
+        ax.set_facecolor(SURFACE)
+        g = summ[summ.scenario == sc].set_index("arm")
+        sig = set()
+        if not prim.empty:
+            q = prim[(prim.metric == metric) & (prim.scenario == sc) & (prim.significant == True)]  # noqa: E712
+            sig = set(q.arm)
+        for a in arms_:
+            if a not in g.index:
+                continue
+            c, mk = STYLE.get(a, (INK2, "o"))
+            m, lo, hi = g.loc[a, "median"], g.loc[a, "ci95_lo"], g.loc[a, "ci95_hi"]
+            if pd.notna(lo) and pd.notna(hi):
+                ax.plot([lo, hi], [ypos[a]] * 2, color=c, linewidth=1.6, alpha=0.75)
+            ax.plot(m, ypos[a], mk, color=c, markersize=6.5, markeredgecolor=SURFACE, markeredgewidth=0.8)
+            if a in sig:
+                ax.annotate("*", (hi if pd.notna(hi) else m, ypos[a]), xytext=(4, -3), textcoords="offset points",
+                            fontsize=11, color=INK)
+        top = float(pd.concat([g["median"], g["ci95_hi"]]).max())
+        ax.set_xlim(0, top * 1.15)
+        ax.set_title(sc, color=INK, fontsize=9.5, loc="left")
+        ax.grid(True, axis="x", color=INK2, alpha=0.18, linewidth=0.6)
+        for sp in ("top", "right", "left"):
+            ax.spines[sp].set_visible(False)
+        ax.tick_params(colors=INK2, labelsize=8)
+        ax.set_xlabel(label, color=INK, fontsize=8.5)
+    axes[0][0].set_yticks(list(ypos.values()))
+    axes[0][0].set_yticklabels([a.replace("qos_", "") for a in ypos], color=INK, fontsize=8.5)
+    fig.suptitle(f"100 containers, 10 reps: {label} (median, 95% CI; * = significant vs open)", color=INK,
+                 fontsize=10, x=0.01, ha="left")
+    fig.tight_layout()
+    out = os.path.join(run_dir, "plots")
+    os.makedirs(out, exist_ok=True)
+    fig.savefig(os.path.join(out, f"{metric}_dots.png"), dpi=200, facecolor=SURFACE)
+    plt.close(fig)
+
+
 def plot(df, run_dir):
     out = os.path.join(run_dir, "plots")
     os.makedirs(out, exist_ok=True)
@@ -119,6 +178,8 @@ def main():
         print(ident.groupby(["scenario", "arch"])[["precision", "recall", "fp_tenants", "time_to_classify_s",
                                                    "fp_ticks"]].median().round(3).to_string())
     plot(df, run_dir)
+    for m, lab in (("p99_ms", "victim P99 (ms)"), ("p999_ms", "victim P99.9 (ms)")):
+        dot_plot(run_dir, m, lab)
     print(f"\nplots: {os.path.join(run_dir, 'plots')}")
 
 

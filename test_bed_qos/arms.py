@@ -74,6 +74,17 @@ AUTO_ARMS = ["qos_dynamic_fixed", "qos_auto_ip", "qos_auto_port"]
 ARMS["sidecarless"] = {"attach": "sidecarless", "controller": None, "no_limit": True, "map_check": "flow_map"}
 ARMS["qos_open"] = {"attach": "qos_dynamic", "controller": None, "no_limit": True, "map_check": "rate_cfg_map"}
 BASELINE_ARMS = ["sidecarless", "qos_open", "qos_tiered", "qos_dynamic_fixed", "qos_auto_port"]
+# Industry-benchmark baselines (workload 11):
+#   bare               : plain Linux bridge, nothing attached (the "no mesh" baseline of Istio/Linkerd/Cilium benchmarks)
+#   envoy_sidecar      : an existing solution - a real Envoy proxy in every measured tenant, so each request crosses
+#                        two proxies (client sidecar -> server sidecar) like Istio sidecar mode; no eBPF limiter
+#   envoy_sidecar_mtls : the same with mutual TLS between the sidecars (Istio's default), as a reference point
+ARMS["bare"] = {"attach": None, "tc": "none", "controller": None, "no_limit": True}
+ARMS["envoy_sidecar"] = {"attach": None, "tc": "none", "controller": None, "no_limit": True, "sidecar": "envoy"}
+ARMS["envoy_sidecar_mtls"] = {"attach": None, "tc": "none", "controller": None, "no_limit": True, "sidecar": "envoy",
+                              "mtls": True}
+INDUSTRY_ARMS = ["bare", "envoy_sidecar", "envoy_sidecar_mtls", "sidecarless", "qos_open", "qos_static",
+                 "qos_markov", "qos_auto_port"]
 ALIASES = {"qos_dynamic": "qos_dynamic_adaptive", "qos_percpu_static": "qos_static"}
 CONTROLLER_SCRIPTS = {
     "reactive": os.path.join(BASE_DIR, "qos_controller.py"),
@@ -121,6 +132,13 @@ def _seed_percpu_static():
 
 def _verify_tc(arm, mode):
     import tenants
+    if mode == "none":                       # nothing may remain on the bridge or its ports
+        import topology as _topo
+        out = subprocess.run("for d in $(ip -o link show master br-mesh | awk -F': ' '{print $2}' | cut -d@ -f1) br-mesh;"
+                             " do tc qdisc show dev $d; done", shell=True, capture_output=True, text=True).stdout
+        if "clsact" in out or "ingress" in out:
+            raise RuntimeError(f"[{arm}] tc state still attached: {out[:300]!r}")
+        return
     for t in tenants.load().attackers():
         if mode == "police":
             out = subprocess.run(["tc", "filter", "show", "dev", t.br_veth, "parent", "ffff:"], capture_output=True, text=True).stdout
