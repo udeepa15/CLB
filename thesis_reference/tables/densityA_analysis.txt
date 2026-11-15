@@ -1,0 +1,89 @@
+results/density_A_N5_20261106_225609
+225 trials; levels N=[np.int64(10), np.int64(50), np.int64(100)]; arms=['qos_auto_port', 'qos_dynamic_fixed', 'qos_open', 'qos_static', 'sidecarless']; scenarios=['a1_flood', 'a5pct_flood', 'none']
+
+--- pooled victim P99 (ms), median per N ---
+N                               10     50      100
+scenario    arm                                   
+a1_flood    qos_auto_port      0.78   1.11    2.12
+            qos_dynamic_fixed  0.75   1.18    2.25
+            qos_open           0.77   1.14    1.92
+            qos_static         0.76   1.16    2.16
+            sidecarless        1.57   6.67  699.06
+a5pct_flood qos_auto_port      0.77   1.53    8.89
+            qos_dynamic_fixed  0.75   1.47    8.31
+            qos_open           0.72   1.46    8.27
+            qos_static         0.75   1.53    8.60
+            sidecarless        1.71  16.83  721.43
+none        qos_auto_port      0.74   1.05    1.60
+            qos_dynamic_fixed  0.73   1.06    1.60
+            qos_open           0.70   1.07    1.67
+            qos_static         0.72   1.06    1.62
+            sidecarless        0.90   2.21  719.29
+
+--- slope of pooled P99 vs N (ms per +10 containers, Theil-Sen, 95% CI) ---
+   scenario               arm  slope_per_10  ci95_lo_per_10  ci95_hi_per_10
+   a1_flood     qos_auto_port         0.147           0.135           0.188
+   a1_flood qos_dynamic_fixed         0.162           0.141           0.185
+   a1_flood          qos_open         0.129           0.126           0.134
+   a1_flood        qos_static         0.151           0.138           0.177
+   a1_flood       sidecarless        77.499          76.726          81.674
+a5pct_flood     qos_auto_port         0.903           0.765           0.966
+a5pct_flood qos_dynamic_fixed         0.839           0.774           0.846
+a5pct_flood          qos_open         0.837           0.791           0.901
+a5pct_flood        qos_static         0.872           0.794           0.979
+a5pct_flood       sidecarless        79.970          77.139          80.640
+       none     qos_auto_port         0.095           0.093           0.104
+       none qos_dynamic_fixed         0.098           0.094           0.106
+       none          qos_open         0.098           0.092           0.111
+       none        qos_static         0.100           0.094           0.105
+       none       sidecarless        79.821          77.367          85.914
+
+--- slope difference vs qos_open (Bonferroni-adjusted CI) ---
+   scenario               arm metric  diff_vs_open_per_10  adj_ci_lo_per_10  adj_ci_hi_per_10  alpha_bonferroni  significant
+   a1_flood     qos_auto_port p99_ms                0.018             0.001             0.062             0.004         True
+   a1_flood qos_dynamic_fixed p99_ms                0.033             0.005             0.059             0.004         True
+   a1_flood        qos_static p99_ms                0.022             0.001             0.054             0.004         True
+   a1_flood       sidecarless p99_ms               77.368            76.583            81.576             0.004         True
+a5pct_flood     qos_auto_port p99_ms                0.065            -0.137             0.173             0.004        False
+a5pct_flood qos_dynamic_fixed p99_ms                0.001            -0.129             0.056             0.004        False
+a5pct_flood        qos_static p99_ms                0.036            -0.100             0.179             0.004        False
+a5pct_flood       sidecarless p99_ms               79.136            76.233            79.838             0.004         True
+       none     qos_auto_port p99_ms               -0.002            -0.024             0.012             0.004        False
+       none qos_dynamic_fixed p99_ms               -0.000            -0.022             0.017             0.004        False
+       none        qos_static p99_ms                0.000            -0.021             0.013             0.004        False
+       none       sidecarless p99_ms               79.722            77.256            85.821             0.004         True
+
+--- attack damage P99(attack)/P99(none) ---
+N                               10    50    100
+scenario    arm                                
+a1_flood    qos_auto_port      1.06  1.05  1.33
+            qos_dynamic_fixed  1.03  1.11  1.41
+            qos_open           1.10  1.06  1.15
+            qos_static         1.06  1.09  1.34
+            sidecarless        1.74  3.02  0.97
+a5pct_flood qos_auto_port      1.04  1.46  5.57
+            qos_dynamic_fixed  1.03  1.40  5.20
+            qos_open           1.03  1.37  4.96
+            qos_static         1.05  1.45  5.32
+            sidecarless        1.89  7.61  1.00
+
+--- identification vs N (median over reps) ---
+                 precision  recall  fp_tenants  time_to_classify_s
+scenario    N                                                     
+a1_flood    10         1.0     1.0         0.0               0.487
+            50         1.0     1.0         0.0               0.490
+            100        1.0     1.0         0.0               0.494
+a5pct_flood 10         1.0     1.0         0.0               0.487
+            50         1.0     1.0         0.0               0.289
+            100        1.0     1.0         0.0               0.294
+none        10         NaN     NaN         0.0                 NaN
+            50         NaN     NaN         0.0                 NaN
+            100        NaN     NaN         0.0                 NaN
+
+--- setup cost vs N ---
+  N  topology_s  containers  containers_s  n_tenants
+ 10        0.12          10          5.39         11
+ 50        0.88          50         20.65         52
+100        2.32         100         36.14        105
+
+plots: results/density_A_N5_20261106_225609/plots

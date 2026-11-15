@@ -1,0 +1,107 @@
+{
+  "reps": 10,
+  "architectures": [
+    "qos_open",
+    "qos_static",
+    "qos_tc_police",
+    "qos_dynamic_fixed",
+    "qos_dynamic_adaptive",
+    "qos_markov",
+    "qos_markov_200ms",
+    "qos_markov_l95",
+    "qos_auto_port"
+  ],
+  "scenarios": [
+    "bursty",
+    "ramp",
+    "regime"
+  ],
+  "time_scale": 1.0,
+  "qps": 20,
+  "warmup": 3.0,
+  "tenant_cpus": "1-5",
+  "controller_cpus": "0",
+  "attacker_cpus": "6-7",
+  "rps": true,
+  "rps_cpus": null,
+  "seed": 11,
+  "out": "results/timevarying_B_N10_20261107_063258",
+  "tenants_file": "/home/udeepa/CLB/test_bed_qos/tenants/scale100.json",
+  "scenarios_def": {
+    "bursty": [
+      [
+        "all",
+        40,
+        [
+          [
+            1.0,
+            "--flood -d 1000"
+          ],
+          [
+            3.0,
+            "-i u1000 -d 1000"
+          ]
+        ],
+        true
+      ]
+    ],
+    "ramp": [
+      [
+        "all",
+        36,
+        [
+          [
+            6,
+            "-i u1000 -d 1000"
+          ],
+          [
+            6,
+            "-i u200 -d 1000"
+          ],
+          [
+            6,
+            "-i u50 -d 1000"
+          ],
+          [
+            6,
+            "-i u20 -d 1000"
+          ],
+          [
+            6,
+            "-i u10 -d 1000"
+          ],
+          [
+            6,
+            "--flood -d 1000"
+          ]
+        ],
+        false
+      ]
+    ],
+    "regime": [
+      [
+        "calm",
+        30,
+        [
+          [
+            30,
+            "-i u100 -d 1000"
+          ]
+        ],
+        false
+      ],
+      [
+        "attack",
+        30,
+        [
+          [
+            30,
+            "--flood -d 1000"
+          ]
+        ],
+        false
+      ]
+    ]
+  },
+  "calibration": "/home/udeepa/CLB/test_bed_qos/calibration/scale100_rps.json"
+}

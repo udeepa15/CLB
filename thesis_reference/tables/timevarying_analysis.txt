@@ -1,0 +1,62 @@
+results/timevarying_B_N10_20261107_063258
+270 trials, requests per phase (median) 62698, errors 0
+
+--- victim P99 (ms), median ---
+cell                  bursty/all  ramp/all  regime/attack  regime/calm
+arch                                                                  
+qos_open                    9.64      8.79          12.03         3.46
+qos_static                  5.71      5.59           7.63         3.27
+qos_tc_police               4.64      4.93           6.84         2.92
+qos_dynamic_fixed           6.95      6.10           8.26         3.68
+qos_dynamic_adaptive        6.61      5.84           7.66         3.34
+qos_markov                  5.99      5.51           7.58         3.37
+qos_markov_200ms            7.01      5.75           8.14         3.65
+qos_markov_l95              6.17      5.93           8.10         3.66
+qos_auto_port               7.54      6.00           8.87         3.64
+
+--- attacker traffic delivered to targets (MB/s), median  [offered in parentheses] ---
+cell                 bursty/all     ramp/all regime/attack regime/calm
+arch                                                                  
+qos_open              75.6 (76)  107.1 (107)   299.6 (300)   43.7 (44)
+qos_static            10.2 (78)   21.5 (107)    25.1 (306)   25.1 (44)
+qos_tc_police         10.3 (77)   21.7 (108)    25.5 (306)   25.5 (44)
+qos_dynamic_fixed     19.9 (77)   47.3 (108)    36.2 (304)   43.7 (44)
+qos_dynamic_adaptive  19.9 (77)   47.6 (108)    36.3 (306)   43.7 (44)
+qos_markov            16.5 (77)   31.3 (108)    35.6 (305)   43.7 (44)
+qos_markov_200ms      19.7 (77)   31.9 (108)    36.1 (306)   43.7 (44)
+qos_markov_l95        16.2 (77)   31.2 (107)    35.5 (306)   43.6 (44)
+qos_auto_port         34.5 (77)   47.3 (108)    38.5 (305)   43.6 (43)
+
+--- Q1: victim P99 shift vs qos_open (ms; * = significant, family 32, alpha 0.0016) ---
+cell                 bursty/all ramp/all regime/attack regime/calm
+arm                                                               
+qos_static               -3.89*   -2.89*        -4.33*       -0.17
+qos_tc_police            -4.88*   -3.77*        -5.18*       -0.45
+qos_dynamic_fixed        -2.60*   -2.67*        -3.66*       +0.31
+qos_dynamic_adaptive     -2.96*   -2.69*        -4.13*       -0.07
+qos_markov               -3.43*   -3.06*        -4.17*       +0.09
+qos_markov_200ms         -2.62*   -2.77*        -3.89*       +0.26
+qos_markov_l95           -3.47*   -2.76*        -3.97*       +0.22
+qos_auto_port            -1.99*   -2.52*        -3.36*       +0.20
+
+--- Q2: victim P99 shift vs qos_static (protection) (ms; * = significant, family 24, alpha 0.0021) ---
+cell                 bursty/all ramp/all regime/attack regime/calm
+arm                                                               
+qos_dynamic_fixed        +1.28*    +0.55         +0.69       +0.48
+qos_dynamic_adaptive      +0.95    +0.40         +0.16       +0.04
+qos_markov                +0.50    +0.00         +0.12       +0.19
+qos_markov_200ms         +1.24*    +0.30         +0.38       +0.45
+qos_markov_l95            +0.46    +0.20         +0.43       +0.34
+qos_auto_port            +1.97*    +0.53         +1.03       +0.38
+
+--- Q2: attacker goodput shift vs qos_static (efficiency) (MB/s; * = significant, family 24, alpha 0.0021) ---
+cell                 bursty/all ramp/all regime/attack regime/calm
+arm                                                               
+qos_dynamic_fixed        +9.66*  +25.84*       +11.12*     +18.54*
+qos_dynamic_adaptive     +9.62*  +26.08*       +11.20*     +18.56*
+qos_markov               +6.22*   +9.79*       +10.48*     +18.55*
+qos_markov_200ms         +9.47*  +10.41*       +11.01*     +18.55*
+qos_markov_l95           +6.01*   +9.72*       +10.35*     +18.53*
+qos_auto_port           +24.31*  +25.88*       +13.36*     +18.49*
+
+plots: results/timevarying_B_N10_20261107_063258/plots

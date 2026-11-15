@@ -7,7 +7,7 @@ Per (condition, variant) cell:
   * Family A: every arm vs bare on the primary metric (does it cost / does it protect?)
     Family B: our arms vs envoy_sidecar (are we better than an existing solution on the same machine?)
     Mann-Whitney, Bonferroni within each family (bench_tests.csv)
-  * plots/: dot plot of the primary metric per cell; memcached: p99 vs offered load per arm
+  * plots/: dot plot of the primary metric per cell (and one without sidecarless); memcached: p99 vs offered load per arm
 Trials with unverified floods or a failed app run are excluded.
 """
 import os
@@ -82,7 +82,7 @@ def show(t, title):
         [a for a in ORDER if a in set(t.arm)]).to_string())
 
 
-def dot_plot(summ, app, path):
+def dot_plot(summ, app, path, note=""):
     cells = sorted(set(zip(summ.condition, summ.variant)))
     if not cells:
         return
@@ -112,7 +112,8 @@ def dot_plot(summ, app, path):
         ax.tick_params(colors=INK2, labelsize=8)
     axes[0][0].set_yticks(list(ypos.values()))
     axes[0][0].set_yticklabels(list(ypos), color=INK, fontsize=8.5)
-    fig.suptitle(f"Workload 11 / {app}: primary metric per cell (median, 95% CI)", color=INK, fontsize=10, x=0.01, ha="left")
+    fig.suptitle(f"Workload 11 / {app}: primary metric per cell (median, 95% CI){note}", color=INK, fontsize=10,
+                 x=0.01, ha="left")
     fig.tight_layout()
     fig.savefig(path, dpi=200, facecolor=SURFACE)
     plt.close(fig)
@@ -194,6 +195,9 @@ def main():
     out = os.path.join(run, "plots")
     os.makedirs(out, exist_ok=True)
     dot_plot(summ, app, os.path.join(out, f"{app}_primary.png"))
+    if "sidecarless" in set(summ.arch):   # it is 1-3 orders of magnitude above the rest under attack and flattens them
+        dot_plot(summ[summ.arch != "sidecarless"], app, os.path.join(out, f"{app}_primary_no_sidecarless.png"),
+                 note="; sidecarless omitted")
     if app == "memcached":
         load_curve(summ, os.path.join(out, "memcached_load_curve.png"))
     print(f"\nplots: {out}")

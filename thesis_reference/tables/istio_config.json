@@ -1,0 +1,33 @@
+{
+  "app": "istio",
+  "reps": 10,
+  "architectures": [
+    "bare",
+    "envoy_sidecar",
+    "envoy_sidecar_mtls",
+    "sidecarless",
+    "qos_open",
+    "qos_static",
+    "qos_markov",
+    "qos_auto_port"
+  ],
+  "conditions": [
+    "idle",
+    "noisy"
+  ],
+  "variants": [
+    "c16_q1000",
+    "c4_q1000",
+    "c16_q1000_uniform"
+  ],
+  "duration": 30,
+  "warmup": 3.0,
+  "tenant_cpus": "1-5",
+  "controller_cpus": "0",
+  "attacker_cpus": "6-7",
+  "rps": true,
+  "seed": 21,
+  "out": "results/istio_B_N10_20261113_183423",
+  "tenants_file": "/home/udeepa/CLB/test_bed_qos/tenants/scale100.json",
+  "calibration": "/home/udeepa/CLB/test_bed_qos/calibration/scale100_rps.json"
+}

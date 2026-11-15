@@ -1,0 +1,36 @@
+{
+  "reps": 10,
+  "architectures": [
+    "sidecarless",
+    "qos_open",
+    "qos_tiered",
+    "qos_static",
+    "qos_dynamic_fixed",
+    "qos_dynamic_adaptive",
+    "qos_markov",
+    "qos_auto_port",
+    "qos_tc_police"
+  ],
+  "scenarios": [
+    "none",
+    "a1_flood",
+    "a5_flood",
+    "a5_small"
+  ],
+  "sweep": false,
+  "duration": 30,
+  "qps": 20,
+  "warmup": 3.0,
+  "tenant_cpus": "1-5",
+  "controller_cpus": "0",
+  "attacker_cpus": "6-7",
+  "attacker_cpu_quota": 0,
+  "rps": true,
+  "rps_cpus": null,
+  "seed": 42,
+  "keep_topology": false,
+  "out": "results/final_B_N10_20261106_225609",
+  "tenants_file": "/home/udeepa/CLB/test_bed_qos/tenants/scale100.json",
+  "n_victims": 95,
+  "n_attackers": 5
+}

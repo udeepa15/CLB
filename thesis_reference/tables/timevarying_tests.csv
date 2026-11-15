@@ -1,0 +1,81 @@
+question,metric,cell,arm,ref,shift_vs_ref,cliffs_delta,p,n,n_ref,family,alpha_bonferroni,significant
+Q1 protection vs qos_open,p99_ms,bursty/all,qos_static,qos_open,-3.8935500000000003,-1.0,0.0001826717911095504,10,10,32,0.0015625,True
+Q1 protection vs qos_open,p99_ms,bursty/all,qos_tc_police,qos_open,-4.8793500000000005,-1.0,0.0001826717911095504,10,10,32,0.0015625,True
+Q1 protection vs qos_open,p99_ms,bursty/all,qos_dynamic_fixed,qos_open,-2.6017500000000005,-1.0,0.0001826717911095504,10,10,32,0.0015625,True
+Q1 protection vs qos_open,p99_ms,bursty/all,qos_dynamic_adaptive,qos_open,-2.96375,-1.0,0.0001826717911095504,10,10,32,0.0015625,True
+Q1 protection vs qos_open,p99_ms,bursty/all,qos_markov,qos_open,-3.4325500000000004,-1.0,0.0001826717911095504,10,10,32,0.0015625,True
+Q1 protection vs qos_open,p99_ms,bursty/all,qos_markov_200ms,qos_open,-2.6201000000000008,-0.98,0.0002461281279052302,10,10,32,0.0015625,True
+Q1 protection vs qos_open,p99_ms,bursty/all,qos_markov_l95,qos_open,-3.4656000000000002,-1.0,0.0001826717911095504,10,10,32,0.0015625,True
+Q1 protection vs qos_open,p99_ms,bursty/all,qos_auto_port,qos_open,-1.98705,-0.9,0.0007685389131627682,10,10,32,0.0015625,True
+Q1 protection vs qos_open,p99_ms,ramp/all,qos_static,qos_open,-2.8934499999999996,-1.0,0.0001826717911095504,10,10,32,0.0015625,True
+Q1 protection vs qos_open,p99_ms,ramp/all,qos_tc_police,qos_open,-3.7673499999999995,-1.0,0.0001826717911095504,10,10,32,0.0015625,True
+Q1 protection vs qos_open,p99_ms,ramp/all,qos_dynamic_fixed,qos_open,-2.6719500000000007,-1.0,0.0001826717911095504,10,10,32,0.0015625,True
+Q1 protection vs qos_open,p99_ms,ramp/all,qos_dynamic_adaptive,qos_open,-2.6949000000000005,-1.0,0.0001826717911095504,10,10,32,0.0015625,True
+Q1 protection vs qos_open,p99_ms,ramp/all,qos_markov,qos_open,-3.0580000000000003,-1.0,0.0001826717911095504,10,10,32,0.0015625,True
+Q1 protection vs qos_open,p99_ms,ramp/all,qos_markov_200ms,qos_open,-2.7663000000000006,-0.96,0.00032983852077799424,10,10,32,0.0015625,True
+Q1 protection vs qos_open,p99_ms,ramp/all,qos_markov_l95,qos_open,-2.7592,-0.98,0.0002461281279052302,10,10,32,0.0015625,True
+Q1 protection vs qos_open,p99_ms,ramp/all,qos_auto_port,qos_open,-2.5181500000000003,-0.96,0.00032983852077799424,10,10,32,0.0015625,True
+Q1 protection vs qos_open,p99_ms,regime/attack,qos_static,qos_open,-4.327,-0.98,0.0002461281279052302,10,10,32,0.0015625,True
+Q1 protection vs qos_open,p99_ms,regime/attack,qos_tc_police,qos_open,-5.18375,-1.0,0.0001826717911095504,10,10,32,0.0015625,True
+Q1 protection vs qos_open,p99_ms,regime/attack,qos_dynamic_fixed,qos_open,-3.6617999999999995,-0.92,0.0005828399431792743,10,10,32,0.0015625,True
+Q1 protection vs qos_open,p99_ms,regime/attack,qos_dynamic_adaptive,qos_open,-4.128749999999999,-1.0,0.0001826717911095504,10,10,32,0.0015625,True
+Q1 protection vs qos_open,p99_ms,regime/attack,qos_markov,qos_open,-4.1743999999999994,-1.0,0.0001826717911095504,10,10,32,0.0015625,True
+Q1 protection vs qos_open,p99_ms,regime/attack,qos_markov_200ms,qos_open,-3.8945500000000006,-1.0,0.0001826717911095504,10,10,32,0.0015625,True
+Q1 protection vs qos_open,p99_ms,regime/attack,qos_markov_l95,qos_open,-3.9731999999999994,-1.0,0.0001826717911095504,10,10,32,0.0015625,True
+Q1 protection vs qos_open,p99_ms,regime/attack,qos_auto_port,qos_open,-3.3571999999999997,-0.98,0.0002461281279052302,10,10,32,0.0015625,True
+Q1 protection vs qos_open,p99_ms,regime/calm,qos_static,qos_open,-0.17400000000000015,-0.2,0.4726755935115873,10,10,32,0.0015625,False
+Q1 protection vs qos_open,p99_ms,regime/calm,qos_tc_police,qos_open,-0.44789999999999996,-0.64,0.017257456083119776,10,10,32,0.0015625,False
+Q1 protection vs qos_open,p99_ms,regime/calm,qos_dynamic_fixed,qos_open,0.31079999999999997,0.34,0.21229383619233155,10,10,32,0.0015625,False
+Q1 protection vs qos_open,p99_ms,regime/calm,qos_dynamic_adaptive,qos_open,-0.07329999999999992,-0.08,0.7913367801006604,10,10,32,0.0015625,False
+Q1 protection vs qos_open,p99_ms,regime/calm,qos_markov,qos_open,0.08614999999999995,0.08,0.7913367801006604,10,10,32,0.0015625,False
+Q1 protection vs qos_open,p99_ms,regime/calm,qos_markov_200ms,qos_open,0.2609999999999999,0.42,0.1212245030129166,10,10,32,0.0015625,False
+Q1 protection vs qos_open,p99_ms,regime/calm,qos_markov_l95,qos_open,0.21740000000000004,0.3,0.27303633975118824,10,10,32,0.0015625,False
+Q1 protection vs qos_open,p99_ms,regime/calm,qos_auto_port,qos_open,0.20425000000000004,0.28,0.3074894566186813,10,10,32,0.0015625,False
+Q2 adaptivity: P99 vs qos_static,p99_ms,bursty/all,qos_dynamic_fixed,qos_static,1.2772000000000001,0.88,0.0010079762403767468,10,10,24,0.0020833333333333333,True
+Q2 adaptivity: P99 vs qos_static,p99_ms,bursty/all,qos_dynamic_adaptive,qos_static,0.9546000000000001,0.74,0.005795358544334713,10,10,24,0.0020833333333333333,False
+Q2 adaptivity: P99 vs qos_static,p99_ms,bursty/all,qos_markov,qos_static,0.5017,0.58,0.031209012771740242,10,10,24,0.0020833333333333333,False
+Q2 adaptivity: P99 vs qos_static,p99_ms,bursty/all,qos_markov_200ms,qos_static,1.2432500000000002,0.86,0.0013149446697132174,10,10,24,0.0020833333333333333,True
+Q2 adaptivity: P99 vs qos_static,p99_ms,bursty/all,qos_markov_l95,qos_static,0.46335000000000015,0.46,0.08897301170181333,10,10,24,0.0020833333333333333,False
+Q2 adaptivity: P99 vs qos_static,p99_ms,bursty/all,qos_auto_port,qos_static,1.9733,0.96,0.00032983852077799424,10,10,24,0.0020833333333333333,True
+Q2 adaptivity: P99 vs qos_static,p99_ms,ramp/all,qos_dynamic_fixed,qos_static,0.5509,0.56,0.03763531378731427,10,10,24,0.0020833333333333333,False
+Q2 adaptivity: P99 vs qos_static,p99_ms,ramp/all,qos_dynamic_adaptive,qos_static,0.4049999999999998,0.42,0.1212245030129166,10,10,24,0.0020833333333333333,False
+Q2 adaptivity: P99 vs qos_static,p99_ms,ramp/all,qos_markov,qos_static,0.004449999999999843,0.02,0.9698499769931556,10,10,24,0.0020833333333333333,False
+Q2 adaptivity: P99 vs qos_static,p99_ms,ramp/all,qos_markov_200ms,qos_static,0.3046500000000001,0.26,0.3447042220069577,10,10,24,0.0020833333333333333,False
+Q2 adaptivity: P99 vs qos_static,p99_ms,ramp/all,qos_markov_l95,qos_static,0.1988500000000002,0.26,0.3447042220069577,10,10,24,0.0020833333333333333,False
+Q2 adaptivity: P99 vs qos_static,p99_ms,ramp/all,qos_auto_port,qos_static,0.5253000000000001,0.52,0.05390255716938722,10,10,24,0.0020833333333333333,False
+Q2 adaptivity: P99 vs qos_static,p99_ms,regime/attack,qos_dynamic_fixed,qos_static,0.68885,0.54,0.04515456962427905,10,10,24,0.0020833333333333333,False
+Q2 adaptivity: P99 vs qos_static,p99_ms,regime/attack,qos_dynamic_adaptive,qos_static,0.15519999999999978,0.14,0.6231762238821174,10,10,24,0.0020833333333333333,False
+Q2 adaptivity: P99 vs qos_static,p99_ms,regime/attack,qos_markov,qos_static,0.11979999999999968,0.12,0.6775849579524755,10,10,24,0.0020833333333333333,False
+Q2 adaptivity: P99 vs qos_static,p99_ms,regime/attack,qos_markov_200ms,qos_static,0.3757500000000009,0.24,0.3846730627355087,10,10,24,0.0020833333333333333,False
+Q2 adaptivity: P99 vs qos_static,p99_ms,regime/attack,qos_markov_l95,qos_static,0.43115000000000014,0.42,0.1212245030129166,10,10,24,0.0020833333333333333,False
+Q2 adaptivity: P99 vs qos_static,p99_ms,regime/attack,qos_auto_port,qos_static,1.0313499999999998,0.68,0.011329696684474673,10,10,24,0.0020833333333333333,False
+Q2 adaptivity: P99 vs qos_static,p99_ms,regime/calm,qos_dynamic_fixed,qos_static,0.4826999999999999,0.58,0.031209012771740242,10,10,24,0.0020833333333333333,False
+Q2 adaptivity: P99 vs qos_static,p99_ms,regime/calm,qos_dynamic_adaptive,qos_static,0.044300000000000006,0.06,0.8501067391385257,10,10,24,0.0020833333333333333,False
+Q2 adaptivity: P99 vs qos_static,p99_ms,regime/calm,qos_markov,qos_static,0.18954999999999989,0.36,0.18587673236587593,10,10,24,0.0020833333333333333,False
+Q2 adaptivity: P99 vs qos_static,p99_ms,regime/calm,qos_markov_200ms,qos_static,0.4517500000000001,0.6,0.025748080821108084,10,10,24,0.0020833333333333333,False
+Q2 adaptivity: P99 vs qos_static,p99_ms,regime/calm,qos_markov_l95,qos_static,0.3410500000000001,0.46,0.08897301170181333,10,10,24,0.0020833333333333333,False
+Q2 adaptivity: P99 vs qos_static,p99_ms,regime/calm,qos_auto_port,qos_static,0.3832500000000003,0.52,0.05390255716938722,10,10,24,0.0020833333333333333,False
+Q2 adaptivity: goodput vs qos_static,to_targets_MBps,bursty/all,qos_dynamic_fixed,qos_static,9.657,1.0,0.0001826717911095504,10,10,24,0.0020833333333333333,True
+Q2 adaptivity: goodput vs qos_static,to_targets_MBps,bursty/all,qos_dynamic_adaptive,qos_static,9.619499999999999,1.0,0.0001826717911095504,10,10,24,0.0020833333333333333,True
+Q2 adaptivity: goodput vs qos_static,to_targets_MBps,bursty/all,qos_markov,qos_static,6.2175,1.0,0.0001826717911095504,10,10,24,0.0020833333333333333,True
+Q2 adaptivity: goodput vs qos_static,to_targets_MBps,bursty/all,qos_markov_200ms,qos_static,9.4735,1.0,0.0001826717911095504,10,10,24,0.0020833333333333333,True
+Q2 adaptivity: goodput vs qos_static,to_targets_MBps,bursty/all,qos_markov_l95,qos_static,6.006500000000001,1.0,0.0001826717911095504,10,10,24,0.0020833333333333333,True
+Q2 adaptivity: goodput vs qos_static,to_targets_MBps,bursty/all,qos_auto_port,qos_static,24.3105,1.0,0.0001826717911095504,10,10,24,0.0020833333333333333,True
+Q2 adaptivity: goodput vs qos_static,to_targets_MBps,ramp/all,qos_dynamic_fixed,qos_static,25.839,1.0,0.0001826717911095504,10,10,24,0.0020833333333333333,True
+Q2 adaptivity: goodput vs qos_static,to_targets_MBps,ramp/all,qos_dynamic_adaptive,qos_static,26.082500000000003,1.0,0.0001826717911095504,10,10,24,0.0020833333333333333,True
+Q2 adaptivity: goodput vs qos_static,to_targets_MBps,ramp/all,qos_markov,qos_static,9.786000000000001,1.0,0.0001826717911095504,10,10,24,0.0020833333333333333,True
+Q2 adaptivity: goodput vs qos_static,to_targets_MBps,ramp/all,qos_markov_200ms,qos_static,10.406,1.0,0.0001826717911095504,10,10,24,0.0020833333333333333,True
+Q2 adaptivity: goodput vs qos_static,to_targets_MBps,ramp/all,qos_markov_l95,qos_static,9.723500000000001,1.0,0.0001826717911095504,10,10,24,0.0020833333333333333,True
+Q2 adaptivity: goodput vs qos_static,to_targets_MBps,ramp/all,qos_auto_port,qos_static,25.875500000000002,1.0,0.0001826717911095504,10,10,24,0.0020833333333333333,True
+Q2 adaptivity: goodput vs qos_static,to_targets_MBps,regime/attack,qos_dynamic_fixed,qos_static,11.123000000000003,1.0,0.00017861448837368216,10,10,24,0.0020833333333333333,True
+Q2 adaptivity: goodput vs qos_static,to_targets_MBps,regime/attack,qos_dynamic_adaptive,qos_static,11.198000000000002,1.0,0.00017861448837368216,10,10,24,0.0020833333333333333,True
+Q2 adaptivity: goodput vs qos_static,to_targets_MBps,regime/attack,qos_markov,qos_static,10.483500000000001,1.0,0.00017861448837368216,10,10,24,0.0020833333333333333,True
+Q2 adaptivity: goodput vs qos_static,to_targets_MBps,regime/attack,qos_markov_200ms,qos_static,11.011999999999999,1.0,0.00017861448837368216,10,10,24,0.0020833333333333333,True
+Q2 adaptivity: goodput vs qos_static,to_targets_MBps,regime/attack,qos_markov_l95,qos_static,10.35,1.0,0.00017861448837368216,10,10,24,0.0020833333333333333,True
+Q2 adaptivity: goodput vs qos_static,to_targets_MBps,regime/attack,qos_auto_port,qos_static,13.361500000000001,1.0,0.00017861448837368216,10,10,24,0.0020833333333333333,True
+Q2 adaptivity: goodput vs qos_static,to_targets_MBps,regime/calm,qos_dynamic_fixed,qos_static,18.5445,1.0,0.00010996888366543133,10,10,24,0.0020833333333333333,True
+Q2 adaptivity: goodput vs qos_static,to_targets_MBps,regime/calm,qos_dynamic_adaptive,qos_static,18.5565,1.0,0.00010996888366543133,10,10,24,0.0020833333333333333,True
+Q2 adaptivity: goodput vs qos_static,to_targets_MBps,regime/calm,qos_markov,qos_static,18.548000000000002,1.0,0.00010927036519221203,10,10,24,0.0020833333333333333,True
+Q2 adaptivity: goodput vs qos_static,to_targets_MBps,regime/calm,qos_markov_200ms,qos_static,18.547,1.0,0.00010996888366543133,10,10,24,0.0020833333333333333,True
+Q2 adaptivity: goodput vs qos_static,to_targets_MBps,regime/calm,qos_markov_l95,qos_static,18.5275,1.0,0.00010927036519221203,10,10,24,0.0020833333333333333,True
+Q2 adaptivity: goodput vs qos_static,to_targets_MBps,regime/calm,qos_auto_port,qos_static,18.493,1.0,0.00010996888366543133,10,10,24,0.0020833333333333333,True

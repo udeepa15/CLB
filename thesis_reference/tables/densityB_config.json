@@ -1,0 +1,113 @@
+{
+  "levels": [
+    1,
+    10,
+    20,
+    30,
+    40,
+    50,
+    60,
+    70,
+    80,
+    90,
+    100
+  ],
+  "reps": 5,
+  "architectures": [
+    "sidecarless",
+    "qos_open",
+    "qos_static",
+    "qos_dynamic_fixed",
+    "qos_auto_port"
+  ],
+  "scenarios": [
+    "none",
+    "a1_flood",
+    "a5pct_flood"
+  ],
+  "duration": 30,
+  "min_requests": 1200,
+  "max_duration": 60,
+  "qps": 20,
+  "calibration": "/home/udeepa/CLB/test_bed_qos/calibration/scale100_rps.json",
+  "tenant_cpus": "1-5",
+  "attacker_cpus": "6-7",
+  "rps": true,
+  "seed": 7,
+  "out": "/home/udeepa/CLB/test_bed_qos/workloads/10_scale/results/density_B_N5_20261106_125230",
+  "level_order": [
+    10,
+    100,
+    30,
+    90,
+    80,
+    40,
+    70,
+    1,
+    60,
+    20,
+    50
+  ],
+  "calibration_used": {
+    "capacity_pps": 75797,
+    "h0_hits_per_sec": 151591,
+    "baseline_p99_ms": 2.8099,
+    "p99_limit_ms": 3.5124,
+    "tolerance": 0.25,
+    "knee_found": true,
+    "note": "knee interpolated where pooled victim P99 crosses (1+tolerance) x no-attack P99",
+    "levels": [
+      {
+        "scenario": "none",
+        "n": 3,
+        "ingress_pps": 24424,
+        "hits_per_sec": 48848,
+        "p99_ms": 2.8099
+      },
+      {
+        "scenario": "a5_u1000",
+        "n": 3,
+        "ingress_pps": 29327,
+        "hits_per_sec": 58653,
+        "p99_ms": 2.5994
+      },
+      {
+        "scenario": "a5_u200",
+        "n": 3,
+        "ingress_pps": 47204,
+        "hits_per_sec": 94405,
+        "p99_ms": 2.5041
+      },
+      {
+        "scenario": "a5_u50",
+        "n": 3,
+        "ingress_pps": 94636,
+        "hits_per_sec": 189269,
+        "p99_ms": 4.1767
+      },
+      {
+        "scenario": "a5_u20",
+        "n": 3,
+        "ingress_pps": 135680,
+        "hits_per_sec": 271354,
+        "p99_ms": 7.4323
+      },
+      {
+        "scenario": "a5_u10",
+        "n": 3,
+        "ingress_pps": 154464,
+        "hits_per_sec": 308924,
+        "p99_ms": 8.1308
+      },
+      {
+        "scenario": "a5_flood",
+        "n": 3,
+        "ingress_pps": 312330,
+        "hits_per_sec": 624657,
+        "p99_ms": 13.7895
+      }
+    ],
+    "source": "/home/udeepa/CLB/test_bed_qos/workloads/10_scale/results/sweepB_N3_20261106_110928",
+    "created": "2026-11-06T11:28:36"
+  }
+}

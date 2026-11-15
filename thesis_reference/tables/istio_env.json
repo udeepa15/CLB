@@ -1,0 +1,93 @@
+{
+  "timestamp": "2026-11-13T18:34:24",
+  "kernel": "5.15.0-185-generic",
+  "cgroup_fs": "cgroup2fs",
+  "cpu_model": "Intel(R) Xeon(R) CPU E5-2609 v2 @ 2.50GHz",
+  "nproc": 8,
+  "governor": "performance",
+  "runc": "runc version 1.3.4-0ubuntu1~22.04.1",
+  "clang": "Ubuntu clang version 14.0.0-1ubuntu1.1",
+  "bpftool": "/usr/lib/linux-tools/5.15.0-185-generic/bpftool v5.15.200",
+  "fortio": "1.57.0",
+  "hping3": "hping3 version 3.0.0-alpha-2 ($Id: release.h,v 1.4 2004/04/09 23:38:56 antirez Exp $)",
+  "git_commit": "295e7b67f9dce95429f3c1c1371061a8cca2373c",
+  "git_dirty": true,
+  "python": "3.10.12",
+  "arms": [
+    {
+      "arm": "bare",
+      "attach": null,
+      "tc": "none",
+      "controller": null,
+      "no_limit": true,
+      "static_cap_bps": 5000000
+    },
+    {
+      "arm": "envoy_sidecar",
+      "attach": null,
+      "tc": "none",
+      "controller": null,
+      "no_limit": true,
+      "sidecar": "envoy",
+      "static_cap_bps": 5000000
+    },
+    {
+      "arm": "envoy_sidecar_mtls",
+      "attach": null,
+      "tc": "none",
+      "controller": null,
+      "no_limit": true,
+      "sidecar": "envoy",
+      "mtls": true,
+      "static_cap_bps": 5000000
+    },
+    {
+      "arm": "sidecarless",
+      "attach": "sidecarless",
+      "controller": null,
+      "no_limit": true,
+      "map_check": "flow_map",
+      "static_cap_bps": 5000000
+    },
+    {
+      "arm": "qos_open",
+      "attach": "qos_dynamic",
+      "controller": null,
+      "no_limit": true,
+      "map_check": "rate_cfg_map",
+      "static_cap_bps": 5000000
+    },
+    {
+      "arm": "qos_static",
+      "attach": "qos_dynamic",
+      "controller": null,
+      "seed_static": true,
+      "static_cap_bps": 5000000
+    },
+    {
+      "arm": "qos_markov",
+      "attach": "qos_dynamic",
+      "controller": "markov",
+      "args": [
+        "--interval",
+        "0.1"
+      ],
+      "static_cap_bps": 5000000
+    },
+    {
+      "arm": "qos_auto_port",
+      "attach": "qos_auto",
+      "controller": "auto",
+      "auto_key": "port",
+      "args": [
+        "--key",
+        "port",
+        "--capacity-pps",
+        "75797",
+        "--interval",
+        "0.2"
+      ],
+      "static_cap_bps": 5000000
+    }
+  ]
+}
